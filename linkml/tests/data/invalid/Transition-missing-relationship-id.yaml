@@ -1,0 +1,7 @@
+# INVALID Transition: missing required field 'relationship_unique_id'.
+# Violation: relationship_unique_id is required on Transition.
+# Class: Transition
+# relationship_unique_id: intentionally omitted - required field
+sequence_number: 1
+description: A transition with no relationship anchor.
+direction: source_to_destination

@@ -1,0 +1,4 @@
+# Valid ControlDetail: pairs a requirement URL with inline config.
+# Class: ControlDetail
+requirement_url: https://calm.example.com/controls/tls-encryption
+config_url: https://calm.example.com/configs/tls-1.3-policy

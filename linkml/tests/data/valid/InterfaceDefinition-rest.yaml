@@ -1,0 +1,5 @@
+# Valid InterfaceDefinition: modular interface referencing an external schema.
+# Class: InterfaceDefinition
+unique_id: iface-rest-api
+definition_url: https://calm.example.com/interfaces/rest-http.json
+config: '{"port": 8080, "host": "0.0.0.0", "tls": true}'

@@ -1,0 +1,258 @@
+# Vendor fixture: E-Commerce Order Processing Platform
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Architecture
+# Exercises: nodes (actor, api-gateway, service, database, system), relationships
+#   (interacts, connects, composed-of), interfaces, protocol, metadata, flows (absent).
+nodes:
+  - unique_id: customer-actor
+    node_type: actor
+    name: Customer
+    description: An end customer placing orders through the e-commerce platform
+
+  - unique_id: admin-actor
+    node_type: actor
+    name: Admin
+    description: Platform administrator managing orders, inventory, and payment issues
+
+  - unique_id: api-gateway
+    node_type: service # vendor: api-gateway (custom type)
+    name: API Gateway
+    description: Central entry point for customer and admin requests routed to backend services
+    interfaces:
+      - unique_id: api-gateway-http-interface
+        definition_url: https://api.ecommerce.example.com
+        config: '{"protocol": "HTTPS"}'
+      - unique_id: api-gateway-health-interface
+        definition_url: https://api.ecommerce.example.com/health
+        config: '{"protocol": "HTTPS", "type": "health-check"}'
+
+  - unique_id: order-service
+    node_type: service
+    name: Order Service
+    description: Handles order creation, updates, and retrieval across the platform
+    interfaces:
+      - unique_id: order-service-rest-interface
+        definition_url: https://api.ecommerce.example.com/orders
+        config: '{"protocol": "HTTPS"}'
+      - unique_id: order-service-health-interface
+        definition_url: https://api.ecommerce.example.com/orders/health
+        config: '{"protocol": "HTTPS", "type": "health-check"}'
+      - unique_id: order-service-events-interface
+        definition_url: amqp://events.ecommerce.example.com
+        config: '{"type": "event-stream", "events": ["OrderCreated", "OrderUpdated", "OrderCancelled"]}'
+
+  - unique_id: inventory-service
+    node_type: service
+    name: Inventory Service
+    description: Manages stock levels, availability, and inventory validation for orders
+    interfaces:
+      - unique_id: inventory-service-rest-interface
+        definition_url: https://api.ecommerce.example.com/inventory
+        config: '{"protocol": "HTTPS"}'
+      - unique_id: inventory-service-health-interface
+        definition_url: https://api.ecommerce.example.com/inventory/health
+        config: '{"protocol": "HTTPS", "type": "health-check"}'
+
+  - unique_id: payment-service
+    node_type: service
+    name: Payment Service
+    description: Processes payment authorization, settlement, and status updates for orders
+    interfaces:
+      - unique_id: payment-service-rest-interface
+        definition_url: https://api.ecommerce.example.com/payments
+        config: '{"protocol": "HTTPS"}'
+      - unique_id: payment-service-health-interface
+        definition_url: https://api.ecommerce.example.com/payments/health
+        config: '{"protocol": "HTTPS", "type": "health-check"}'
+      - unique_id: payment-service-events-interface
+        definition_url: amqp://events.ecommerce.example.com
+        config: '{"type": "event-stream", "events": ["PaymentProcessed", "PaymentFailed", "PaymentRefunded"]}'
+
+  - unique_id: order-database
+    node_type: database
+    name: Order Database
+    description: Stores order records, status updates, and customer purchase history
+    interfaces:
+      - unique_id: order-database-jdbc-interface
+        definition_url: jdbc:postgresql://orders-db.ecommerce.example.com:5432/orders
+        config: '{"type": "JDBC"}'
+
+  - unique_id: inventory-database
+    node_type: database
+    name: Inventory Database
+    description: Stores inventory counts, product availability, and warehouse stock data
+    interfaces:
+      - unique_id: inventory-database-jdbc-interface
+        definition_url: jdbc:postgresql://inventory-db.ecommerce.example.com:5432/inventory
+        config: '{"type": "JDBC"}'
+
+  - unique_id: payment-database
+    node_type: database
+    name: Payment Database
+    description: Stores payment transactions, receipts, and reconciliation records with PCI-DSS compliance
+    interfaces:
+      - unique_id: payment-database-jdbc-interface
+        definition_url: jdbc:postgresql://payment-db.ecommerce.example.com:5432/payments
+        config: '{"type": "JDBC"}'
+
+  - unique_id: ecommerce-platform
+    node_type: system
+    name: E-Commerce Platform
+    description: Logical system boundary encompassing the order processing services and databases
+
+relationships:
+  - unique_id: customer-to-api-gateway
+    description: Customer interacts with the API gateway to submit and view orders
+    relationship_type:
+      interacts:
+        actor: customer-actor
+        nodes:
+          - api-gateway
+
+  - unique_id: admin-to-api-gateway
+    description: Admin interacts with the API gateway to manage orders and inventory
+    relationship_type:
+      interacts:
+        actor: admin-actor
+        nodes:
+          - api-gateway
+
+  - unique_id: api-gateway-to-order-service
+    description: API Gateway routes order traffic to the Order Service
+    protocol: HTTPS
+    relationship_type:
+      connects:
+        source:
+          node: api-gateway
+          interfaces:
+            - unique_id: iface-gw-order-out
+              definition_url: https://api.ecommerce.example.com
+              config: '{"port": 443}'
+        destination:
+          node: order-service
+          interfaces:
+            - unique_id: iface-order-in
+              definition_url: https://api.ecommerce.example.com/orders
+              config: '{"port": 8080}'
+
+  - unique_id: api-gateway-to-inventory-service
+    description: API Gateway routes inventory queries to the Inventory Service
+    protocol: HTTPS
+    relationship_type:
+      connects:
+        source:
+          node: api-gateway
+          interfaces:
+            - unique_id: iface-gw-inv-out
+              definition_url: https://api.ecommerce.example.com
+              config: '{"port": 443}'
+        destination:
+          node: inventory-service
+          interfaces:
+            - unique_id: iface-inv-in
+              definition_url: https://api.ecommerce.example.com/inventory
+              config: '{"port": 8080}'
+
+  - unique_id: order-service-to-order-database
+    description: Order Service reads and writes order data in the Order Database
+    protocol: JDBC
+    relationship_type:
+      connects:
+        source:
+          node: order-service
+          interfaces:
+            - unique_id: iface-order-jdbc-out
+              definition_url: https://calm.example.com/interfaces/jdbc-out
+              config: '{"driver": "org.postgresql.Driver"}'
+        destination:
+          node: order-database
+          interfaces:
+            - unique_id: iface-order-db-in
+              definition_url: jdbc:postgresql://orders-db.ecommerce.example.com:5432/orders
+              config: '{"port": 5432}'
+
+  - unique_id: order-service-to-payment-service
+    description: Order Service initiates payment processing with the Payment Service
+    protocol: HTTPS
+    relationship_type:
+      connects:
+        source:
+          node: order-service
+          interfaces:
+            - unique_id: iface-order-pay-out
+              definition_url: https://api.ecommerce.example.com/orders
+              config: '{"port": 8080}'
+        destination:
+          node: payment-service
+          interfaces:
+            - unique_id: iface-pay-in
+              definition_url: https://api.ecommerce.example.com/payments
+              config: '{"port": 8080}'
+
+  - unique_id: order-service-to-inventory-service
+    description: Order Service queries Inventory Service to verify stock availability
+    protocol: HTTPS
+    relationship_type:
+      connects:
+        source:
+          node: order-service
+          interfaces:
+            - unique_id: iface-order-inv-out
+              definition_url: https://api.ecommerce.example.com/orders
+              config: '{"port": 8080}'
+        destination:
+          node: inventory-service
+          interfaces:
+            - unique_id: iface-inv-from-order
+              definition_url: https://api.ecommerce.example.com/inventory
+              config: '{"port": 8080}'
+
+  - unique_id: payment-service-to-payment-database
+    description: Payment Service reads and writes payment transaction records
+    protocol: JDBC
+    relationship_type:
+      connects:
+        source:
+          node: payment-service
+          interfaces:
+            - unique_id: iface-pay-jdbc-out
+              definition_url: https://calm.example.com/interfaces/jdbc-out
+              config: '{"driver": "org.postgresql.Driver"}'
+        destination:
+          node: payment-database
+          interfaces:
+            - unique_id: iface-pay-db-in
+              definition_url: jdbc:postgresql://payment-db.ecommerce.example.com:5432/payments
+              config: '{"port": 5432}'
+
+  - unique_id: inventory-service-to-inventory-database
+    description: Inventory Service reads and updates stock availability
+    protocol: JDBC
+    relationship_type:
+      connects:
+        source:
+          node: inventory-service
+          interfaces:
+            - unique_id: iface-inv-jdbc-out
+              definition_url: https://calm.example.com/interfaces/jdbc-out
+              config: '{"driver": "org.postgresql.Driver"}'
+        destination:
+          node: inventory-database
+          interfaces:
+            - unique_id: iface-inv-db-in
+              definition_url: jdbc:postgresql://inventory-db.ecommerce.example.com:5432/inventory
+              config: '{"port": 5432}'
+
+  - unique_id: platform-composition
+    description: E-Commerce Platform is composed of the API gateway, backend services, and databases
+    relationship_type:
+      composed_of:
+        container: ecommerce-platform
+        nodes:
+          - api-gateway
+          - order-service
+          - inventory-service
+          - payment-service
+          - order-database
+          - inventory-database
+          - payment-database

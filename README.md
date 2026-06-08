@@ -8,6 +8,8 @@
 
 ![FINOS Common Architecture Language Model](https://raw.githubusercontent.com/finos/architecture-as-code/main/brand/Horizontal/2025_CALM_Horizontal.png)
 
+See **LinkML repository [./linkml/](./linkml) and [calm schema](https://w3id.org/lmodel/calm) and LinkML [solution description](./linkml/docs/about.md)** 
+
 # Architecture as Code
 
 **Architecture as Code (AasC)** aims to devise and manage software architecture via a human and machine readable and

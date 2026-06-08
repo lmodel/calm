@@ -1,0 +1,16 @@
+# Vendor fixture: Composed-of relationship (system contains services + databases).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Relationship
+unique_id: platform-composition
+description: E-Commerce Platform is composed of the API gateway, backend services, and databases
+relationship_type:
+  composed_of:
+    container: ecommerce-platform
+    nodes:
+      - api-gateway
+      - order-service
+      - inventory-service
+      - payment-service
+      - order-database
+      - inventory-database
+      - payment-database

@@ -1,0 +1,9 @@
+# INVALID Decorator: missing required field 'applies_to'.
+# Violation: applies_to is required on Decorator.
+# Class: Decorator
+unique_id: dec-no-applies-to
+type: threat-model
+target:
+  - https://calm.example.com/architectures/payments-arch.yaml
+# applies_to: intentionally omitted - required field
+data: '{"threat_level": "high"}'

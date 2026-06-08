@@ -1,0 +1,13 @@
+# metamodel_version: 1.11.0# version: 1.2id: NodeInterface
+schema_generating: true
+description: Reference to one or more interfaces exposed by a node.
+display_name: NodeInterface
+document_category: NodeInterface
+weight: 20
+fields:
+- id: node
+  display_name: node
+- id: interfaces
+  description: Interface definitions exposed by nodes.
+  display_name: NodeInterface_interfaces
+  cardinality: multi

@@ -1,0 +1,6 @@
+# INVALID ControlRequirement: missing required field 'name'.
+# Violation: name is required on ControlRequirement.
+# Class: ControlRequirement
+control_id: ctrl-req-no-name
+# name: intentionally omitted - required field
+description: A control requirement with no name.

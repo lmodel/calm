@@ -1,0 +1,11 @@
+# Invalid vendor fixture: Node missing required description field.
+# Source: derived from https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+unique_id: api-gateway
+node_type: api-gateway
+name: API Gateway
+# description intentionally omitted - required by schema
+interfaces:
+  - unique_id: api-gateway-http-interface
+    definition_url: https://api.ecommerce.example.com
+    config: '{"protocol": "HTTPS"}'

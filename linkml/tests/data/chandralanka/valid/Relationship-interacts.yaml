@@ -1,0 +1,10 @@
+# Vendor fixture: Interacts relationship (actor ->  node).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Relationship
+unique_id: customer-to-api-gateway
+description: Customer interacts with the API gateway to submit and view orders
+relationship_type:
+  interacts:
+    actor: customer-actor
+    nodes:
+      - api-gateway

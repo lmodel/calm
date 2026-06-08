@@ -1,0 +1,26 @@
+# metamodel_version: 1.11.0# version: 1.2id: Flow
+schema_generating: true
+description: Business flow mapped onto architecture relationships.
+display_name: Flow
+document_category: Flow
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: name
+  description: Short human-readable name.
+  display_name: name
+- id: description
+  description: Free-form description of the element.
+  display_name: Flow_description
+- id: requirement_url
+  description: The requirement schema that specifies how a control should be defined
+  display_name: requirement_url
+- id: transitions
+  display_name: transitions
+  cardinality: multi
+- id: controls
+  display_name: controls
+- id: metadata
+  display_name: metadata

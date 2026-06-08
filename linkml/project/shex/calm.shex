@@ -1,0 +1,290 @@
+# metamodel_version: 1.11.0
+# version: 1.2
+BASE <https://w3id.org/lmodel/calm/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX linkml: <https://w3id.org/linkml/>
+PREFIX schema1: <http://schema.org/>
+PREFIX dct: <http://purl.org/dc/terms/>
+
+
+<CronExpression> xsd:string
+
+<Metadata> xsd:string
+
+linkml:String xsd:string
+
+linkml:Integer xsd:integer
+
+linkml:Boolean xsd:boolean
+
+linkml:Float xsd:float
+
+linkml:Double xsd:double
+
+linkml:Decimal xsd:decimal
+
+linkml:Time xsd:time
+
+linkml:Date xsd:date
+
+linkml:Datetime xsd:dateTime
+
+linkml:DateOrDatetime linkml:DateOrDatetime
+
+linkml:Uriorcurie IRI
+
+linkml:Curie xsd:string
+
+linkml:Uri IRI
+
+linkml:Ncname xsd:string
+
+linkml:Objectidentifier IRI
+
+linkml:Nodeidentifier NONLITERAL
+
+linkml:Jsonpointer xsd:string
+
+linkml:Jsonpath xsd:string
+
+linkml:Sparqlpath xsd:string
+
+<Architecture> CLOSED {
+    (  $<Architecture_tes> (  <nodes> @<Node> * ;
+          <relationships> @<Relationship> * ;
+          <metadata> @<Metadata> ? ;
+          <controls> @<Control> ? ;
+          <flows> @<Flow> * ;
+          <adrs> @linkml:String *
+       ) ;
+       rdf:type [ <Architecture> ] ?
+    )
+}
+
+<ComposedOfRelationship> CLOSED {
+    (  $<ComposedOfRelationship_tes> (  <container> @linkml:String ;
+          <nodes> @<Node> +
+       ) ;
+       rdf:type [ <ComposedOfRelationship> ] ?
+    )
+}
+
+<ConnectsRelationship> CLOSED {
+    (  $<ConnectsRelationship_tes> (  <source> @<NodeInterface> ;
+          <destination> @<NodeInterface>
+       ) ;
+       rdf:type [ <ConnectsRelationship> ] ?
+    )
+}
+
+<Control> CLOSED {
+    (  $<Control_tes> rdf:type . * ;
+       rdf:type [ <Control> ] ?
+    )
+}
+
+<ControlDetail> CLOSED {
+    (  $<ControlDetail_tes> (  schema1:url @linkml:String ;
+          schema1:url @linkml:String ? ;
+          <config> @<Metadata> ?
+       ) ;
+       rdf:type [ <ControlDetail> ] ?
+    )
+}
+
+<ControlRequirement> CLOSED {
+    (  $<ControlRequirement_tes> (  rdfs:label @linkml:String ;
+          dct:description @linkml:String
+       ) ;
+       rdf:type [ <ControlRequirement> ]
+    )
+}
+
+<Decision> CLOSED {
+    (  $<Decision_tes> (  dct:description @linkml:String ;
+          <nodes> @<Node> + ;
+          <relationships> @<Relationship> + ;
+          <controls> @<Control> ?
+       ) ;
+       rdf:type [ <Decision> ] ?
+    )
+}
+
+<Decorator> CLOSED {
+    (  $<Decorator_tes> (  <type> @linkml:String ;
+          <target> @linkml:String + ;
+          <applies_to> @linkml:String + ;
+          <data> @<Metadata>
+       ) ;
+       rdf:type [ <Decorator> ]
+    )
+}
+
+<DeployedInRelationship> CLOSED {
+    (  $<DeployedInRelationship_tes> (  <container> @linkml:String ;
+          <nodes> @<Node> +
+       ) ;
+       rdf:type [ <DeployedInRelationship> ] ?
+    )
+}
+
+<EvidenceDocument> CLOSED {
+    (  $<EvidenceDocument_tes> <evidence> @<Metadata> ;
+       rdf:type [ <EvidenceDocument> ] ?
+    )
+}
+
+<Flow> CLOSED {
+    (  $<Flow_tes> (  rdfs:label @linkml:String ;
+          dct:description @linkml:String ;
+          schema1:url @linkml:String ? ;
+          <transitions> @<Transition> + ;
+          <controls> @<Control> ? ;
+          <metadata> @<Metadata> ?
+       ) ;
+       rdf:type [ <Flow> ]
+    )
+}
+
+<InteractsRelationship> CLOSED {
+    (  $<InteractsRelationship_tes> (  <actor> @linkml:String ;
+          <nodes> @<Node> +
+       ) ;
+       rdf:type [ <InteractsRelationship> ] ?
+    )
+}
+
+<InterfaceDefinition> CLOSED {
+    (  $<InterfaceDefinition_tes> (  schema1:url @linkml:String ;
+          <config> @<Metadata>
+       ) ;
+       rdf:type [ <InterfaceDefinition> ]
+    )
+}
+
+<InterfaceType> CLOSED {
+    (  $<InterfaceType_tes> rdf:type . * ;
+       rdf:type [ <InterfaceType> ]
+    )
+}
+
+<Node>  (
+    CLOSED {
+       (  $<Node_tes> (  <node_type> [ <https://w3id.org/lmodel/calm/node-type/actor>
+                <https://w3id.org/lmodel/calm/node-type/ecosystem> <https://w3id.org/lmodel/calm/node-type/system>
+                <https://w3id.org/lmodel/calm/node-type/service> <https://w3id.org/lmodel/calm/node-type/database>
+                <https://w3id.org/lmodel/calm/node-type/network> <https://w3id.org/lmodel/calm/node-type/ldap>
+                <https://w3id.org/lmodel/calm/node-type/webclient> <https://w3id.org/lmodel/calm/node-type/data-asset> ] ;
+             rdfs:label @linkml:String ;
+             dct:description @linkml:String ;
+             <details> @<Metadata> ? ;
+             <interfaces> @<InterfaceDefinition> * ;
+             <controls> @<Control> ? ;
+             <metadata> @<Metadata> ?
+          ) ;
+          rdf:type [ <Node> ]
+       )
+    } OR @<NodeMoment>
+)
+
+<NodeInterface> CLOSED {
+    (  $<NodeInterface_tes> (  <node> @linkml:String ;
+          <interfaces> @<InterfaceDefinition> *
+       ) ;
+       rdf:type [ <NodeInterface> ] ?
+    )
+}
+
+<NodeMoment> CLOSED {
+    (  $<NodeMoment_tes> (  &<Node_tes> ;
+          rdf:type [ <Node> ] ? ;
+          prov:startedAtTime @linkml:Date ? ;
+          <adrs> @linkml:String * ;
+          <interfaces> @<InterfaceDefinition> * ;
+          <details> @<Metadata>
+       ) ;
+       rdf:type [ <NodeMoment> ]
+    )
+}
+
+<OptionList> CLOSED {
+    (  $<OptionList_tes> <decisions> @<Decision> * ;
+       rdf:type [ <OptionList> ] ?
+    )
+}
+
+<RateUnit> CLOSED {
+    (  $<RateUnit_tes> (  <rate> @linkml:Float ;
+          <per> [ <https://w3id.org/lmodel/calm/RatePerUnit#nanosecond> <https://w3id.org/lmodel/calm/RatePerUnit#microsecond>
+             <https://w3id.org/lmodel/calm/RatePerUnit#millisecond> <https://w3id.org/lmodel/calm/RatePerUnit#second>
+             <https://w3id.org/lmodel/calm/RatePerUnit#minute> <https://w3id.org/lmodel/calm/RatePerUnit#hour>
+             <https://w3id.org/lmodel/calm/RatePerUnit#day> <https://w3id.org/lmodel/calm/RatePerUnit#week>
+             <https://w3id.org/lmodel/calm/RatePerUnit#month> <https://w3id.org/lmodel/calm/RatePerUnit#quarter>
+             <https://w3id.org/lmodel/calm/RatePerUnit#year> ]
+       ) ;
+       rdf:type [ <RateUnit> ] ?
+    )
+}
+
+<Relationship> CLOSED {
+    (  $<Relationship_tes> (  dct:description @linkml:String ? ;
+          <relationship_type> @<RelationshipType> ;
+          <protocol> [ <https://w3id.org/lmodel/calm/protocol/HTTP> <https://w3id.org/lmodel/calm/protocol/HTTPS>
+             <https://w3id.org/lmodel/calm/protocol/FTP> <https://w3id.org/lmodel/calm/protocol/SFTP>
+             <https://w3id.org/lmodel/calm/protocol/JDBC> <https://w3id.org/lmodel/calm/protocol/WebSocket>
+             <https://w3id.org/lmodel/calm/protocol/SocketIO> <https://w3id.org/lmodel/calm/protocol/LDAP>
+             <https://w3id.org/lmodel/calm/protocol/AMQP> <https://w3id.org/lmodel/calm/protocol/TLS>
+             <https://w3id.org/lmodel/calm/protocol/mTLS> <https://w3id.org/lmodel/calm/protocol/TCP> ] ? ;
+          <metadata> @<Metadata> ? ;
+          <controls> @<Control> ?
+       ) ;
+       rdf:type [ <Relationship> ]
+    )
+}
+
+<RelationshipType> CLOSED {
+    (  $<RelationshipType_tes> (  <interacts> @<InteractsRelationship> ? ;
+          <connects> @<ConnectsRelationship> ? ;
+          <deployed_in> @<DeployedInRelationship> ? ;
+          <composed_of> @<ComposedOfRelationship> ? ;
+          <options> @<Decision> *
+       ) ;
+       rdf:type [ <RelationshipType> ] ?
+    )
+}
+
+<Timeline> CLOSED {
+    (  $<Timeline_tes> (  <current_moment> @linkml:String ? ;
+          <moments> @linkml:String + ;
+          <metadata> @<Metadata> ?
+       ) ;
+       rdf:type [ <Timeline> ] ?
+    )
+}
+
+<TimeUnit> CLOSED {
+    (  $<TimeUnit_tes> (  <unit> [ <https://w3id.org/lmodel/calm/TimeUnitName#nanoseconds>
+             <https://w3id.org/lmodel/calm/TimeUnitName#microseconds> <https://w3id.org/lmodel/calm/TimeUnitName#milliseconds>
+             <https://w3id.org/lmodel/calm/TimeUnitName#seconds> <https://w3id.org/lmodel/calm/TimeUnitName#minutes>
+             <https://w3id.org/lmodel/calm/TimeUnitName#hours> <https://w3id.org/lmodel/calm/TimeUnitName#days>
+             <https://w3id.org/lmodel/calm/TimeUnitName#weeks> <https://w3id.org/lmodel/calm/TimeUnitName#months>
+             <https://w3id.org/lmodel/calm/TimeUnitName#quarters> <https://w3id.org/lmodel/calm/TimeUnitName#years> ] ;
+          <value> @linkml:Float
+       ) ;
+       rdf:type [ <TimeUnit> ] ?
+    )
+}
+
+<Transition> CLOSED {
+    (  $<Transition_tes> (  <relationship_unique_id> @linkml:String ;
+          <sequence_number> @linkml:Integer ;
+          dct:description @linkml:String ;
+          <direction> [ <https://w3id.org/lmodel/calm/TransitionDirection#source_to_destination>
+             <https://w3id.org/lmodel/calm/TransitionDirection#destination_to_source> ] ?
+       ) ;
+       rdf:type [ <Transition> ] ?
+    )
+}

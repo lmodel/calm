@@ -1,0 +1,21 @@
+# metamodel_version: 1.11.0# version: 1.2id: Relationship
+schema_generating: true
+description: A typed link between architecture elements.
+display_name: Relationship
+document_category: Relationship
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: description
+  description: Free-form description of the element.
+  display_name: description
+- id: relationship_type
+  display_name: relationship_type
+- id: protocol
+  display_name: protocol
+- id: metadata
+  display_name: metadata
+- id: controls
+  display_name: controls

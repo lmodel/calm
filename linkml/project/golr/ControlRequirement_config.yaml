@@ -1,0 +1,17 @@
+# metamodel_version: 1.11.0# version: 1.2id: ControlRequirement
+schema_generating: true
+description: Domain-defined control requirement that controls can reference.
+display_name: ControlRequirement
+document_category: ControlRequirement
+weight: 20
+fields:
+- id: control_id
+  description: The unique identifier of this control, which has the potential to be
+    used for linking evidence
+  display_name: control_id
+- id: name
+  description: Short human-readable name.
+  display_name: name
+- id: description
+  description: Free-form description of the element.
+  display_name: ControlRequirement_description

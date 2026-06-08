@@ -1,0 +1,26 @@
+# metamodel_version: 1.11.0# version: 1.2id: Architecture
+schema_generating: true
+description: Top-level CALM architecture document.
+display_name: Architecture
+document_category: Architecture
+weight: 20
+fields:
+- id: nodes
+  display_name: Architecture_nodes
+  cardinality: multi
+- id: relationships
+  display_name: Architecture_relationships
+  cardinality: multi
+- id: metadata
+  display_name: metadata
+- id: controls
+  display_name: controls
+- id: flows
+  display_name: Architecture_flows
+  cardinality: multi
+- id: adrs
+  description: External links to ADRs (Architecture Decision Records) or similar documents
+    that provide context or decisions related to the architecture. These can be URLs
+    or references to internal documentation.
+  display_name: adrs
+  cardinality: multi

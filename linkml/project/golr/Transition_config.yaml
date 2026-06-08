@@ -1,0 +1,19 @@
+# metamodel_version: 1.11.0# version: 1.2id: Transition
+schema_generating: true
+description: A single step in a flow, anchored on a relationship.
+display_name: Transition
+document_category: Transition
+weight: 20
+fields:
+- id: relationship_unique_id
+  description: Unique identifier for the relationship in the architecture
+  display_name: relationship_unique_id
+- id: sequence_number
+  description: Indicates the sequence of the relationship in the flow
+  display_name: sequence_number
+- id: description
+  description: Free-form description of the element.
+  display_name: Transition_description
+- id: direction
+  description: Direction of flow on the transition.
+  display_name: direction

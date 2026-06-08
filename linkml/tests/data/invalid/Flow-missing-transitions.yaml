@@ -1,0 +1,8 @@
+# INVALID Flow: missing required field 'transitions'.
+# Violation: transitions is required on Flow.
+# Class: Flow
+unique_id: flow-no-transitions
+name: Empty Flow
+description: A flow with no transitions defined.
+requirement_url: https://calm.example.com/flows/empty
+# transitions: intentionally omitted - required multivalued field

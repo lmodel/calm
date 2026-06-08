@@ -1,0 +1,6 @@
+# Valid Timeline: minimal document with one moment reference.
+# Class: Timeline
+current_moment: moment-2026-q2
+moments:
+  - moment-2026-q1
+  - moment-2026-q2

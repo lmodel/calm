@@ -1,0 +1,104 @@
+Class Name	Parent Class	YAML Class Name	Description	Flags	Slot Name	YAML Slot Name	Range	Card	Slot Description	URI
+Architecture		Architecture	Top-level CALM architecture document.							
+					nodes	Architecture_nodes	Node	0..*		calm:nodes
+					relationships	Architecture_relationships	Relationship	0..*		calm:relationships
+					metadata		str	0..1		calm:metadata
+					controls		Control	0..1		calm:controls
+					flows	Architecture_flows	Flow	0..*		calm:flows
+					adrs		str	0..*	External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.	calm:adrs
+ComposedOfRelationship		ComposedOfRelationship	A ``composed-of`` containment relationship.							
+					container		str	1..1		calm:container
+					nodes	ComposedOfRelationship_nodes	*Node	1..*		calm:nodes
+ConnectsRelationship		ConnectsRelationship	A ``connects`` relationship between two node interfaces.							
+					source		NodeInterface	1..1		calm:source
+					destination		NodeInterface	1..1		calm:destination
+Control		Control	A named control attached to an architecture element.							
+ControlDetail		ControlDetail	A single control requirement and its inline / referenced configuration.							
+					requirement_url	ControlDetail_requirement_url	str	1..1	The requirement schema that specifies how a control should be defined	schema:url
+					config_url		str	0..1	The configuration of how the control requirement schema is met	schema:url
+					config		str	0..1	Inline configuration of how the control requirement schema is met	calm:config
+ControlRequirement		ControlRequirement	Domain-defined control requirement that controls can reference.							
+				I	control_id		str	1..1	The unique identifier of this control, which has the potential to be used for linking evidence	calm:control_id
+					name		str	1..1	Short human-readable name.	rdfs:label
+					description	ControlRequirement_description	str	1..1	Free-form description of the element.	dct:description
+Decision		Decision	A candidate decision within an ``options`` relationship.							
+					description	Decision_description	str	1..1	Free-form description of the element.	dct:description
+					nodes	Decision_nodes	Node	1..*		calm:nodes
+					relationships	Decision_relationships	Relationship	1..*		calm:relationships
+					controls		Control	0..1		calm:controls
+Decorator		Decorator	Cross-cutting annotation attached to nodes, relationships, or flows.							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+					type		str	1..1	Type of decorator - a free-form string identifying the decorator category	calm:type
+					target		str	1..*	Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets	calm:target
+					applies_to		str	1..*	Array of unique-ids referencing nodes, relationships, flows, or other architecture elements	calm:applies_to
+					data		str	1..1	Free-form JSON object containing the decorator's data	calm:data
+DeployedInRelationship		DeployedInRelationship	A ``deployed-in`` containment relationship.							
+					container		str	1..1		calm:container
+					nodes	DeployedInRelationship_nodes	*Node	1..*		calm:nodes
+EvidenceDocument		EvidenceDocument	Top-level CALM evidence document linking control configurations to evidence artefacts.							
+					evidence		str	1..1		calm:evidence
+Flow		Flow	Business flow mapped onto architecture relationships.							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+					name		str	1..1	Short human-readable name.	rdfs:label
+					description	Flow_description	str	1..1	Free-form description of the element.	dct:description
+					requirement_url		str	0..1	The requirement schema that specifies how a control should be defined	schema:url
+					transitions		Transition	1..*		calm:transitions
+					controls		Control	0..1		calm:controls
+					metadata		str	0..1		calm:metadata
+InteractsRelationship		InteractsRelationship	An ``interacts`` relationship between an actor and one or more nodes.							
+					actor		str	1..1		calm:actor
+					nodes	InteractsRelationship_nodes	*Node	1..*		calm:nodes
+InterfaceDefinition		InterfaceDefinition	Modular interface definition referencing an external schema.							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+					definition_url		str	1..1	URI of the external schema this interface configuration conforms to	schema:url
+					config	InterfaceDefinition_config	str	1..1	Inline configuration of how the control requirement schema is met	calm:config
+InterfaceType		InterfaceType	Inline (free-form) interface definition keyed by unique-id.							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+Node		Node	A logical or physical element of an architecture (system, service, actor, ...).							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+					node_type		NodeType	1..1	Category of the node (system, service, actor, etc.).	calm:node_type
+					name		str	1..1	Short human-readable name.	rdfs:label
+					description	Node_description	str	1..1	Free-form description of the element.	dct:description
+					details		str	0..1		calm:details
+					interfaces	Node_interfaces	InterfaceDefinition	0..*	Interface definitions exposed by nodes.	calm:interfaces
+					controls		Control	0..1		calm:controls
+					metadata		str	0..1		calm:metadata
+NodeInterface		NodeInterface	Reference to one or more interfaces exposed by a node.							
+					node		str	1..1		calm:node
+					interfaces	NodeInterface_interfaces	InterfaceDefinition	0..*	Interface definitions exposed by nodes.	calm:interfaces
+NodeMoment	Node	NodeMoment	An architecture moment - a point-in-time snapshot of the architecture.							
+					valid_from		XSDDate	0..1	The date when this architecture moment came into effect.	prov:startedAtTime
+					adrs		str	0..*	External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.	calm:adrs
+					interfaces		*InterfaceDefinition	0..*	Interface definitions exposed by nodes.	calm:interfaces
+					details	NodeMoment_details	str	1..1		calm:details
+OptionList		OptionList	Wrapper around the list of ``Decision`` alternatives in an options relationship.							
+					decisions		Decision	0..*	Alternative decisions under an ``options`` relationship.	calm:decisions
+RateUnit		RateUnit	A rate (count per time unit), e.g. operations per second.							
+					rate		float	1..1	The numeric value representing the rate.	calm:rate
+					per		RatePerUnit	1..1	The time unit defining the rate interval.	calm:per
+Relationship		Relationship	A typed link between architecture elements.							
+				I	unique_id		str	1..1	Stable opaque identifier used to cross-link CALM elements.	schema:identifier
+					description		str	0..1	Free-form description of the element.	dct:description
+					relationship_type		RelationshipType	1..1		calm:relationship_type
+					protocol		Protocol	0..1		calm:protocol
+					metadata		str	0..1		calm:metadata
+					controls		Control	0..1		calm:controls
+RelationshipType		RelationshipType	Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.							
+					interacts		InteractsRelationship	0..1		calm:interacts
+					connects		ConnectsRelationship	0..1		calm:connects
+					deployed_in		DeployedInRelationship	0..1		calm:deployed_in
+					composed_of		ComposedOfRelationship	0..1		calm:composed_of
+					options		Decision	0..*		calm:options
+Timeline		Timeline	CALM timeline document capturing architecture moments over time.							
+					current_moment		str	0..1	The unique-id of the current architecture moment within the timeline.	calm:current_moment
+					moments		str	1..*	A list of significant architecture states or points in time, each represented as a 'moment'.	calm:moments
+					metadata		str	0..1		calm:metadata
+TimeUnit		TimeUnit	A quantity of time expressed as a numeric value and a unit.							
+					unit		TimeUnitName	1..1	The unit of time (e.g., seconds, minutes, hours).	calm:unit
+					value		float	1..1	The numeric value representing the amount of time.	calm:value
+Transition		Transition	A single step in a flow, anchored on a relationship.							
+					relationship_unique_id		str	1..1	Unique identifier for the relationship in the architecture	calm:relationship_unique_id
+					sequence_number		int	1..1	Indicates the sequence of the relationship in the flow	calm:sequence_number
+					description	Transition_description	str	1..1	Free-form description of the element.	dct:description
+					direction		TransitionDirection	0..1	Direction of flow on the transition.	calm:direction
+

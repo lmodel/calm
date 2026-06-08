@@ -1,0 +1,6 @@
+# INVALID InterfaceDefinition: missing required field 'config'.
+# Violation: config is required on InterfaceDefinition (per slot_usage).
+# Class: InterfaceDefinition
+unique_id: iface-no-config
+definition_url: https://calm.example.com/interfaces/rest-http.json
+# config: intentionally omitted - required field

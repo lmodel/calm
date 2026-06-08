@@ -1,0 +1,16 @@
+# Valid Architecture: minimal document with one node and one interacts relationship.
+# Class: Architecture
+nodes:
+  - unique_id: node-001
+    node_type: system
+    name: Payment Service
+    description: Core payment processing microservice.
+
+relationships:
+  - unique_id: rel-001
+    description: User sends payment requests to the payment service.
+    relationship_type:
+      interacts:
+        actor: node-actor-001
+        nodes:
+          - node-001

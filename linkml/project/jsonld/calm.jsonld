@@ -1,0 +1,2559 @@
+{
+  "name": "calm",
+  "description": "LinkML representation of the FINOS Common Architecture Language Model (CALM) 1.2 specification. CALM is a declarative, JSON-based modeling language for describing complex software architectures (nodes, relationships, controls, flows, decorators, timelines, evidence, and units). This LinkML schema is generated from the CALM JSON-Schema meta files.",
+  "title": "Common Architecture Language Model (CALM)",
+  "source": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "see_also": [
+    "https://calm.finos.org/",
+    "https://github.com/finos/architecture-as-code"
+  ],
+  "id": "https://w3id.org/lmodel/calm",
+  "version": "1.2",
+  "imports": [
+    "linkml:types"
+  ],
+  "license": "Apache-2.0",
+  "prefixes": [
+    {
+      "prefix_prefix": "calm",
+      "prefix_reference": "https://w3id.org/lmodel/calm/"
+    },
+    {
+      "prefix_prefix": "linkml",
+      "prefix_reference": "https://w3id.org/linkml/"
+    },
+    {
+      "prefix_prefix": "schema",
+      "prefix_reference": "http://schema.org/"
+    },
+    {
+      "prefix_prefix": "dct",
+      "prefix_reference": "http://purl.org/dc/terms/"
+    },
+    {
+      "prefix_prefix": "skos",
+      "prefix_reference": "http://www.w3.org/2004/02/skos/core#"
+    },
+    {
+      "prefix_prefix": "rdf",
+      "prefix_reference": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    },
+    {
+      "prefix_prefix": "rdfs",
+      "prefix_reference": "http://www.w3.org/2000/01/rdf-schema#"
+    },
+    {
+      "prefix_prefix": "xsd",
+      "prefix_reference": "http://www.w3.org/2001/XMLSchema#"
+    },
+    {
+      "prefix_prefix": "owl",
+      "prefix_reference": "http://www.w3.org/2002/07/owl#"
+    },
+    {
+      "prefix_prefix": "prov",
+      "prefix_reference": "http://www.w3.org/ns/prov#"
+    },
+    {
+      "prefix_prefix": "finos_calm",
+      "prefix_reference": "https://calm.finos.org/release/1.2/meta/"
+    },
+    {
+      "prefix_prefix": "ai_governance_framework",
+      "prefix_reference": "https://w3id.org/lmodel/ai-governance-framework/"
+    },
+    {
+      "prefix_prefix": "attack",
+      "prefix_reference": "https://w3id.org/lmodel/attack/"
+    },
+    {
+      "prefix_prefix": "capec",
+      "prefix_reference": "https://w3id.org/lmodel/capec/"
+    },
+    {
+      "prefix_prefix": "cis_controls",
+      "prefix_reference": "https://w3id.org/lmodel/cis-controls/"
+    },
+    {
+      "prefix_prefix": "dpv",
+      "prefix_reference": "https://w3id.org/lmodel/dpv/"
+    },
+    {
+      "prefix_prefix": "fluxnova_bpmn_platform",
+      "prefix_reference": "https://w3id.org/lmodel/fluxnova-bpm-platform/"
+    },
+    {
+      "prefix_prefix": "gist",
+      "prefix_reference": "https://w3id.org/lmodel/gist/"
+    },
+    {
+      "prefix_prefix": "iso27001",
+      "prefix_reference": "https://w3id.org/lmodel/iso27001/"
+    },
+    {
+      "prefix_prefix": "nist_csf_v2",
+      "prefix_reference": "https://w3id.org/lmodel/nist-csf-v2/"
+    },
+    {
+      "prefix_prefix": "nist_sp_800_53",
+      "prefix_reference": "https://w3id.org/lmodel/nist-sp-800-53/"
+    },
+    {
+      "prefix_prefix": "ocsf",
+      "prefix_reference": "https://w3id.org/lmodel/ocsf/"
+    },
+    {
+      "prefix_prefix": "oscal",
+      "prefix_reference": "https://w3id.org/lmodel/oscal/"
+    },
+    {
+      "prefix_prefix": "stix",
+      "prefix_reference": "https://w3id.org/lmodel/stix/"
+    }
+  ],
+  "default_prefix": "calm",
+  "default_range": "string",
+  "subsets": [
+    {
+      "name": "core",
+      "definition_uri": "https://w3id.org/lmodel/calm/Core",
+      "description": "Core architecture vocabulary (nodes, relationships, decisions).",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "control_framework",
+      "definition_uri": "https://w3id.org/lmodel/calm/ControlFramework",
+      "description": "Control framework: controls, requirements, evidence.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "flow_modeling",
+      "definition_uri": "https://w3id.org/lmodel/calm/FlowModeling",
+      "description": "Business flow modeling: flows and transitions.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "interface_defs",
+      "definition_uri": "https://w3id.org/lmodel/calm/InterfaceDefs",
+      "description": "Interface definitions exposed by nodes.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "decorators",
+      "definition_uri": "https://w3id.org/lmodel/calm/Decorators",
+      "description": "Cross-cutting decorators that annotate elements.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "timeline",
+      "definition_uri": "https://w3id.org/lmodel/calm/Timeline",
+      "description": "Time-based architecture snapshots (moments).",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    },
+    {
+      "name": "units",
+      "definition_uri": "https://w3id.org/lmodel/calm/Units",
+      "description": "Quantity and rate unit primitives.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "@type": "SubsetDefinition"
+    }
+  ],
+  "types": [
+    {
+      "name": "CronExpression",
+      "definition_uri": "https://w3id.org/lmodel/calm/CronExpression",
+      "description": "A Unix-style cron expression (minute, hour, day, month, weekday).",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "pattern": "^([0-5]?\\d)\\s([01]?\\d|2[0-3])\\s(3[01]|[12]\\d|0?[1-9])\\s(1[0-2]|0?[1-9])\\s([0-6])$",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "Metadata",
+      "definition_uri": "https://w3id.org/lmodel/calm/Metadata",
+      "description": "Opaque key/value metadata payload. JSON-Schema allows either an object or an array of objects; in LinkML this is modeled as a permissive string type that downstream consumers parse as JSON.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "string",
+      "definition_uri": "https://w3id.org/linkml/String",
+      "description": "A character string",
+      "notes": [
+        "In RDF serializations, a slot with range of string is treated as a literal or type xsd:string. If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"string\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Text"
+      ],
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "integer",
+      "definition_uri": "https://w3id.org/linkml/Integer",
+      "description": "An integer",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"integer\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Integer"
+      ],
+      "base": "int",
+      "uri": "http://www.w3.org/2001/XMLSchema#integer",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "boolean",
+      "definition_uri": "https://w3id.org/linkml/Boolean",
+      "description": "A binary (true or false) value",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"boolean\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Boolean"
+      ],
+      "base": "Bool",
+      "uri": "http://www.w3.org/2001/XMLSchema#boolean",
+      "repr": "bool",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "float",
+      "definition_uri": "https://w3id.org/linkml/Float",
+      "description": "A real number that conforms to the xsd:float specification",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"float\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Float"
+      ],
+      "base": "float",
+      "uri": "http://www.w3.org/2001/XMLSchema#float",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "double",
+      "definition_uri": "https://w3id.org/linkml/Double",
+      "description": "A real number that conforms to the xsd:double specification",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"double\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "close_mappings": [
+        "schema:Float"
+      ],
+      "base": "float",
+      "uri": "http://www.w3.org/2001/XMLSchema#double",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "decimal",
+      "definition_uri": "https://w3id.org/linkml/Decimal",
+      "description": "A real number with arbitrary precision that conforms to the xsd:decimal specification",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"decimal\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "broad_mappings": [
+        "schema:Number"
+      ],
+      "base": "Decimal",
+      "uri": "http://www.w3.org/2001/XMLSchema#decimal",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "time",
+      "definition_uri": "https://w3id.org/linkml/Time",
+      "description": "A time object represents a (local) time of day, independent of any particular day",
+      "notes": [
+        "URI is dateTime because OWL reasoners do not work with straight date or time",
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"time\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Time"
+      ],
+      "base": "XSDTime",
+      "uri": "http://www.w3.org/2001/XMLSchema#time",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "date",
+      "definition_uri": "https://w3id.org/linkml/Date",
+      "description": "a date (year, month and day) in an idealized calendar",
+      "notes": [
+        "URI is dateTime because OWL reasoners don't work with straight date or time",
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"date\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:Date"
+      ],
+      "base": "XSDDate",
+      "uri": "http://www.w3.org/2001/XMLSchema#date",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "datetime",
+      "definition_uri": "https://w3id.org/linkml/Datetime",
+      "description": "The combination of a date and time",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"datetime\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "exact_mappings": [
+        "schema:DateTime"
+      ],
+      "base": "XSDDateTime",
+      "uri": "http://www.w3.org/2001/XMLSchema#dateTime",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "date_or_datetime",
+      "definition_uri": "https://w3id.org/linkml/DateOrDatetime",
+      "description": "Either a date or a datetime",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"date_or_datetime\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "str",
+      "uri": "https://w3id.org/linkml/DateOrDatetime",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "uriorcurie",
+      "definition_uri": "https://w3id.org/linkml/Uriorcurie",
+      "description": "a URI or a CURIE",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"uriorcurie\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "URIorCURIE",
+      "uri": "http://www.w3.org/2001/XMLSchema#anyURI",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "curie",
+      "definition_uri": "https://w3id.org/linkml/Curie",
+      "conforms_to": "https://www.w3.org/TR/curie/",
+      "description": "a compact URI",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"curie\"."
+      ],
+      "comments": [
+        "in RDF serializations this MUST be expanded to a URI",
+        "in non-RDF serializations MAY be serialized as the compact representation"
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "Curie",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "uri",
+      "definition_uri": "https://w3id.org/linkml/Uri",
+      "conforms_to": "https://www.ietf.org/rfc/rfc3987.txt",
+      "description": "a complete URI",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"uri\"."
+      ],
+      "comments": [
+        "in RDF serializations a slot with range of uri is treated as a literal or type xsd:anyURI unless it is an identifier or a reference to an identifier, in which case it is translated directly to a node"
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "close_mappings": [
+        "schema:URL"
+      ],
+      "base": "URI",
+      "uri": "http://www.w3.org/2001/XMLSchema#anyURI",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "ncname",
+      "definition_uri": "https://w3id.org/linkml/Ncname",
+      "description": "Prefix part of CURIE",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"ncname\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "NCName",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "objectidentifier",
+      "definition_uri": "https://w3id.org/linkml/Objectidentifier",
+      "description": "A URI or CURIE that represents an object in the model.",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"objectidentifier\"."
+      ],
+      "comments": [
+        "Used for inheritance and type checking"
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "ElementIdentifier",
+      "uri": "http://www.w3.org/ns/shex#iri",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "nodeidentifier",
+      "definition_uri": "https://w3id.org/linkml/Nodeidentifier",
+      "description": "A URI, CURIE or BNODE that represents a node in a model.",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"nodeidentifier\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "NodeIdentifier",
+      "uri": "http://www.w3.org/ns/shex#nonLiteral",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "jsonpointer",
+      "definition_uri": "https://w3id.org/linkml/Jsonpointer",
+      "conforms_to": "https://datatracker.ietf.org/doc/html/rfc6901",
+      "description": "A string encoding a JSON Pointer. The value of the string MUST conform to JSON Point syntax and SHOULD dereference to a valid object within the current instance document when encoded in tree form.",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"jsonpointer\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "jsonpath",
+      "definition_uri": "https://w3id.org/linkml/Jsonpath",
+      "conforms_to": "https://www.ietf.org/archive/id/draft-goessner-dispatch-jsonpath-00.html",
+      "description": "A string encoding a JSON Path. The value of the string MUST conform to JSON Point syntax and SHOULD dereference to zero or more valid objects within the current instance document when encoded in tree form.",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"jsonpath\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    },
+    {
+      "name": "sparqlpath",
+      "definition_uri": "https://w3id.org/linkml/Sparqlpath",
+      "conforms_to": "https://www.w3.org/TR/sparql11-query/#propertypaths",
+      "description": "A string encoding a SPARQL Property Path. The value of the string MUST conform to SPARQL syntax and SHOULD dereference to zero or more valid objects within the current instance document when encoded as RDF.",
+      "notes": [
+        "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"sparqlpath\"."
+      ],
+      "from_schema": "https://w3id.org/linkml/types",
+      "imported_from": "linkml:types",
+      "base": "str",
+      "uri": "http://www.w3.org/2001/XMLSchema#string",
+      "repr": "str",
+      "@type": "TypeDefinition"
+    }
+  ],
+  "enums": [
+    {
+      "name": "Protocol",
+      "definition_uri": "https://w3id.org/lmodel/calm/Protocol",
+      "description": "Wire-level protocol used by a relationship.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "HTTP",
+          "description": "The HTTP protocol.",
+          "meaning": "calm:protocol/HTTP"
+        },
+        {
+          "text": "HTTPS",
+          "description": "The HTTPS protocol.",
+          "meaning": "calm:protocol/HTTPS"
+        },
+        {
+          "text": "FTP",
+          "description": "The FTP protocol.",
+          "meaning": "calm:protocol/FTP"
+        },
+        {
+          "text": "SFTP",
+          "description": "The SFTP protocol.",
+          "meaning": "calm:protocol/SFTP"
+        },
+        {
+          "text": "JDBC",
+          "description": "The JDBC protocol.",
+          "meaning": "calm:protocol/JDBC"
+        },
+        {
+          "text": "WebSocket",
+          "description": "The WebSocket protocol.",
+          "meaning": "calm:protocol/WebSocket"
+        },
+        {
+          "text": "SocketIO",
+          "description": "The SocketIO protocol.",
+          "meaning": "calm:protocol/SocketIO"
+        },
+        {
+          "text": "LDAP",
+          "description": "The LDAP protocol.",
+          "meaning": "calm:protocol/LDAP"
+        },
+        {
+          "text": "AMQP",
+          "description": "The AMQP protocol.",
+          "meaning": "calm:protocol/AMQP"
+        },
+        {
+          "text": "TLS",
+          "description": "The TLS protocol.",
+          "meaning": "calm:protocol/TLS"
+        },
+        {
+          "text": "mTLS",
+          "description": "The mTLS protocol.",
+          "meaning": "calm:protocol/mTLS"
+        },
+        {
+          "text": "TCP",
+          "description": "The TCP protocol.",
+          "meaning": "calm:protocol/TCP"
+        }
+      ]
+    },
+    {
+      "name": "NodeType",
+      "definition_uri": "https://w3id.org/lmodel/calm/NodeType",
+      "description": "Category of architecture node. The CALM JSON-Schema allows arbitrary strings; this enum lists the canonical values plus an escape hatch via ``any_of`` on the slot.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "actor",
+          "description": "A actor node.",
+          "meaning": "calm:node-type/actor"
+        },
+        {
+          "text": "ecosystem",
+          "description": "A ecosystem node.",
+          "meaning": "calm:node-type/ecosystem"
+        },
+        {
+          "text": "system",
+          "description": "A system node.",
+          "meaning": "calm:node-type/system"
+        },
+        {
+          "text": "service",
+          "description": "A service node.",
+          "meaning": "calm:node-type/service"
+        },
+        {
+          "text": "database",
+          "description": "A database node.",
+          "meaning": "calm:node-type/database"
+        },
+        {
+          "text": "network",
+          "description": "A network node.",
+          "meaning": "calm:node-type/network"
+        },
+        {
+          "text": "ldap",
+          "description": "A ldap node.",
+          "meaning": "calm:node-type/ldap"
+        },
+        {
+          "text": "webclient",
+          "description": "A webclient node.",
+          "meaning": "calm:node-type/webclient"
+        },
+        {
+          "text": "data_asset",
+          "description": "A data-asset node.",
+          "meaning": "calm:node-type/data-asset"
+        }
+      ]
+    },
+    {
+      "name": "TimeUnitName",
+      "definition_uri": "https://w3id.org/lmodel/calm/TimeUnitName",
+      "description": "Named unit of time used by ``TimeUnit``.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "nanoseconds",
+          "description": "Time unit: nanoseconds."
+        },
+        {
+          "text": "microseconds",
+          "description": "Time unit: microseconds."
+        },
+        {
+          "text": "milliseconds",
+          "description": "Time unit: milliseconds."
+        },
+        {
+          "text": "seconds",
+          "description": "Time unit: seconds."
+        },
+        {
+          "text": "minutes",
+          "description": "Time unit: minutes."
+        },
+        {
+          "text": "hours",
+          "description": "Time unit: hours."
+        },
+        {
+          "text": "days",
+          "description": "Time unit: days."
+        },
+        {
+          "text": "weeks",
+          "description": "Time unit: weeks."
+        },
+        {
+          "text": "months",
+          "description": "Time unit: months."
+        },
+        {
+          "text": "quarters",
+          "description": "Time unit: quarters."
+        },
+        {
+          "text": "years",
+          "description": "Time unit: years."
+        }
+      ]
+    },
+    {
+      "name": "RatePerUnit",
+      "definition_uri": "https://w3id.org/lmodel/calm/RatePerUnit",
+      "description": "Time interval denominator used by ``RateUnit``.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "nanosecond",
+          "description": "Rate denominator: per nanosecond."
+        },
+        {
+          "text": "microsecond",
+          "description": "Rate denominator: per microsecond."
+        },
+        {
+          "text": "millisecond",
+          "description": "Rate denominator: per millisecond."
+        },
+        {
+          "text": "second",
+          "description": "Rate denominator: per second."
+        },
+        {
+          "text": "minute",
+          "description": "Rate denominator: per minute."
+        },
+        {
+          "text": "hour",
+          "description": "Rate denominator: per hour."
+        },
+        {
+          "text": "day",
+          "description": "Rate denominator: per day."
+        },
+        {
+          "text": "week",
+          "description": "Rate denominator: per week."
+        },
+        {
+          "text": "month",
+          "description": "Rate denominator: per month."
+        },
+        {
+          "text": "quarter",
+          "description": "Rate denominator: per quarter."
+        },
+        {
+          "text": "year",
+          "description": "Rate denominator: per year."
+        }
+      ]
+    },
+    {
+      "name": "TransitionDirection",
+      "definition_uri": "https://w3id.org/lmodel/calm/TransitionDirection",
+      "description": "Direction of flow on a transition.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "source_to_destination",
+          "description": "Flow direction: source-to-destination."
+        },
+        {
+          "text": "destination_to_source",
+          "description": "Flow direction: destination-to-source."
+        }
+      ]
+    },
+    {
+      "name": "RelationshipKind",
+      "definition_uri": "https://w3id.org/lmodel/calm/RelationshipKind",
+      "description": "Discriminator for the variant of a ``relationship-type``: exactly one of the following keys is set on a relationship's ``relationship-type``.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "permissible_values": [
+        {
+          "text": "interacts",
+          "description": "Actor-to-nodes interaction."
+        },
+        {
+          "text": "connects",
+          "description": "Interface-to-interface connection."
+        },
+        {
+          "text": "deployed_in",
+          "description": "Containment: nodes deployed in a container."
+        },
+        {
+          "text": "composed_of",
+          "description": "Composition: nodes composed by a container."
+        },
+        {
+          "text": "options",
+          "description": "A set of alternative decisions."
+        }
+      ]
+    }
+  ],
+  "slots": [
+    {
+      "name": "nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "owner": "Decision",
+      "domain_of": [
+        "Architecture",
+        "InteractsRelationship",
+        "DeployedInRelationship",
+        "ComposedOfRelationship",
+        "Decision"
+      ],
+      "range": "Node",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "relationships",
+      "definition_uri": "https://w3id.org/lmodel/calm/relationships",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/relationships",
+      "owner": "Decision",
+      "domain_of": [
+        "Architecture",
+        "Decision"
+      ],
+      "range": "Relationship",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "metadata",
+      "definition_uri": "https://w3id.org/lmodel/calm/metadata",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/metadata",
+      "owner": "Timeline",
+      "domain_of": [
+        "Architecture",
+        "Node",
+        "Relationship",
+        "Flow",
+        "Timeline"
+      ],
+      "range": "Metadata",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "controls",
+      "definition_uri": "https://w3id.org/lmodel/calm/controls",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/controls",
+      "owner": "Flow",
+      "domain_of": [
+        "Architecture",
+        "Node",
+        "Relationship",
+        "Decision",
+        "Flow"
+      ],
+      "range": "Control",
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "flows",
+      "definition_uri": "https://w3id.org/lmodel/calm/flows",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/flows",
+      "owner": "Architecture",
+      "domain_of": [
+        "Architecture"
+      ],
+      "range": "Flow",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "adrs",
+      "definition_uri": "https://w3id.org/lmodel/calm/adrs",
+      "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/adrs",
+      "owner": "NodeMoment",
+      "domain_of": [
+        "Architecture",
+        "NodeMoment"
+      ],
+      "range": "string",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "unique_id",
+      "definition_uri": "https://w3id.org/lmodel/calm/unique_id",
+      "description": "Stable opaque identifier used to cross-link CALM elements.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "unique-id"
+      ],
+      "mappings": [
+        "http://schema.org/identifier"
+      ],
+      "slot_uri": "http://schema.org/identifier",
+      "identifier": true,
+      "owner": "InterfaceType",
+      "domain_of": [
+        "Node",
+        "Relationship",
+        "Decorator",
+        "Flow",
+        "InterfaceDefinition",
+        "InterfaceType"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "node_type",
+      "definition_uri": "https://w3id.org/lmodel/calm/node_type",
+      "description": "Category of the node (system, service, actor, etc.).",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "node-type"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/node_type",
+      "owner": "NodeMoment",
+      "domain_of": [
+        "Node",
+        "NodeMoment"
+      ],
+      "range": "NodeType",
+      "required": true,
+      "any_of": [
+        {
+          "range": "NodeType",
+          "@type": "AnonymousSlotExpression"
+        },
+        {
+          "range": "string",
+          "@type": "AnonymousSlotExpression"
+        }
+      ],
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "name",
+      "definition_uri": "https://w3id.org/lmodel/calm/name",
+      "description": "Short human-readable name.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://www.w3.org/2000/01/rdf-schema#label"
+      ],
+      "slot_uri": "http://www.w3.org/2000/01/rdf-schema#label",
+      "owner": "Flow",
+      "domain_of": [
+        "Node",
+        "ControlRequirement",
+        "Flow"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "owner": "Flow",
+      "domain_of": [
+        "Node",
+        "Relationship",
+        "Decision",
+        "ControlRequirement",
+        "Transition",
+        "Flow"
+      ],
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "details",
+      "definition_uri": "https://w3id.org/lmodel/calm/details",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/details",
+      "owner": "Node",
+      "domain_of": [
+        "Node"
+      ],
+      "range": "Metadata",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "interfaces",
+      "definition_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "description": "Interface definitions exposed by nodes.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "owner": "NodeMoment",
+      "domain_of": [
+        "Node",
+        "NodeInterface",
+        "NodeMoment"
+      ],
+      "range": "InterfaceDefinition",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "relationship_type",
+      "definition_uri": "https://w3id.org/lmodel/calm/relationship_type",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "relationship-type"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/relationship_type",
+      "owner": "Relationship",
+      "domain_of": [
+        "Relationship"
+      ],
+      "range": "RelationshipType",
+      "required": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "protocol",
+      "definition_uri": "https://w3id.org/lmodel/calm/protocol",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/protocol",
+      "owner": "Relationship",
+      "domain_of": [
+        "Relationship"
+      ],
+      "range": "Protocol",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "actor",
+      "definition_uri": "https://w3id.org/lmodel/calm/actor",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/actor",
+      "owner": "InteractsRelationship",
+      "domain_of": [
+        "InteractsRelationship"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "source",
+      "definition_uri": "https://w3id.org/lmodel/calm/source",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/source",
+      "owner": "ConnectsRelationship",
+      "domain_of": [
+        "ConnectsRelationship"
+      ],
+      "range": "NodeInterface",
+      "required": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "destination",
+      "definition_uri": "https://w3id.org/lmodel/calm/destination",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/destination",
+      "owner": "ConnectsRelationship",
+      "domain_of": [
+        "ConnectsRelationship"
+      ],
+      "range": "NodeInterface",
+      "required": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "container",
+      "definition_uri": "https://w3id.org/lmodel/calm/container",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/container",
+      "owner": "ComposedOfRelationship",
+      "domain_of": [
+        "DeployedInRelationship",
+        "ComposedOfRelationship"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "requirement_url",
+      "definition_uri": "https://w3id.org/lmodel/calm/requirement_url",
+      "description": "The requirement schema that specifies how a control should be defined",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "requirement-url"
+      ],
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "slot_uri": "http://schema.org/url",
+      "owner": "Flow",
+      "domain_of": [
+        "ControlDetail",
+        "Flow"
+      ],
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "config_url",
+      "definition_uri": "https://w3id.org/lmodel/calm/config_url",
+      "description": "The configuration of how the control requirement schema is met",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "config-url"
+      ],
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "slot_uri": "http://schema.org/url",
+      "owner": "ControlDetail",
+      "domain_of": [
+        "ControlDetail"
+      ],
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "config",
+      "definition_uri": "https://w3id.org/lmodel/calm/config",
+      "description": "Inline configuration of how the control requirement schema is met",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/config",
+      "owner": "InterfaceDefinition",
+      "domain_of": [
+        "ControlDetail",
+        "InterfaceDefinition"
+      ],
+      "range": "Metadata",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "control_id",
+      "definition_uri": "https://w3id.org/lmodel/calm/control_id",
+      "description": "The unique identifier of this control, which has the potential to be used for linking evidence",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "control-id"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/control_id",
+      "identifier": true,
+      "owner": "ControlRequirement",
+      "domain_of": [
+        "ControlRequirement"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "type",
+      "definition_uri": "https://w3id.org/lmodel/calm/type",
+      "description": "Type of decorator - a free-form string identifying the decorator category",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/type",
+      "owner": "Decorator",
+      "domain_of": [
+        "Decorator"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "target",
+      "definition_uri": "https://w3id.org/lmodel/calm/target",
+      "description": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/target",
+      "owner": "Decorator",
+      "domain_of": [
+        "Decorator"
+      ],
+      "range": "string",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "applies_to",
+      "definition_uri": "https://w3id.org/lmodel/calm/applies_to",
+      "description": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "applies-to"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/applies_to",
+      "owner": "Decorator",
+      "domain_of": [
+        "Decorator"
+      ],
+      "range": "string",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "data",
+      "definition_uri": "https://w3id.org/lmodel/calm/data",
+      "description": "Free-form JSON object containing the decorator's data",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/data",
+      "owner": "Decorator",
+      "domain_of": [
+        "Decorator"
+      ],
+      "range": "Metadata",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "evidence",
+      "definition_uri": "https://w3id.org/lmodel/calm/evidence",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/evidence",
+      "owner": "EvidenceDocument",
+      "domain_of": [
+        "EvidenceDocument"
+      ],
+      "range": "Metadata",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "relationship_unique_id",
+      "definition_uri": "https://w3id.org/lmodel/calm/relationship_unique_id",
+      "description": "Unique identifier for the relationship in the architecture",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "relationship-unique-id"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/relationship_unique_id",
+      "owner": "Transition",
+      "domain_of": [
+        "Transition"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "sequence_number",
+      "definition_uri": "https://w3id.org/lmodel/calm/sequence_number",
+      "description": "Indicates the sequence of the relationship in the flow",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "sequence-number"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/sequence_number",
+      "owner": "Transition",
+      "domain_of": [
+        "Transition"
+      ],
+      "range": "integer",
+      "required": true,
+      "minimum_value": 1,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "direction",
+      "definition_uri": "https://w3id.org/lmodel/calm/direction",
+      "description": "Direction of flow on the transition.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/direction",
+      "owner": "Transition",
+      "domain_of": [
+        "Transition"
+      ],
+      "range": "TransitionDirection",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "transitions",
+      "definition_uri": "https://w3id.org/lmodel/calm/transitions",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/transitions",
+      "owner": "Flow",
+      "domain_of": [
+        "Flow"
+      ],
+      "range": "Transition",
+      "required": true,
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "definition_url",
+      "definition_uri": "https://w3id.org/lmodel/calm/definition_url",
+      "description": "URI of the external schema this interface configuration conforms to",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "definition-url"
+      ],
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "slot_uri": "http://schema.org/url",
+      "owner": "InterfaceDefinition",
+      "domain_of": [
+        "InterfaceDefinition"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "node",
+      "definition_uri": "https://w3id.org/lmodel/calm/node",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/node",
+      "owner": "NodeInterface",
+      "domain_of": [
+        "NodeInterface"
+      ],
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "current_moment",
+      "definition_uri": "https://w3id.org/lmodel/calm/current_moment",
+      "description": "The unique-id of the current architecture moment within the timeline.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "current-moment"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/current_moment",
+      "owner": "Timeline",
+      "domain_of": [
+        "Timeline"
+      ],
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "moments",
+      "definition_uri": "https://w3id.org/lmodel/calm/moments",
+      "description": "A list of significant architecture states or points in time, each represented as a 'moment'.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/moments",
+      "owner": "Timeline",
+      "domain_of": [
+        "Timeline"
+      ],
+      "range": "string",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "valid_from",
+      "definition_uri": "https://w3id.org/lmodel/calm/valid_from",
+      "annotations": [
+        {
+          "tag": "json_format",
+          "value": "date",
+          "@type": "Annotation"
+        }
+      ],
+      "description": "The date when this architecture moment came into effect.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "valid-from"
+      ],
+      "mappings": [
+        "http://www.w3.org/ns/prov#startedAtTime"
+      ],
+      "slot_uri": "http://www.w3.org/ns/prov#startedAtTime",
+      "owner": "NodeMoment",
+      "domain_of": [
+        "NodeMoment"
+      ],
+      "range": "date",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "unit",
+      "definition_uri": "https://w3id.org/lmodel/calm/unit",
+      "description": "The unit of time (e.g., seconds, minutes, hours).",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/unit",
+      "owner": "TimeUnit",
+      "domain_of": [
+        "TimeUnit"
+      ],
+      "range": "TimeUnitName",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "value",
+      "definition_uri": "https://w3id.org/lmodel/calm/value",
+      "description": "The numeric value representing the amount of time.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/value",
+      "owner": "TimeUnit",
+      "domain_of": [
+        "TimeUnit"
+      ],
+      "range": "float",
+      "required": true,
+      "minimum_value": 0,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "rate",
+      "definition_uri": "https://w3id.org/lmodel/calm/rate",
+      "description": "The numeric value representing the rate.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/rate",
+      "owner": "RateUnit",
+      "domain_of": [
+        "RateUnit"
+      ],
+      "range": "float",
+      "required": true,
+      "minimum_value": 0,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "per",
+      "definition_uri": "https://w3id.org/lmodel/calm/per",
+      "description": "The time unit defining the rate interval.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/per",
+      "owner": "RateUnit",
+      "domain_of": [
+        "RateUnit"
+      ],
+      "range": "RatePerUnit",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "url",
+      "definition_uri": "https://w3id.org/lmodel/calm/url",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "slot_uri": "http://schema.org/url",
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "control_config_url",
+      "definition_uri": "https://w3id.org/lmodel/calm/control_config_url",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "control-config-url"
+      ],
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "slot_uri": "http://schema.org/url",
+      "range": "string",
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "evidence_paths",
+      "definition_uri": "https://w3id.org/lmodel/calm/evidence_paths",
+      "description": "Paths (filesystem or URL) pointing at supporting evidence.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "evidence-paths"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/evidence_paths",
+      "range": "string",
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "decisions",
+      "definition_uri": "https://w3id.org/lmodel/calm/decisions",
+      "description": "Alternative decisions under an ``options`` relationship.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/decisions",
+      "owner": "OptionList",
+      "domain_of": [
+        "OptionList"
+      ],
+      "range": "Decision",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "interacts",
+      "definition_uri": "https://w3id.org/lmodel/calm/interacts",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/interacts",
+      "owner": "RelationshipType",
+      "domain_of": [
+        "RelationshipType"
+      ],
+      "range": "InteractsRelationship",
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "connects",
+      "definition_uri": "https://w3id.org/lmodel/calm/connects",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/connects",
+      "owner": "RelationshipType",
+      "domain_of": [
+        "RelationshipType"
+      ],
+      "range": "ConnectsRelationship",
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "deployed_in",
+      "definition_uri": "https://w3id.org/lmodel/calm/deployed_in",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "deployed-in"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/deployed_in",
+      "owner": "RelationshipType",
+      "domain_of": [
+        "RelationshipType"
+      ],
+      "range": "DeployedInRelationship",
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "composed_of",
+      "definition_uri": "https://w3id.org/lmodel/calm/composed_of",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "composed-of"
+      ],
+      "slot_uri": "https://w3id.org/lmodel/calm/composed_of",
+      "owner": "RelationshipType",
+      "domain_of": [
+        "RelationshipType"
+      ],
+      "range": "ComposedOfRelationship",
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "options",
+      "definition_uri": "https://w3id.org/lmodel/calm/options",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slot_uri": "https://w3id.org/lmodel/calm/options",
+      "owner": "RelationshipType",
+      "domain_of": [
+        "RelationshipType"
+      ],
+      "range": "Decision",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Architecture_nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "nodes",
+      "domain": "Architecture",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "alias": "nodes",
+      "owner": "Architecture",
+      "domain_of": [
+        "Architecture"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "nodes",
+      "range": "Node",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Architecture_relationships",
+      "definition_uri": "https://w3id.org/lmodel/calm/relationships",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "relationships",
+      "domain": "Architecture",
+      "slot_uri": "https://w3id.org/lmodel/calm/relationships",
+      "alias": "relationships",
+      "owner": "Architecture",
+      "domain_of": [
+        "Architecture"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "relationships",
+      "range": "Relationship",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Architecture_flows",
+      "definition_uri": "https://w3id.org/lmodel/calm/flows",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "flows",
+      "domain": "Architecture",
+      "slot_uri": "https://w3id.org/lmodel/calm/flows",
+      "alias": "flows",
+      "owner": "Architecture",
+      "domain_of": [
+        "Architecture"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "flows",
+      "range": "Flow",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Node_interfaces",
+      "definition_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "description": "Interface definitions exposed by nodes.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "interfaces",
+      "domain": "Node",
+      "slot_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "alias": "interfaces",
+      "owner": "Node",
+      "domain_of": [
+        "Node"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "interfaces",
+      "range": "InterfaceDefinition",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Node_description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "is_a": "description",
+      "domain": "Node",
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "alias": "description",
+      "owner": "Node",
+      "domain_of": [
+        "Node"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "description",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "InteractsRelationship_nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "nodes",
+      "domain": "InteractsRelationship",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "alias": "nodes",
+      "owner": "InteractsRelationship",
+      "domain_of": [
+        "InteractsRelationship"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "nodes",
+      "range": "Node",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "DeployedInRelationship_nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "nodes",
+      "domain": "DeployedInRelationship",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "alias": "nodes",
+      "owner": "DeployedInRelationship",
+      "domain_of": [
+        "DeployedInRelationship"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "nodes",
+      "range": "Node",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "ComposedOfRelationship_nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "nodes",
+      "domain": "ComposedOfRelationship",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "alias": "nodes",
+      "owner": "ComposedOfRelationship",
+      "domain_of": [
+        "ComposedOfRelationship"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "nodes",
+      "range": "Node",
+      "required": true,
+      "multivalued": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Decision_nodes",
+      "definition_uri": "https://w3id.org/lmodel/calm/nodes",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "nodes",
+      "domain": "Decision",
+      "slot_uri": "https://w3id.org/lmodel/calm/nodes",
+      "alias": "nodes",
+      "owner": "Decision",
+      "domain_of": [
+        "Decision"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "nodes",
+      "range": "Node",
+      "required": true,
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Decision_relationships",
+      "definition_uri": "https://w3id.org/lmodel/calm/relationships",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "relationships",
+      "domain": "Decision",
+      "slot_uri": "https://w3id.org/lmodel/calm/relationships",
+      "alias": "relationships",
+      "owner": "Decision",
+      "domain_of": [
+        "Decision"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "relationships",
+      "range": "Relationship",
+      "required": true,
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Decision_description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "is_a": "description",
+      "domain": "Decision",
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "alias": "description",
+      "owner": "Decision",
+      "domain_of": [
+        "Decision"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "description",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "ControlDetail_requirement_url",
+      "definition_uri": "https://w3id.org/lmodel/calm/requirement_url",
+      "description": "The requirement schema that specifies how a control should be defined",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "aliases": [
+        "requirement-url"
+      ],
+      "mappings": [
+        "http://schema.org/url"
+      ],
+      "is_a": "requirement_url",
+      "domain": "ControlDetail",
+      "slot_uri": "http://schema.org/url",
+      "alias": "requirement_url",
+      "owner": "ControlDetail",
+      "domain_of": [
+        "ControlDetail"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "requirement_url",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "ControlRequirement_description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "is_a": "description",
+      "domain": "ControlRequirement",
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "alias": "description",
+      "owner": "ControlRequirement",
+      "domain_of": [
+        "ControlRequirement"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "description",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Transition_description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "is_a": "description",
+      "domain": "Transition",
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "alias": "description",
+      "owner": "Transition",
+      "domain_of": [
+        "Transition"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "description",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "Flow_description",
+      "definition_uri": "https://w3id.org/lmodel/calm/description",
+      "description": "Free-form description of the element.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "http://purl.org/dc/terms/description"
+      ],
+      "is_a": "description",
+      "domain": "Flow",
+      "slot_uri": "http://purl.org/dc/terms/description",
+      "alias": "description",
+      "owner": "Flow",
+      "domain_of": [
+        "Flow"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "description",
+      "range": "string",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "InterfaceDefinition_config",
+      "definition_uri": "https://w3id.org/lmodel/calm/config",
+      "description": "Inline configuration of how the control requirement schema is met",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "config",
+      "domain": "InterfaceDefinition",
+      "slot_uri": "https://w3id.org/lmodel/calm/config",
+      "alias": "config",
+      "owner": "InterfaceDefinition",
+      "domain_of": [
+        "InterfaceDefinition"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "config",
+      "range": "Metadata",
+      "required": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "NodeInterface_interfaces",
+      "definition_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "description": "Interface definitions exposed by nodes.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "interfaces",
+      "domain": "NodeInterface",
+      "slot_uri": "https://w3id.org/lmodel/calm/interfaces",
+      "alias": "interfaces",
+      "owner": "NodeInterface",
+      "domain_of": [
+        "NodeInterface"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "interfaces",
+      "range": "InterfaceDefinition",
+      "multivalued": true,
+      "inlined": true,
+      "inlined_as_list": true,
+      "@type": "SlotDefinition"
+    },
+    {
+      "name": "NodeMoment_details",
+      "definition_uri": "https://w3id.org/lmodel/calm/details",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "is_a": "details",
+      "domain": "NodeMoment",
+      "slot_uri": "https://w3id.org/lmodel/calm/details",
+      "alias": "details",
+      "owner": "NodeMoment",
+      "domain_of": [
+        "NodeMoment"
+      ],
+      "is_usage_slot": true,
+      "usage_slot_name": "details",
+      "range": "Metadata",
+      "required": true,
+      "@type": "SlotDefinition"
+    }
+  ],
+  "classes": [
+    {
+      "name": "Architecture",
+      "definition_uri": "https://w3id.org/lmodel/calm/Architecture",
+      "description": "Top-level CALM architecture document.",
+      "title": "Common Architecture Language Model (CALM) Vocab",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Architecture"
+      ],
+      "close_mappings": [
+        "schema:SoftwareApplication",
+        "gist:System"
+      ],
+      "related_mappings": [
+        "capec:Category",
+        "cis_controls:CISControlsDocument",
+        "dpv:Context",
+        "iso27001:InformationSecurityManagementSystem",
+        "nist_csf_v2:CSFDocument",
+        "nist_sp_800_53:Catalog",
+        "oscal:SystemSecurityPlan",
+        "stix:Bundle"
+      ],
+      "slots": [
+        "Architecture_nodes",
+        "Architecture_relationships",
+        "metadata",
+        "controls",
+        "Architecture_flows",
+        "adrs"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Architecture",
+      "tree_root": true,
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Node",
+      "definition_uri": "https://w3id.org/lmodel/calm/Node",
+      "description": "A logical or physical element of an architecture (system, service, actor, ...).",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Node"
+      ],
+      "close_mappings": [
+        "schema:Thing",
+        "attack:Asset",
+        "gist:NetworkNode",
+        "iso27001:Asset",
+        "ocsf:Node",
+        "ocsf:Actor"
+      ],
+      "related_mappings": [
+        "capec:AttackPattern",
+        "cis_controls:Safeguard",
+        "dpv:DataController",
+        "oscal:SspInventoryItem"
+      ],
+      "broad_mappings": [
+        "stix:StixDomainObject"
+      ],
+      "slots": [
+        "unique_id",
+        "node_type",
+        "name",
+        "Node_description",
+        "details",
+        "Node_interfaces",
+        "controls",
+        "metadata"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Node",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Relationship",
+      "definition_uri": "https://w3id.org/lmodel/calm/Relationship",
+      "description": "A typed link between architecture elements.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Relationship"
+      ],
+      "close_mappings": [
+        "gist:NetworkLink",
+        "stix:StixRelationshipObject"
+      ],
+      "related_mappings": [
+        "prov:wasInfluencedBy",
+        "attack:AttackRelationship",
+        "ocsf:NetworkEndpoint"
+      ],
+      "slots": [
+        "unique_id",
+        "description",
+        "relationship_type",
+        "protocol",
+        "metadata",
+        "controls"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Relationship",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "InteractsRelationship",
+      "definition_uri": "https://w3id.org/lmodel/calm/InteractsRelationship",
+      "description": "An ``interacts`` relationship between an actor and one or more nodes.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:InteractsRelationship"
+      ],
+      "slots": [
+        "actor",
+        "InteractsRelationship_nodes"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/InteractsRelationship",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "ConnectsRelationship",
+      "definition_uri": "https://w3id.org/lmodel/calm/ConnectsRelationship",
+      "description": "A ``connects`` relationship between two node interfaces.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:ConnectsRelationship"
+      ],
+      "slots": [
+        "source",
+        "destination"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/ConnectsRelationship",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "DeployedInRelationship",
+      "definition_uri": "https://w3id.org/lmodel/calm/DeployedInRelationship",
+      "description": "A ``deployed-in`` containment relationship.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:DeployedInRelationship"
+      ],
+      "slots": [
+        "container",
+        "DeployedInRelationship_nodes"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/DeployedInRelationship",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "ComposedOfRelationship",
+      "definition_uri": "https://w3id.org/lmodel/calm/ComposedOfRelationship",
+      "description": "A ``composed-of`` containment relationship.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:ComposedOfRelationship"
+      ],
+      "slots": [
+        "container",
+        "ComposedOfRelationship_nodes"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/ComposedOfRelationship",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Decision",
+      "definition_uri": "https://w3id.org/lmodel/calm/Decision",
+      "description": "A candidate decision within an ``options`` relationship.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Decision"
+      ],
+      "slots": [
+        "Decision_description",
+        "Decision_nodes",
+        "Decision_relationships",
+        "controls"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Decision",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "ControlDetail",
+      "definition_uri": "https://w3id.org/lmodel/calm/ControlDetail",
+      "description": "A single control requirement and its inline / referenced configuration.",
+      "in_subset": [
+        "control_framework"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:ControlDetail"
+      ],
+      "close_mappings": [
+        "dpv:TechnicalMeasure",
+        "oscal:SspImplementedRequirement"
+      ],
+      "related_mappings": [
+        "nist_sp_800_53:ControlGroup"
+      ],
+      "slots": [
+        "ControlDetail_requirement_url",
+        "config_url",
+        "config"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/ControlDetail",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Control",
+      "definition_uri": "https://w3id.org/lmodel/calm/Control",
+      "description": "A named control attached to an architecture element.",
+      "in_subset": [
+        "control_framework"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Control"
+      ],
+      "close_mappings": [
+        "attack:Mitigation",
+        "cis_controls:Safeguard",
+        "dpv:TechnicalOrganisationalMeasure",
+        "iso27001:SecurityControl",
+        "nist_csf_v2:CSFSubcategory",
+        "nist_sp_800_53:Control",
+        "ocsf:Compliance",
+        "oscal:Control"
+      ],
+      "related_mappings": [
+        "schema:Action",
+        "capec:Category",
+        "stix:Core"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Control",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "ControlRequirement",
+      "definition_uri": "https://w3id.org/lmodel/calm/ControlRequirement",
+      "description": "Domain-defined control requirement that controls can reference.",
+      "title": "Common Architecture Language Model Control Requirement",
+      "in_subset": [
+        "control_framework"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:ControlRequirement"
+      ],
+      "close_mappings": [
+        "cis_controls:CISControl",
+        "dpv:OrganisationalMeasure",
+        "iso27001:SecurityControl",
+        "nist_csf_v2:CSFCategory",
+        "oscal:Control"
+      ],
+      "related_mappings": [
+        "attack:Technique",
+        "capec:View",
+        "nist_sp_800_53:ControlEnhancement"
+      ],
+      "slots": [
+        "control_id",
+        "name",
+        "ControlRequirement_description"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/ControlRequirement",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Decorator",
+      "definition_uri": "https://w3id.org/lmodel/calm/Decorator",
+      "description": "Cross-cutting annotation attached to nodes, relationships, or flows.",
+      "in_subset": [
+        "decorators"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Decorator"
+      ],
+      "related_mappings": [
+        "iso27001:MonitoringItem",
+        "nist_csf_v2:Link",
+        "stix:ExtensionDefinition"
+      ],
+      "slots": [
+        "unique_id",
+        "type",
+        "target",
+        "applies_to",
+        "data"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Decorator",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "EvidenceDocument",
+      "definition_uri": "https://w3id.org/lmodel/calm/EvidenceDocument",
+      "description": "Top-level CALM evidence document linking control configurations to evidence artefacts.",
+      "title": "Common Architecture Language Model Evidence",
+      "in_subset": [
+        "control_framework"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:EvidenceDocument"
+      ],
+      "close_mappings": [
+        "iso27001:DocumentedInformation",
+        "ocsf:Evidences",
+        "oscal:AssessmentResults"
+      ],
+      "related_mappings": [
+        "dpv:LegalMeasure"
+      ],
+      "slots": [
+        "evidence"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/EvidenceDocument",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Transition",
+      "definition_uri": "https://w3id.org/lmodel/calm/Transition",
+      "description": "A single step in a flow, anchored on a relationship.",
+      "in_subset": [
+        "flow_modeling"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Transition"
+      ],
+      "close_mappings": [
+        "fluxnova_bpmn_platform:SequenceFlow"
+      ],
+      "slots": [
+        "relationship_unique_id",
+        "sequence_number",
+        "Transition_description",
+        "direction"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Transition",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Flow",
+      "definition_uri": "https://w3id.org/lmodel/calm/Flow",
+      "description": "Business flow mapped onto architecture relationships.",
+      "in_subset": [
+        "flow_modeling"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Flow"
+      ],
+      "close_mappings": [
+        "fluxnova_bpmn_platform:FlowElement"
+      ],
+      "related_mappings": [
+        "attack:Tactic",
+        "fluxnova_bpmn_platform:SubProcess",
+        "gist:ServiceSpecification",
+        "iso27001:OperationalProcedure",
+        "nist_csf_v2:CSFFunction",
+        "ocsf:NetworkTraffic",
+        "oscal:SspControlImplementation"
+      ],
+      "slots": [
+        "unique_id",
+        "name",
+        "Flow_description",
+        "requirement_url",
+        "transitions",
+        "controls",
+        "metadata"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Flow",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "InterfaceDefinition",
+      "definition_uri": "https://w3id.org/lmodel/calm/InterfaceDefinition",
+      "description": "Modular interface definition referencing an external schema.",
+      "in_subset": [
+        "interface_defs"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:InterfaceDefinition"
+      ],
+      "close_mappings": [
+        "ocsf:NetworkInterface"
+      ],
+      "related_mappings": [
+        "gist:Network"
+      ],
+      "slots": [
+        "unique_id",
+        "definition_url",
+        "InterfaceDefinition_config"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/InterfaceDefinition",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "InterfaceType",
+      "definition_uri": "https://w3id.org/lmodel/calm/InterfaceType",
+      "description": "Inline (free-form) interface definition keyed by unique-id.",
+      "in_subset": [
+        "interface_defs"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:InterfaceType"
+      ],
+      "slots": [
+        "unique_id"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/InterfaceType",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "NodeInterface",
+      "definition_uri": "https://w3id.org/lmodel/calm/NodeInterface",
+      "description": "Reference to one or more interfaces exposed by a node.",
+      "in_subset": [
+        "interface_defs"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:NodeInterface"
+      ],
+      "slots": [
+        "node",
+        "NodeInterface_interfaces"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/NodeInterface",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "Timeline",
+      "definition_uri": "https://w3id.org/lmodel/calm/Timeline",
+      "description": "CALM timeline document capturing architecture moments over time.",
+      "title": "Common Architecture Language Model (CALM) Timelines Vocab",
+      "in_subset": [
+        "timeline"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:Timeline"
+      ],
+      "related_mappings": [
+        "fluxnova_bpmn_platform:Process",
+        "gist:TemporalRelation",
+        "iso27001:ManagementReview",
+        "oscal:AssessmentResultsDocument"
+      ],
+      "slots": [
+        "current_moment",
+        "moments",
+        "metadata"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/Timeline",
+      "tree_root": true,
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "NodeMoment",
+      "definition_uri": "https://w3id.org/lmodel/calm/NodeMoment",
+      "description": "An architecture moment - a point-in-time snapshot of the architecture.",
+      "in_subset": [
+        "timeline"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:NodeMoment"
+      ],
+      "related_mappings": [
+        "fluxnova_bpmn_platform:FlowNode",
+        "fluxnova_bpmn_platform:EndEvent"
+      ],
+      "is_a": "Node",
+      "slots": [
+        "unique_id",
+        "name",
+        "Node_description",
+        "controls",
+        "metadata",
+        "node_type",
+        "valid_from",
+        "adrs",
+        "interfaces",
+        "NodeMoment_details"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/NodeMoment",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "TimeUnit",
+      "definition_uri": "https://w3id.org/lmodel/calm/TimeUnit",
+      "description": "A quantity of time expressed as a numeric value and a unit.",
+      "in_subset": [
+        "units"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:TimeUnit"
+      ],
+      "exact_mappings": [
+        "schema:Duration"
+      ],
+      "slots": [
+        "unit",
+        "value"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/TimeUnit",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "RateUnit",
+      "definition_uri": "https://w3id.org/lmodel/calm/RateUnit",
+      "description": "A rate (count per time unit), e.g. operations per second.",
+      "in_subset": [
+        "units"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:RateUnit"
+      ],
+      "slots": [
+        "rate",
+        "per"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/RateUnit",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "OptionList",
+      "definition_uri": "https://w3id.org/lmodel/calm/OptionList",
+      "description": "Wrapper around the list of ``Decision`` alternatives in an options relationship.",
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "slots": [
+        "decisions"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/OptionList",
+      "@type": "ClassDefinition"
+    },
+    {
+      "name": "RelationshipType",
+      "definition_uri": "https://w3id.org/lmodel/calm/RelationshipType",
+      "description": "Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.",
+      "in_subset": [
+        "core"
+      ],
+      "from_schema": "https://w3id.org/lmodel/calm",
+      "mappings": [
+        "calm:RelationshipType"
+      ],
+      "slots": [
+        "interacts",
+        "connects",
+        "deployed_in",
+        "composed_of",
+        "options"
+      ],
+      "slot_usage": {},
+      "class_uri": "https://w3id.org/lmodel/calm/RelationshipType",
+      "@type": "ClassDefinition"
+    }
+  ],
+  "metamodel_version": "1.11.0",
+  "source_file": "calm.yaml",
+  "source_file_date": "2026-07-03T00:41:51",
+  "source_file_size": 23641,
+  "generation_date": "2026-07-03T00:41:52",
+  "@type": "SchemaDefinition",
+  "@context": [
+    "project/jsonld/calm.context.jsonld",
+    "https://w3id.org/linkml/types.context.jsonld",
+    {
+      "@base": "https://w3id.org/lmodel/calm/"
+    }
+  ]
+}

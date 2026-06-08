@@ -1,0 +1,11 @@
+# Valid Decorator: cross-cutting annotation targeting architecture elements.
+# Class: Decorator
+unique_id: dec-pci-scope
+type: compliance-scope
+target:
+  - https://calm.example.com/architectures/payments-arch.yaml
+applies_to:
+  - node-payment-svc
+  - node-orders-db
+  - rel-api-to-db
+data: '{"framework": "PCI-DSS", "scope_level": "CDE", "version": "4.0"}'

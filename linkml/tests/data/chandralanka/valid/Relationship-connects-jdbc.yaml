@@ -1,0 +1,20 @@
+# Vendor fixture: Connects relationship (service ->  database via JDBC).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Relationship
+unique_id: order-service-to-order-database
+description: Order Service reads and writes order data in the Order Database
+protocol: JDBC
+relationship_type:
+  connects:
+    source:
+      node: order-service
+      interfaces:
+        - unique_id: iface-order-jdbc-out
+          definition_url: https://calm.example.com/interfaces/jdbc-out
+          config: '{"driver": "org.postgresql.Driver"}'
+    destination:
+      node: order-database
+      interfaces:
+        - unique_id: iface-order-db-in
+          definition_url: jdbc:postgresql://orders-db.ecommerce.example.com:5432/orders
+          config: '{"port": 5432}'

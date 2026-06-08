@@ -1,0 +1,6 @@
+# Valid Node: data-asset node type.
+# Class: Node
+unique_id: node-pii-store
+node_type: data_asset
+name: PII Data Store
+description: Encrypted store holding personally identifiable information for EU data subjects.

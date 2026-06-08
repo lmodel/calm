@@ -1,0 +1,7 @@
+# Vendor fixture: Actor node (no interfaces).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+unique_id: customer-actor
+node_type: actor
+name: Customer
+description: An end customer placing orders through the e-commerce platform

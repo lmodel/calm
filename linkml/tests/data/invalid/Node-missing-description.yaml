@@ -1,0 +1,7 @@
+# INVALID Node: missing required field 'description'.
+# Violation: description is required on Node.
+# Class: Node
+unique_id: node-missing-desc
+node_type: system
+name: Payment Service
+# description: intentionally omitted - required field

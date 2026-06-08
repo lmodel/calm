@@ -1,0 +1,7 @@
+# Valid ControlRequirement: domain-defined control schema entry.
+# Class: ControlRequirement
+control_id: ctrl-req-tls-001
+name: TLS Encryption Required
+description: >-
+  All inter-service communication must be encrypted using TLS 1.3 or higher.
+  Plaintext HTTP is not permitted on production paths.

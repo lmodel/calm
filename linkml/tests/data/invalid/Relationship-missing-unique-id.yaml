@@ -1,0 +1,10 @@
+# INVALID Relationship: missing required field 'unique_id'.
+# Violation: unique_id is required on Relationship.
+# Class: Relationship
+# unique_id: intentionally omitted
+description: A relationship with no identifier.
+relationship_type:
+  interacts:
+    actor: node-actor
+    nodes:
+      - node-system

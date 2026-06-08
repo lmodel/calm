@@ -1,0 +1,7 @@
+# INVALID Node: missing required field 'node_type'.
+# Violation: node_type is required on Node.
+# Class: Node
+unique_id: node-missing-type
+name: Mystery Node
+description: A node with no type specified.
+# node_type: intentionally omitted - required field

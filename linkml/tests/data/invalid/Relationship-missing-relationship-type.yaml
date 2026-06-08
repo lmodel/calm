@@ -1,0 +1,6 @@
+# INVALID Relationship: missing required field 'relationship_type'.
+# Violation: relationship_type is required on Relationship.
+# Class: Relationship
+unique_id: rel-no-type
+description: A relationship with no type specified.
+# relationship_type: intentionally omitted - required field

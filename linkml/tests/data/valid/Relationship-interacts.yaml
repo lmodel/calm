@@ -1,0 +1,10 @@
+# Valid Relationship: interacts variant with protocol.
+# Class: Relationship
+unique_id: rel-user-to-portal
+description: Authenticated user interacts with the customer portal.
+protocol: HTTPS
+relationship_type:
+  interacts:
+    actor: node-customer
+    nodes:
+      - node-portal

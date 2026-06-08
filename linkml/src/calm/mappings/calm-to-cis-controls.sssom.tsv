@@ -1,0 +1,18 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  cis_controls: https://w3id.org/lmodel/cis-controls/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-cis-controls
+#mapping_set_title: CALM to CIS Controls v8 class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the Center for Internet Security Critical Security Controls v8 LinkML schema. CALM Control maps to the CIS Safeguard (the atomic implementable unit); ControlRequirement maps to the broader CIS Control (the 18 top-level controls); the Architecture document root relates to the CIS Controls document itself.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/cis-controls
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	cis_controls:Safeguard	Safeguard	semapv:LLMBasedMatching	A CALM Control is an atomic, domain-scoped control requirement attached to a node or relationship; a CIS Safeguard is the implementable atomic unit of the CIS Controls v8 (e.g. Safeguard 1.1) - both represent the leaf-level actionable control.
+calm:ControlRequirement	ControlRequirement	skos:closeMatch	cis_controls:CISControl	CISControl	semapv:LLMBasedMatching	A CALM ControlRequirement defines the schema for a control domain (id, name, description); a CIS Control is one of the 18 top-level critical security control categories - both model the grouping or definition layer above individual safeguards.
+calm:Architecture	Architecture	skos:relatedMatch	cis_controls:CISControlsDocument	CISControlsDocument	semapv:LLMBasedMatching	A CALM Architecture is the container for all nodes, relationships, and controls in a system; the CIS Controls Document is the publication container for all 18 Controls and their Safeguards - related as both are top-level containers for their respective control taxonomies.
+calm:Node	Node	skos:relatedMatch	cis_controls:Safeguard	Safeguard	semapv:LLMBasedMatching	A CALM Node (specifically the data-asset or system node type) corresponds to the enterprise assets that CIS Control 1 (Inventory and Control of Enterprise Assets) and Safeguard 1.1 require to be inventoried and managed.

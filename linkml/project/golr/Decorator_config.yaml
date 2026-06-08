@@ -1,0 +1,26 @@
+# metamodel_version: 1.11.0# version: 1.2id: Decorator
+schema_generating: true
+description: Cross-cutting annotation attached to nodes, relationships, or flows.
+display_name: Decorator
+document_category: Decorator
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: type
+  description: Type of decorator - a free-form string identifying the decorator category
+  display_name: type
+- id: target
+  description: Array of file paths or URLs referencing the CALM documents (patterns,
+    architectures, or controls) this decorator targets
+  display_name: target
+  cardinality: multi
+- id: applies_to
+  description: Array of unique-ids referencing nodes, relationships, flows, or other
+    architecture elements
+  display_name: applies_to
+  cardinality: multi
+- id: data
+  description: Free-form JSON object containing the decorator's data
+  display_name: data

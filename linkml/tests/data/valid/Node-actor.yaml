@@ -1,0 +1,6 @@
+# Valid Node: actor node (human user).
+# Class: Node
+unique_id: node-customer
+node_type: actor
+name: Customer
+description: A human end-user who places orders through the web application.

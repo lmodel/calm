@@ -1,0 +1,645 @@
+@prefix calm: <https://w3id.org/lmodel/calm/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema1: <http://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+calm:Architecture a sh:NodeShape ;
+    rdfs:label "Common Architecture Language Model (CALM) Vocab" ;
+    rdfs:comment "Top-level CALM architecture document." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:metadata ],
+        [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 3 ;
+            sh:path calm:controls ],
+        [ sh:class calm:Flow ;
+            sh:nodeKind sh:IRI ;
+            sh:order 4 ;
+            sh:path calm:flows ],
+        [ sh:class calm:Node ;
+            sh:nodeKind sh:IRI ;
+            sh:order 0 ;
+            sh:path calm:nodes ],
+        [ sh:class calm:Relationship ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:relationships ],
+        [ sh:datatype xsd:string ;
+            sh:description "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation." ;
+            sh:nodeKind sh:Literal ;
+            sh:order 5 ;
+            sh:path calm:adrs ] ;
+    sh:targetClass calm:Architecture .
+
+calm:ControlDetail a sh:NodeShape ;
+    rdfs:comment "A single control requirement and its inline / referenced configuration." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "The configuration of how the control requirement schema is met" ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path schema1:url ],
+        [ sh:datatype xsd:string ;
+            sh:description "The requirement schema that specifies how a control should be defined" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:url ],
+        [ sh:datatype xsd:string ;
+            sh:description "Inline configuration of how the control requirement schema is met" ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:config ] ;
+    sh:targetClass calm:ControlDetail .
+
+calm:ControlRequirement a sh:NodeShape ;
+    rdfs:label "Common Architecture Language Model Control Requirement" ;
+    rdfs:comment "Domain-defined control requirement that controls can reference." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "The unique identifier of this control, which has the potential to be used for linking evidence" ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:control_id ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path dct:description ],
+        [ sh:datatype xsd:string ;
+            sh:description "Short human-readable name." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path rdfs:label ] ;
+    sh:targetClass calm:ControlRequirement .
+
+calm:Decorator a sh:NodeShape ;
+    rdfs:comment "Cross-cutting annotation attached to nodes, relationships, or flows." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Type of decorator - a free-form string identifying the decorator category" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path calm:type ],
+        [ sh:datatype xsd:string ;
+            sh:description "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements" ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 3 ;
+            sh:path calm:applies_to ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form JSON object containing the decorator's data" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path calm:data ],
+        [ sh:datatype xsd:string ;
+            sh:description "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets" ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:target ],
+        [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ] ;
+    sh:targetClass calm:Decorator .
+
+calm:EvidenceDocument a sh:NodeShape ;
+    rdfs:label "Common Architecture Language Model Evidence" ;
+    rdfs:comment "Top-level CALM evidence document linking control configurations to evidence artefacts." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:evidence ] ;
+    sh:targetClass calm:EvidenceDocument .
+
+calm:InterfaceType a sh:NodeShape ;
+    rdfs:comment "Inline (free-form) interface definition keyed by unique-id." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ] ;
+    sh:targetClass calm:InterfaceType .
+
+calm:NodeMoment a sh:NodeShape ;
+    rdfs:comment "An architecture moment - a point-in-time snapshot of the architecture." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:InterfaceDefinition ;
+            sh:description "Interface definitions exposed by nodes." ;
+            sh:nodeKind sh:IRI ;
+            sh:order 3 ;
+            sh:path calm:interfaces ],
+        [ sh:datatype xsd:string ;
+            sh:description "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation." ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:adrs ],
+        [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 8 ;
+            sh:path calm:controls ],
+        [ sh:description "Category of the node (system, service, actor, etc.)." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:or ( [ sh:in ( <https://w3id.org/lmodel/calm/node-type/actor> <https://w3id.org/lmodel/calm/node-type/ecosystem> <https://w3id.org/lmodel/calm/node-type/system> <https://w3id.org/lmodel/calm/node-type/service> <https://w3id.org/lmodel/calm/node-type/database> <https://w3id.org/lmodel/calm/node-type/network> <https://w3id.org/lmodel/calm/node-type/ldap> <https://w3id.org/lmodel/calm/node-type/webclient> <https://w3id.org/lmodel/calm/node-type/data-asset> ) ] [ sh:datatype xsd:string ;
+                        sh:nodeKind sh:Literal ] ) ;
+            sh:order 0 ;
+            sh:path calm:node_type ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 7 ;
+            sh:path calm:details ],
+        [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path schema1:identifier ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 6 ;
+            sh:path dct:description ],
+        [ sh:datatype xsd:date ;
+            sh:description "The date when this architecture moment came into effect." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path prov:startedAtTime ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 9 ;
+            sh:path calm:metadata ],
+        [ sh:datatype xsd:string ;
+            sh:description "Short human-readable name." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 5 ;
+            sh:path rdfs:label ] ;
+    sh:targetClass calm:NodeMoment .
+
+calm:OptionList a sh:NodeShape ;
+    rdfs:comment "Wrapper around the list of ``Decision`` alternatives in an options relationship." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:Decision ;
+            sh:description "Alternative decisions under an ``options`` relationship." ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 0 ;
+            sh:path calm:decisions ] ;
+    sh:targetClass calm:OptionList .
+
+calm:RateUnit a sh:NodeShape ;
+    rdfs:comment "A rate (count per time unit), e.g. operations per second." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:description "The time unit defining the rate interval." ;
+            sh:in ( "nanosecond" "microsecond" "millisecond" "second" "minute" "hour" "day" "week" "month" "quarter" "year" ) ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:order 1 ;
+            sh:path calm:per ],
+        [ sh:datatype xsd:float ;
+            sh:description "The numeric value representing the rate." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:minInclusive 0 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:rate ] ;
+    sh:targetClass calm:RateUnit .
+
+calm:TimeUnit a sh:NodeShape ;
+    rdfs:comment "A quantity of time expressed as a numeric value and a unit." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:description "The unit of time (e.g., seconds, minutes, hours)." ;
+            sh:in ( "nanoseconds" "microseconds" "milliseconds" "seconds" "minutes" "hours" "days" "weeks" "months" "quarters" "years" ) ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:order 0 ;
+            sh:path calm:unit ],
+        [ sh:datatype xsd:float ;
+            sh:description "The numeric value representing the amount of time." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:minInclusive 0 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path calm:value ] ;
+    sh:targetClass calm:TimeUnit .
+
+calm:Timeline a sh:NodeShape ;
+    rdfs:label "Common Architecture Language Model (CALM) Timelines Vocab" ;
+    rdfs:comment "CALM timeline document capturing architecture moments over time." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "The unique-id of the current architecture moment within the timeline." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:current_moment ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:metadata ],
+        [ sh:datatype xsd:string ;
+            sh:description "A list of significant architecture states or points in time, each represented as a 'moment'." ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path calm:moments ] ;
+    sh:targetClass calm:Timeline .
+
+calm:ComposedOfRelationship a sh:NodeShape ;
+    rdfs:comment "A ``composed-of`` containment relationship." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:Node ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:nodes ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:container ] ;
+    sh:targetClass calm:ComposedOfRelationship .
+
+calm:ConnectsRelationship a sh:NodeShape ;
+    rdfs:comment "A ``connects`` relationship between two node interfaces." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:NodeInterface ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 1 ;
+            sh:path calm:destination ],
+        [ sh:class calm:NodeInterface ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 0 ;
+            sh:path calm:source ] ;
+    sh:targetClass calm:ConnectsRelationship .
+
+calm:DeployedInRelationship a sh:NodeShape ;
+    rdfs:comment "A ``deployed-in`` containment relationship." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:container ],
+        [ sh:class calm:Node ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:nodes ] ;
+    sh:targetClass calm:DeployedInRelationship .
+
+calm:Flow a sh:NodeShape ;
+    rdfs:comment "Business flow mapped onto architecture relationships." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ],
+        [ sh:datatype xsd:string ;
+            sh:description "Short human-readable name." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path rdfs:label ],
+        [ sh:datatype xsd:string ;
+            sh:description "The requirement schema that specifies how a control should be defined" ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 3 ;
+            sh:path schema1:url ],
+        [ sh:class calm:Transition ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 4 ;
+            sh:path calm:transitions ],
+        [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 5 ;
+            sh:path calm:controls ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 6 ;
+            sh:path calm:metadata ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path dct:description ] ;
+    sh:targetClass calm:Flow .
+
+calm:InteractsRelationship a sh:NodeShape ;
+    rdfs:comment "An ``interacts`` relationship between an actor and one or more nodes." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:Node ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:nodes ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:actor ] ;
+    sh:targetClass calm:InteractsRelationship .
+
+calm:RelationshipType a sh:NodeShape ;
+    rdfs:comment "Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:ComposedOfRelationship ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 3 ;
+            sh:path calm:composed_of ],
+        [ sh:class calm:ConnectsRelationship ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 1 ;
+            sh:path calm:connects ],
+        [ sh:class calm:InteractsRelationship ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 0 ;
+            sh:path calm:interacts ],
+        [ sh:class calm:DeployedInRelationship ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 2 ;
+            sh:path calm:deployed_in ],
+        [ sh:class calm:Decision ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 4 ;
+            sh:path calm:options ] ;
+    sh:targetClass calm:RelationshipType .
+
+calm:Transition a sh:NodeShape ;
+    rdfs:comment "A single step in a flow, anchored on a relationship." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path dct:description ],
+        [ sh:datatype xsd:string ;
+            sh:description "Unique identifier for the relationship in the architecture" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:relationship_unique_id ],
+        [ sh:datatype xsd:integer ;
+            sh:description "Indicates the sequence of the relationship in the flow" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:minInclusive 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path calm:sequence_number ],
+        [ sh:description "Direction of flow on the transition." ;
+            sh:in ( "source_to_destination" "destination_to_source" ) ;
+            sh:maxCount 1 ;
+            sh:order 3 ;
+            sh:path calm:direction ] ;
+    sh:targetClass calm:Transition .
+
+calm:Decision a sh:NodeShape ;
+    rdfs:comment "A candidate decision within an ``options`` relationship." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 3 ;
+            sh:path calm:controls ],
+        [ sh:class calm:Node ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:nodes ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path dct:description ],
+        [ sh:class calm:Relationship ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:IRI ;
+            sh:order 2 ;
+            sh:path calm:relationships ] ;
+    sh:targetClass calm:Decision .
+
+calm:NodeInterface a sh:NodeShape ;
+    rdfs:comment "Reference to one or more interfaces exposed by a node." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path calm:node ],
+        [ sh:class calm:InterfaceDefinition ;
+            sh:description "Interface definitions exposed by nodes." ;
+            sh:nodeKind sh:IRI ;
+            sh:order 1 ;
+            sh:path calm:interfaces ] ;
+    sh:targetClass calm:NodeInterface .
+
+calm:Relationship a sh:NodeShape ;
+    rdfs:comment "A typed link between architecture elements." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path dct:description ],
+        [ sh:class calm:RelationshipType ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 2 ;
+            sh:path calm:relationship_type ],
+        [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path calm:metadata ],
+        [ sh:in ( <https://w3id.org/lmodel/calm/protocol/HTTP> <https://w3id.org/lmodel/calm/protocol/HTTPS> <https://w3id.org/lmodel/calm/protocol/FTP> <https://w3id.org/lmodel/calm/protocol/SFTP> <https://w3id.org/lmodel/calm/protocol/JDBC> <https://w3id.org/lmodel/calm/protocol/WebSocket> <https://w3id.org/lmodel/calm/protocol/SocketIO> <https://w3id.org/lmodel/calm/protocol/LDAP> <https://w3id.org/lmodel/calm/protocol/AMQP> <https://w3id.org/lmodel/calm/protocol/TLS> <https://w3id.org/lmodel/calm/protocol/mTLS> <https://w3id.org/lmodel/calm/protocol/TCP> ) ;
+            sh:maxCount 1 ;
+            sh:order 3 ;
+            sh:path calm:protocol ],
+        [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 5 ;
+            sh:path calm:controls ] ;
+    sh:targetClass calm:Relationship .
+
+calm:InterfaceDefinition a sh:NodeShape ;
+    rdfs:comment "Modular interface definition referencing an external schema." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "Inline configuration of how the control requirement schema is met" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path calm:config ],
+        [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ],
+        [ sh:datatype xsd:string ;
+            sh:description "URI of the external schema this interface configuration conforms to" ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 1 ;
+            sh:path schema1:url ] ;
+    sh:targetClass calm:InterfaceDefinition .
+
+calm:Node a sh:NodeShape ;
+    rdfs:comment "A logical or physical element of an architecture (system, service, actor, ...)." ;
+    sh:closed true ;
+    sh:ignoredProperties ( calm:adrs prov:startedAtTime rdf:type ) ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 4 ;
+            sh:path calm:details ],
+        [ sh:datatype xsd:string ;
+            sh:description "Short human-readable name." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 2 ;
+            sh:path rdfs:label ],
+        [ sh:datatype xsd:string ;
+            sh:description "Stable opaque identifier used to cross-link CALM elements." ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 0 ;
+            sh:path schema1:identifier ],
+        [ sh:description "Category of the node (system, service, actor, etc.)." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:or ( [ sh:in ( <https://w3id.org/lmodel/calm/node-type/actor> <https://w3id.org/lmodel/calm/node-type/ecosystem> <https://w3id.org/lmodel/calm/node-type/system> <https://w3id.org/lmodel/calm/node-type/service> <https://w3id.org/lmodel/calm/node-type/database> <https://w3id.org/lmodel/calm/node-type/network> <https://w3id.org/lmodel/calm/node-type/ldap> <https://w3id.org/lmodel/calm/node-type/webclient> <https://w3id.org/lmodel/calm/node-type/data-asset> ) ] [ sh:datatype xsd:string ;
+                        sh:nodeKind sh:Literal ] ) ;
+            sh:order 1 ;
+            sh:path calm:node_type ],
+        [ sh:datatype xsd:string ;
+            sh:description "Free-form description of the element." ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 3 ;
+            sh:path dct:description ],
+        [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:Literal ;
+            sh:order 7 ;
+            sh:path calm:metadata ],
+        [ sh:class calm:Control ;
+            sh:maxCount 1 ;
+            sh:nodeKind sh:BlankNodeOrIRI ;
+            sh:order 6 ;
+            sh:path calm:controls ],
+        [ sh:class calm:InterfaceDefinition ;
+            sh:description "Interface definitions exposed by nodes." ;
+            sh:nodeKind sh:IRI ;
+            sh:order 5 ;
+            sh:path calm:interfaces ] ;
+    sh:targetClass calm:Node .
+
+calm:Control a sh:NodeShape ;
+    rdfs:comment "A named control attached to an architecture element." ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:targetClass calm:Control .
+

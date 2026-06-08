@@ -1,0 +1,5 @@
+# INVALID RateUnit: rate is negative (below minimum_value: 0).
+# Violation: rate has minimum_value: 0; negative values are not permitted.
+# Class: RateUnit
+rate: -100.0
+per: second

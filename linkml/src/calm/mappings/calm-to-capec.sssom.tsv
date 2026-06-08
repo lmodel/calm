@@ -1,0 +1,18 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  capec: https://w3id.org/lmodel/capec/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-capec
+#mapping_set_title: CALM to CAPEC attack pattern class mappings
+#mapping_set_description: "Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the MITRE Common Attack Pattern Enumeration and Classification (CAPEC) LinkML schema. These mappings support threat modelling use cases: CALM Nodes are targets of CAPEC AttackPatterns; CALM Controls are mitigations that address CAPEC Categories; CALM ControlRequirements group into CAPEC Views. The mappings are relatedMatch because CALM is an architecture description language while CAPEC is a threat taxonomy - the relationship is an applicability mapping rather than a structural equivalence."
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/capec
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Node	Node	skos:relatedMatch	capec:AttackPattern	AttackPattern	semapv:LLMBasedMatching	A CALM Node is a bounded architecture element that may be the target of adversary activity; a CAPEC AttackPattern describes the method an attacker uses to exploit a vulnerability on a target - related as CALM Nodes are the targets that CAPEC AttackPatterns are applied against in a threat model.
+calm:Control	Control	skos:relatedMatch	capec:Category	Category	semapv:LLMBasedMatching	A CALM Control is a domain-scoped safeguard applied to an architecture element; a CAPEC Category groups related attack patterns by a shared theme or target mechanism - related as CALM Controls are typically designed to address the attack patterns grouped under a CAPEC Category.
+calm:ControlRequirement	ControlRequirement	skos:relatedMatch	capec:View	View	semapv:LLMBasedMatching	A CALM ControlRequirement defines the domain schema for a control domain; a CAPEC View is a curated subset or perspective on the CAPEC corpus for a specific stakeholder group - related as both provide a scoped, curated grouping of requirements or patterns for a specific audience or domain.
+calm:Architecture	Architecture	skos:relatedMatch	capec:Category	Category	semapv:LLMBasedMatching	A CALM Architecture describes the surface area of a system that may be subject to attack; a CAPEC Category groups related attack patterns that apply to a class of systems - related as a CALM Architecture's node inventory determines which CAPEC Categories are applicable for threat assessment.

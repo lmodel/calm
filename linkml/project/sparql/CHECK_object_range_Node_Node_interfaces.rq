@@ -1,0 +1,51 @@
+PREFIX calm: <https://w3id.org/lmodel/calm/>
+PREFIX linkml: <https://w3id.org/linkml/>
+PREFIX schema: <http://schema.org/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX finos_calm: <https://calm.finos.org/release/1.2/meta/>
+PREFIX ai_governance_framework: <https://w3id.org/lmodel/ai-governance-framework/>
+PREFIX attack: <https://w3id.org/lmodel/attack/>
+PREFIX capec: <https://w3id.org/lmodel/capec/>
+PREFIX cis_controls: <https://w3id.org/lmodel/cis-controls/>
+PREFIX dpv: <https://w3id.org/lmodel/dpv/>
+PREFIX fluxnova_bpmn_platform: <https://w3id.org/lmodel/fluxnova-bpm-platform/>
+PREFIX gist: <https://w3id.org/lmodel/gist/>
+PREFIX iso27001: <https://w3id.org/lmodel/iso27001/>
+PREFIX nist_csf_v2: <https://w3id.org/lmodel/nist-csf-v2/>
+PREFIX nist_sp_800_53: <https://w3id.org/lmodel/nist-sp-800-53/>
+PREFIX ocsf: <https://w3id.org/lmodel/ocsf/>
+PREFIX oscal: <https://w3id.org/lmodel/oscal/>
+PREFIX stix: <https://w3id.org/lmodel/stix/>
+PREFIX shex: <http://www.w3.org/ns/shex#>
+
+SELECT
+  ?check
+  ?graph
+  ?subject
+  ?predicate
+  ?object
+WHERE {
+ GRAPH ?graph {
+  ?subject rdf:type calm:Node ;
+     ?predicate ?object .
+  FILTER NOT EXISTS {
+    ?object rdf:type ?otype .
+    FILTER ( ?otype IN (
+      calm:InterfaceDefinition
+      
+      ))
+  }
+ }
+ VALUES ?check { linkml:range }
+ VALUES ?predicate { calm:interfaces  }
+ 
+}  
+
+
+

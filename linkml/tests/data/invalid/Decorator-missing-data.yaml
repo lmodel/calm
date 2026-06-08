@@ -1,0 +1,10 @@
+# INVALID Decorator: missing required field 'data'.
+# Violation: data is required on Decorator.
+# Class: Decorator
+unique_id: dec-no-data
+type: threat-model
+target:
+  - https://calm.example.com/architectures/payments-arch.yaml
+applies_to:
+  - node-payment-svc
+# data: intentionally omitted - required field

@@ -1,0 +1,573 @@
+[
+  {
+    "@type": "@context",
+    "@documentation": {
+      "@title": "Common Architecture Language Model (CALM)",
+      "@description": "LinkML representation of the FINOS Common Architecture Language Model (CALM) 1.2 specification. CALM is a declarative, JSON-based modeling language for describing complex software architectures (nodes, relationships, controls, flows, decorators, timelines, evidence, and units). This LinkML schema is generated from the CALM JSON-Schema meta files."
+    },
+    "@schema": "https://w3id.org/lmodel/calm#",
+    "@base": "https://w3id.org/lmodel/data/"
+  },
+  {
+    "@type": "Class",
+    "@id": "Architecture",
+    "@documentation": {
+      "@comment": "Top-level CALM architecture document.",
+      "@properties": {
+        "adrs": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation."
+      }
+    },
+    "nodes": {
+      "@type": "List",
+      "@class": "Node"
+    },
+    "relationships": {
+      "@type": "List",
+      "@class": "Relationship"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    },
+    "flows": {
+      "@type": "List",
+      "@class": "Flow"
+    },
+    "adrs": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ComposedOfRelationship",
+    "@documentation": {
+      "@comment": "A ``composed-of`` containment relationship.",
+      "@properties": {}
+    },
+    "container": "xsd:string",
+    "nodes": {
+      "@type": "Set",
+      "@class": "Node"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ConnectsRelationship",
+    "@documentation": {
+      "@comment": "A ``connects`` relationship between two node interfaces.",
+      "@properties": {}
+    },
+    "source": "NodeInterface",
+    "destination": "NodeInterface"
+  },
+  {
+    "@type": "Class",
+    "@id": "Control",
+    "@documentation": {
+      "@comment": "A named control attached to an architecture element.",
+      "@properties": {}
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ControlDetail",
+    "@documentation": {
+      "@comment": "A single control requirement and its inline / referenced configuration.",
+      "@properties": {
+        "requirement_url": "The requirement schema that specifies how a control should be defined",
+        "config_url": "The configuration of how the control requirement schema is met",
+        "config": "Inline configuration of how the control requirement schema is met"
+      }
+    },
+    "requirement_url": "xsd:string",
+    "config_url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "config": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ControlRequirement",
+    "@documentation": {
+      "@comment": "Domain-defined control requirement that controls can reference.",
+      "@properties": {
+        "control_id": "The unique identifier of this control, which has the potential to be used for linking evidence",
+        "name": "Short human-readable name.",
+        "description": "Free-form description of the element."
+      }
+    },
+    "control_id": "xsd:string",
+    "name": "xsd:string",
+    "description": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "Decision",
+    "@documentation": {
+      "@comment": "A candidate decision within an ``options`` relationship.",
+      "@properties": {
+        "description": "Free-form description of the element."
+      }
+    },
+    "description": "xsd:string",
+    "nodes": {
+      "@type": "List",
+      "@class": "Node"
+    },
+    "relationships": {
+      "@type": "List",
+      "@class": "Relationship"
+    },
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Decorator",
+    "@documentation": {
+      "@comment": "Cross-cutting annotation attached to nodes, relationships, or flows.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "type": "Type of decorator - a free-form string identifying the decorator category",
+        "target": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets",
+        "applies_to": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements",
+        "data": "Free-form JSON object containing the decorator's data"
+      }
+    },
+    "unique_id": "xsd:string",
+    "type": "xsd:string",
+    "target": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "applies_to": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "data": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "DeployedInRelationship",
+    "@documentation": {
+      "@comment": "A ``deployed-in`` containment relationship.",
+      "@properties": {}
+    },
+    "container": "xsd:string",
+    "nodes": {
+      "@type": "Set",
+      "@class": "Node"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "EvidenceDocument",
+    "@documentation": {
+      "@comment": "Top-level CALM evidence document linking control configurations to evidence artefacts.",
+      "@properties": {}
+    },
+    "evidence": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "Flow",
+    "@documentation": {
+      "@comment": "Business flow mapped onto architecture relationships.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "name": "Short human-readable name.",
+        "description": "Free-form description of the element.",
+        "requirement_url": "The requirement schema that specifies how a control should be defined"
+      }
+    },
+    "unique_id": "xsd:string",
+    "name": "xsd:string",
+    "description": "xsd:string",
+    "requirement_url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "transitions": {
+      "@type": "List",
+      "@class": "Transition"
+    },
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "InteractsRelationship",
+    "@documentation": {
+      "@comment": "An ``interacts`` relationship between an actor and one or more nodes.",
+      "@properties": {}
+    },
+    "actor": "xsd:string",
+    "nodes": {
+      "@type": "Set",
+      "@class": "Node"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "InterfaceDefinition",
+    "@documentation": {
+      "@comment": "Modular interface definition referencing an external schema.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "definition_url": "URI of the external schema this interface configuration conforms to",
+        "config": "Inline configuration of how the control requirement schema is met"
+      }
+    },
+    "unique_id": "xsd:string",
+    "definition_url": "xsd:string",
+    "config": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "InterfaceType",
+    "@documentation": {
+      "@comment": "Inline (free-form) interface definition keyed by unique-id.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements."
+      }
+    },
+    "unique_id": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "Node",
+    "@documentation": {
+      "@comment": "A logical or physical element of an architecture (system, service, actor, ...).",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "node_type": "Category of the node (system, service, actor, etc.).",
+        "name": "Short human-readable name.",
+        "description": "Free-form description of the element.",
+        "interfaces": "Interface definitions exposed by nodes."
+      }
+    },
+    "unique_id": "xsd:string",
+    "node_type": "NodeType",
+    "name": "xsd:string",
+    "description": "xsd:string",
+    "details": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "interfaces": {
+      "@type": "List",
+      "@class": "InterfaceDefinition"
+    },
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "NodeInterface",
+    "@documentation": {
+      "@comment": "Reference to one or more interfaces exposed by a node.",
+      "@properties": {
+        "interfaces": "Interface definitions exposed by nodes."
+      }
+    },
+    "node": "xsd:string",
+    "interfaces": {
+      "@type": "List",
+      "@class": "InterfaceDefinition"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "NodeMoment",
+    "@documentation": {
+      "@comment": "An architecture moment - a point-in-time snapshot of the architecture.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "name": "Short human-readable name.",
+        "description": "Free-form description of the element.",
+        "node_type": "Category of the node (system, service, actor, etc.).",
+        "valid_from": "The date when this architecture moment came into effect.",
+        "adrs": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+        "interfaces": "Interface definitions exposed by nodes."
+      }
+    },
+    "@inherits": [
+      "Node"
+    ],
+    "unique_id": "xsd:string",
+    "name": "xsd:string",
+    "description": "xsd:string",
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "node_type": "NodeType",
+    "valid_from": {
+      "@type": "Optional",
+      "@class": "xsd:dateTime"
+    },
+    "adrs": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "interfaces": {
+      "@type": "Set",
+      "@class": "InterfaceDefinition"
+    },
+    "details": "xsd:string"
+  },
+  {
+    "@type": "Class",
+    "@id": "OptionList",
+    "@documentation": {
+      "@comment": "Wrapper around the list of ``Decision`` alternatives in an options relationship.",
+      "@properties": {
+        "decisions": "Alternative decisions under an ``options`` relationship."
+      }
+    },
+    "decisions": {
+      "@type": "List",
+      "@class": "Decision"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "RateUnit",
+    "@documentation": {
+      "@comment": "A rate (count per time unit), e.g. operations per second.",
+      "@properties": {
+        "rate": "The numeric value representing the rate.",
+        "per": "The time unit defining the rate interval."
+      }
+    },
+    "rate": "xsd:float",
+    "per": "RatePerUnit"
+  },
+  {
+    "@type": "Class",
+    "@id": "Relationship",
+    "@documentation": {
+      "@comment": "A typed link between architecture elements.",
+      "@properties": {
+        "unique_id": "Stable opaque identifier used to cross-link CALM elements.",
+        "description": "Free-form description of the element."
+      }
+    },
+    "unique_id": "xsd:string",
+    "description": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "relationship_type": "RelationshipType",
+    "protocol": {
+      "@type": "Optional",
+      "@class": "Protocol"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "controls": {
+      "@type": "Optional",
+      "@class": "Control"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "RelationshipType",
+    "@documentation": {
+      "@comment": "Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.",
+      "@properties": {}
+    },
+    "interacts": {
+      "@type": "Optional",
+      "@class": "InteractsRelationship"
+    },
+    "connects": {
+      "@type": "Optional",
+      "@class": "ConnectsRelationship"
+    },
+    "deployed_in": {
+      "@type": "Optional",
+      "@class": "DeployedInRelationship"
+    },
+    "composed_of": {
+      "@type": "Optional",
+      "@class": "ComposedOfRelationship"
+    },
+    "options": {
+      "@type": "List",
+      "@class": "Decision"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Timeline",
+    "@documentation": {
+      "@comment": "CALM timeline document capturing architecture moments over time.",
+      "@properties": {
+        "current_moment": "The unique-id of the current architecture moment within the timeline.",
+        "moments": "A list of significant architecture states or points in time, each represented as a 'moment'."
+      }
+    },
+    "current_moment": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "moments": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "metadata": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "TimeUnit",
+    "@documentation": {
+      "@comment": "A quantity of time expressed as a numeric value and a unit.",
+      "@properties": {
+        "unit": "The unit of time (e.g., seconds, minutes, hours).",
+        "value": "The numeric value representing the amount of time."
+      }
+    },
+    "unit": "TimeUnitName",
+    "value": "xsd:float"
+  },
+  {
+    "@type": "Class",
+    "@id": "Transition",
+    "@documentation": {
+      "@comment": "A single step in a flow, anchored on a relationship.",
+      "@properties": {
+        "relationship_unique_id": "Unique identifier for the relationship in the architecture",
+        "sequence_number": "Indicates the sequence of the relationship in the flow",
+        "description": "Free-form description of the element.",
+        "direction": "Direction of flow on the transition."
+      }
+    },
+    "relationship_unique_id": "xsd:string",
+    "sequence_number": "xsd:integer",
+    "description": "xsd:string",
+    "direction": {
+      "@type": "Optional",
+      "@class": "TransitionDirection"
+    }
+  },
+  {
+    "@type": "Enum",
+    "@id": "Protocol",
+    "@value": [
+      "HTTP",
+      "HTTPS",
+      "FTP",
+      "SFTP",
+      "JDBC",
+      "WebSocket",
+      "SocketIO",
+      "LDAP",
+      "AMQP",
+      "TLS",
+      "mTLS",
+      "TCP"
+    ]
+  },
+  {
+    "@type": "Enum",
+    "@id": "NodeType",
+    "@value": [
+      "actor",
+      "ecosystem",
+      "system",
+      "service",
+      "database",
+      "network",
+      "ldap",
+      "webclient",
+      "data_asset"
+    ]
+  },
+  {
+    "@type": "Enum",
+    "@id": "TimeUnitName",
+    "@value": [
+      "nanoseconds",
+      "microseconds",
+      "milliseconds",
+      "seconds",
+      "minutes",
+      "hours",
+      "days",
+      "weeks",
+      "months",
+      "quarters",
+      "years"
+    ]
+  },
+  {
+    "@type": "Enum",
+    "@id": "RatePerUnit",
+    "@value": [
+      "nanosecond",
+      "microsecond",
+      "millisecond",
+      "second",
+      "minute",
+      "hour",
+      "day",
+      "week",
+      "month",
+      "quarter",
+      "year"
+    ]
+  },
+  {
+    "@type": "Enum",
+    "@id": "TransitionDirection",
+    "@value": [
+      "source_to_destination",
+      "destination_to_source"
+    ]
+  },
+  {
+    "@type": "Enum",
+    "@id": "RelationshipKind",
+    "@value": [
+      "interacts",
+      "connects",
+      "deployed_in",
+      "composed_of",
+      "options"
+    ]
+  }
+]
+

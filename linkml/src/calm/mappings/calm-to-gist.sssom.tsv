@@ -1,0 +1,20 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  gist: https://w3id.org/lmodel/gist/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-gist
+#mapping_set_title: CALM to GIST enterprise ontology class mappings
+#mapping_set_description: "Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the GIST upper enterprise ontology LinkML schema. GIST provides a lightweight, carefully designed upper ontology for enterprise information modelling. CALM's architecture primitives align naturally: Architecture maps to GIST System (a collection of interrelated parts); Node maps to GIST NetworkNode; Relationship maps to GIST NetworkLink; Flow maps to GIST ServiceSpecification; Timeline maps to GIST TemporalRelation."
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/gist
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Architecture	Architecture	skos:closeMatch	gist:System	System	semapv:LLMBasedMatching	A CALM Architecture is a named collection of nodes, relationships, controls, and flows constituting a software system; a GIST System is a whole composed of interrelated parts that collectively fulfil a purpose - both model a bounded, purposeful collection of interacting components.
+calm:Node	Node	skos:closeMatch	gist:NetworkNode	NetworkNode	semapv:LLMBasedMatching	A CALM Node is a logical or physical architecture element connected via relationships; a GIST NetworkNode is a component that participates in a network of interconnected parts - both model a bounded, connectable element in a system graph.
+calm:Relationship	Relationship	skos:closeMatch	gist:NetworkLink	NetworkLink	semapv:LLMBasedMatching	A CALM Relationship is a typed directed link between two CALM Nodes; a GIST NetworkLink represents a connection in a network between NetworkNodes - both model a typed edge connecting two bounded system components.
+calm:Flow	Flow	skos:relatedMatch	gist:ServiceSpecification	ServiceSpecification	semapv:LLMBasedMatching	A CALM Flow describes a business process traversing nodes via transitions; a GIST ServiceSpecification describes the specified behaviour of a service - related as both capture the expected behavioural contract of a system interaction.
+calm:Timeline	Timeline	skos:relatedMatch	gist:TemporalRelation	TemporalRelation	semapv:LLMBasedMatching	A CALM Timeline records an ordered sequence of NodeMoments representing architecture states over time; a GIST TemporalRelation represents an ordering relationship between temporal entities - related as both structure temporal ordering in a domain model.
+calm:InterfaceDefinition	InterfaceDefinition	skos:relatedMatch	gist:Network	Network	semapv:LLMBasedMatching	A CALM InterfaceDefinition specifies a named interface on a node including host, port, and protocol; a GIST Network is a collection of interconnected NetworkNodes - related as both model the connectivity fabric of a system.

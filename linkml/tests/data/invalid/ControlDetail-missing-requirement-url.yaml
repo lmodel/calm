@@ -1,0 +1,5 @@
+# INVALID ControlDetail: missing required field 'requirement_url'.
+# Violation: requirement_url is required on ControlDetail.
+# Class: ControlDetail
+# requirement_url: intentionally omitted - required field
+config_url: https://calm.example.com/configs/tls-policy

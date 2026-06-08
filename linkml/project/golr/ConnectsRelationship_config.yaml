@@ -1,0 +1,11 @@
+# metamodel_version: 1.11.0# version: 1.2id: ConnectsRelationship
+schema_generating: true
+description: A ``connects`` relationship between two node interfaces.
+display_name: ConnectsRelationship
+document_category: ConnectsRelationship
+weight: 20
+fields:
+- id: source
+  display_name: source
+- id: destination
+  display_name: destination

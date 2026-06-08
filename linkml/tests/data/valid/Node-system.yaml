@@ -1,0 +1,11 @@
+# Valid Node: system node with optional details and interfaces.
+# Class: Node
+unique_id: node-payment-svc
+node_type: system
+name: Payment Service
+description: Core payment processing microservice responsible for authorising card transactions.
+details: '{"team": "payments", "tier": "critical"}'
+interfaces:
+  - unique_id: iface-http-in
+    definition_url: https://calm.example.com/interfaces/http-in
+    config: '{"port": 8080}'

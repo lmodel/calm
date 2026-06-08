@@ -1,0 +1,18 @@
+# metamodel_version: 1.11.0# version: 1.2id: Decision
+schema_generating: true
+description: A candidate decision within an ``options`` relationship.
+display_name: Decision
+document_category: Decision
+weight: 20
+fields:
+- id: description
+  description: Free-form description of the element.
+  display_name: Decision_description
+- id: nodes
+  display_name: Decision_nodes
+  cardinality: multi
+- id: relationships
+  display_name: Decision_relationships
+  cardinality: multi
+- id: controls
+  display_name: controls

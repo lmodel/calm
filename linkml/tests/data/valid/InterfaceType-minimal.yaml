@@ -1,0 +1,3 @@
+# Valid InterfaceType: minimal inline free-form interface keyed by unique-id.
+# Class: InterfaceType
+unique_id: iface-grpc-001

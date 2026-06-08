@@ -1,0 +1,7 @@
+# INVALID Node: missing required field 'unique_id'.
+# Violation: unique_id is the identifier slot and is required on Node.
+# Class: Node
+# unique_id: intentionally omitted - required identifier
+node_type: database
+name: Orders DB
+description: Orders database without a unique_id.

@@ -1,0 +1,7 @@
+# INVALID Node: missing required field 'name'.
+# Violation: name is required on Node.
+# Class: Node
+unique_id: node-missing-name
+node_type: service
+# name: intentionally omitted - required field
+description: A service node without a name.

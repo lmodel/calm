@@ -1,0 +1,6 @@
+# INVALID EvidenceDocument: contains a property ('description') that is not defined
+# on EvidenceDocument. EvidenceDocument only allows 'evidence'.
+# Violation: additionalProperties is false; 'description' is rejected.
+# Class: EvidenceDocument
+description: This field does not belong on EvidenceDocument
+# evidence: also absent - two violations in one file

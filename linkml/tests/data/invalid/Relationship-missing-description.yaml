@@ -1,0 +1,10 @@
+# INVALID Relationship: contains an additional property not allowed.
+# Violation: additionalProperties is false; 'bogus_field' is rejected.
+# Class: Relationship
+unique_id: rel-bad-prop
+relationship_type:
+  interacts:
+    actor: node-actor
+    nodes:
+      - node-system
+bogus_field: this property does not exist on Relationship

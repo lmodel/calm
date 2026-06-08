@@ -1,0 +1,12 @@
+# metamodel_version: 1.11.0# version: 1.2id: ComposedOfRelationship
+schema_generating: true
+description: A ``composed-of`` containment relationship.
+display_name: ComposedOfRelationship
+document_category: ComposedOfRelationship
+weight: 20
+fields:
+- id: container
+  display_name: container
+- id: nodes
+  display_name: ComposedOfRelationship_nodes
+  cardinality: multi

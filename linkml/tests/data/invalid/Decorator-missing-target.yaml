@@ -1,0 +1,9 @@
+# INVALID Decorator: missing required field 'target'.
+# Violation: target is required on Decorator.
+# Class: Decorator
+unique_id: dec-no-target
+type: compliance-scope
+# target: intentionally omitted - required multivalued field
+applies_to:
+  - node-payment-svc
+data: '{"scope": "CDE"}'

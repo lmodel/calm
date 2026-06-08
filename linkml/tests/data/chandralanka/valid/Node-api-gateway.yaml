@@ -1,0 +1,15 @@
+# Vendor fixture: API Gateway node with multiple interfaces (HTTP + health-check).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+# NOTE: vendor uses node_type "api-gateway" (custom); mapped to "service" for enum compatibility.
+unique_id: api-gateway
+node_type: service
+name: API Gateway
+description: Central entry point for customer and admin requests routed to backend services
+interfaces:
+  - unique_id: api-gateway-http-interface
+    definition_url: https://api.ecommerce.example.com
+    config: '{"protocol": "HTTPS"}'
+  - unique_id: api-gateway-health-interface
+    definition_url: https://api.ecommerce.example.com/health
+    config: '{"protocol": "HTTPS", "type": "health-check"}'

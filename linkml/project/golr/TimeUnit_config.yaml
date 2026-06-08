@@ -1,0 +1,13 @@
+# metamodel_version: 1.11.0# version: 1.2id: TimeUnit
+schema_generating: true
+description: A quantity of time expressed as a numeric value and a unit.
+display_name: TimeUnit
+document_category: TimeUnit
+weight: 20
+fields:
+- id: unit
+  description: The unit of time (e.g., seconds, minutes, hours).
+  display_name: unit
+- id: value
+  description: The numeric value representing the amount of time.
+  display_name: value

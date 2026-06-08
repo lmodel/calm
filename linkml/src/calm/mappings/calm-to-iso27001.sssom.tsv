@@ -1,0 +1,22 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  iso27001: https://w3id.org/lmodel/iso27001/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-iso27001
+#mapping_set_title: CALM to ISO/IEC 27001:2022 class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the ISO/IEC 27001:2022 Information Security Management System LinkML schema. CALM's Control concept corresponds to the ISO 27001 Annex A SecurityControl; the Architecture document root relates to the ISMS top-level container; Nodes are information assets; EvidenceDocument relates to documented information used in audits.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/iso27001
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	iso27001:SecurityControl	SecurityControl	semapv:LLMBasedMatching	A CALM Control is a named, domain-scoped control requirement with a requirement-url and config; an ISO 27001 SecurityControl represents an Annex A control instance with applicability and implementation status - both model a bounded security safeguard.
+calm:ControlRequirement	ControlRequirement	skos:closeMatch	iso27001:SecurityControl	SecurityControl	semapv:LLMBasedMatching	A CALM ControlRequirement specifies a control schema with id, name, and description; ISO 27001 SecurityControl captures the same structured representation for an Annex A control - effectively the requirement template.
+calm:Architecture	Architecture	skos:relatedMatch	iso27001:InformationSecurityManagementSystem	InformationSecurityManagementSystem	semapv:LLMBasedMatching	A CALM Architecture document describes the full set of nodes, relationships, and controls for a system; the ISMS is the broader management framework governing those controls - CALM captures the technical architecture inside an ISMS scope.
+calm:Node	Node	skos:closeMatch	iso27001:Asset	Asset	semapv:LLMBasedMatching	A CALM Node models a logical or physical architecture element (system, service, database, network); an ISO 27001 Asset is any item of value to the organisation including software, hardware, and information - the concepts align when the CALM node is a managed IT asset.
+calm:EvidenceDocument	EvidenceDocument	skos:closeMatch	iso27001:DocumentedInformation	DocumentedInformation	semapv:LLMBasedMatching	A CALM EvidenceDocument links evidence artefacts to a control configuration; ISO 27001 DocumentedInformation is the base class for all ISMS records required as evidence - both serve as compliance evidence containers.
+calm:Flow	Flow	skos:relatedMatch	iso27001:OperationalProcedure	OperationalProcedure	semapv:LLMBasedMatching	A CALM Flow maps business transactions across architecture relationships; an ISO 27001 OperationalProcedure defines an operational control step - both describe ordered activity sequences over system elements.
+calm:Decorator	Decorator	skos:relatedMatch	iso27001:MonitoringItem	MonitoringItem	semapv:LLMBasedMatching	A CALM Decorator attaches supplementary cross-cutting information to architecture elements; an ISO 27001 MonitoringItem records an observation about a control or asset - both annotate elements with out-of-band information.
+calm:Timeline	Timeline	skos:relatedMatch	iso27001:ManagementReview	ManagementReview	semapv:LLMBasedMatching	A CALM Timeline records time-stamped architecture moments; an ISO 27001 ManagementReview captures a periodic review snapshot of ISMS effectiveness - both record point-in-time assessments.

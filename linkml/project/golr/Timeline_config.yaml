@@ -1,0 +1,17 @@
+# metamodel_version: 1.11.0# version: 1.2id: Timeline
+schema_generating: true
+description: CALM timeline document capturing architecture moments over time.
+display_name: Timeline
+document_category: Timeline
+weight: 20
+fields:
+- id: current_moment
+  description: The unique-id of the current architecture moment within the timeline.
+  display_name: current_moment
+- id: moments
+  description: A list of significant architecture states or points in time, each represented
+    as a 'moment'.
+  display_name: moments
+  cardinality: multi
+- id: metadata
+  display_name: metadata

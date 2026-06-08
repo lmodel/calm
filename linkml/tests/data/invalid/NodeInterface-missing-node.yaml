@@ -1,0 +1,6 @@
+# INVALID NodeInterface: missing required field 'node'.
+# Violation: node is required on NodeInterface.
+# Class: NodeInterface
+# node: intentionally omitted - required field
+interfaces:
+  - unique_id: iface-http-in

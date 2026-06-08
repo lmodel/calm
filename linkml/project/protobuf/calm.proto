@@ -1,0 +1,180 @@
+ syntax="proto3";
+ package
+// metamodel_version: 1.11.0
+// version: 1.2
+// Top-level CALM architecture document.
+message Architecture
+ {
+ repeated  node nodes = 0
+ repeated  relationship relationships = 0
+  metadata metadata = 0
+  control controls = 0
+ repeated  flow flows = 0
+ repeated  string adrs = 0
+ }
+// A ``composed-of`` containment relationship.
+message ComposedOfRelationship
+ {
+  string container = 0
+ repeated  node nodes = 0
+ }
+// A ``connects`` relationship between two node interfaces.
+message ConnectsRelationship
+ {
+  nodeInterface source = 0
+  nodeInterface destination = 0
+ }
+// A single control requirement and its inline / referenced configuration.
+message ControlDetail
+ {
+  string requirementUrl = 0
+  string configUrl = 0
+  metadata config = 0
+ }
+// Domain-defined control requirement that controls can reference.
+message ControlRequirement
+ {
+  string controlId = 0
+  string name = 0
+  string description = 0
+ }
+// A candidate decision within an ``options`` relationship.
+message Decision
+ {
+  string description = 0
+ repeated  node nodes = 0
+ repeated  relationship relationships = 0
+  control controls = 0
+ }
+// Cross-cutting annotation attached to nodes, relationships, or flows.
+message Decorator
+ {
+  string uniqueId = 0
+  string type = 0
+ repeated  string target = 0
+ repeated  string appliesTo = 0
+  metadata data = 0
+ }
+// A ``deployed-in`` containment relationship.
+message DeployedInRelationship
+ {
+  string container = 0
+ repeated  node nodes = 0
+ }
+// Top-level CALM evidence document linking control configurations to evidence artefacts.
+message EvidenceDocument
+ {
+  metadata evidence = 0
+ }
+// Business flow mapped onto architecture relationships.
+message Flow
+ {
+  string uniqueId = 0
+  string name = 0
+  string description = 0
+  string requirementUrl = 0
+ repeated  transition transitions = 0
+  control controls = 0
+  metadata metadata = 0
+ }
+// An ``interacts`` relationship between an actor and one or more nodes.
+message InteractsRelationship
+ {
+  string actor = 0
+ repeated  node nodes = 0
+ }
+// Modular interface definition referencing an external schema.
+message InterfaceDefinition
+ {
+  string uniqueId = 0
+  string definitionUrl = 0
+  metadata config = 0
+ }
+// Inline (free-form) interface definition keyed by unique-id.
+message InterfaceType
+ {
+  string uniqueId = 0
+ }
+// A logical or physical element of an architecture (system, service, actor, ...).
+message Node
+ {
+  string uniqueId = 0
+  nodeType nodeType = 0
+  string name = 0
+  string description = 0
+  metadata details = 0
+ repeated  interfaceDefinition interfaces = 0
+  control controls = 0
+  metadata metadata = 0
+ }
+// Reference to one or more interfaces exposed by a node.
+message NodeInterface
+ {
+  string node = 0
+ repeated  interfaceDefinition interfaces = 0
+ }
+// An architecture moment - a point-in-time snapshot of the architecture.
+message NodeMoment
+ {
+  string uniqueId = 0
+  string name = 0
+  string description = 0
+  control controls = 0
+  metadata metadata = 0
+  nodeType nodeType = 0
+  date validFrom = 0
+ repeated  string adrs = 0
+ repeated  interfaceDefinition interfaces = 0
+  metadata details = 0
+ }
+// Wrapper around the list of ``Decision`` alternatives in an options relationship.
+message OptionList
+ {
+ repeated  decision decisions = 0
+ }
+// A rate (count per time unit), e.g. operations per second.
+message RateUnit
+ {
+  float rate = 0
+  ratePerUnit per = 0
+ }
+// A typed link between architecture elements.
+message Relationship
+ {
+  string uniqueId = 0
+  string description = 0
+  relationshipType relationshipType = 0
+  protocol protocol = 0
+  metadata metadata = 0
+  control controls = 0
+ }
+// Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.
+message RelationshipType
+ {
+  interactsRelationship interacts = 0
+  connectsRelationship connects = 0
+  deployedInRelationship deployedIn = 0
+  composedOfRelationship composedOf = 0
+ repeated  decision options = 0
+ }
+// CALM timeline document capturing architecture moments over time.
+message Timeline
+ {
+  string currentMoment = 0
+ repeated  string moments = 0
+  metadata metadata = 0
+ }
+// A quantity of time expressed as a numeric value and a unit.
+message TimeUnit
+ {
+  timeUnitName unit = 0
+  float value = 0
+ }
+// A single step in a flow, anchored on a relationship.
+message Transition
+ {
+  string relationshipUniqueId = 0
+  integer sequenceNumber = 0
+  string description = 0
+  transitionDirection direction = 0
+ }

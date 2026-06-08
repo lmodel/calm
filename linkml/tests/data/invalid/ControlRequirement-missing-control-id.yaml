@@ -1,0 +1,6 @@
+# INVALID ControlRequirement: missing required identifier 'control_id'.
+# Violation: control_id is the identifier slot and is required on ControlRequirement.
+# Class: ControlRequirement
+# control_id: intentionally omitted - required identifier
+name: TLS Encryption Required
+description: All connections must use TLS.

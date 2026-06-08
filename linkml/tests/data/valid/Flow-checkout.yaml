@@ -1,0 +1,19 @@
+# Valid Flow: business flow with three ordered transitions.
+# Class: Flow
+unique_id: flow-checkout
+name: Checkout Flow
+description: End-to-end checkout flow from cart submission to payment confirmation.
+requirement_url: https://calm.example.com/flows/checkout
+transitions:
+  - relationship_unique_id: rel-actor-to-web
+    sequence_number: 1
+    description: Customer submits the shopping cart.
+    direction: source_to_destination
+  - relationship_unique_id: rel-web-to-api
+    sequence_number: 2
+    description: Web frontend posts order payload to the API gateway.
+    direction: source_to_destination
+  - relationship_unique_id: rel-api-to-db
+    sequence_number: 3
+    description: API gateway persists the order to the database.
+    direction: source_to_destination

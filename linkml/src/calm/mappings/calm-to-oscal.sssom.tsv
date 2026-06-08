@@ -1,0 +1,22 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  oscal: https://w3id.org/lmodel/oscal/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-oscal
+#mapping_set_title: CALM to NIST OSCAL class mappings
+#mapping_set_description: "Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and NIST OSCAL (Open Security Controls Assessment Language). CALM's control framework is the primary interoperability target: Control and ControlRequirement map to OSCAL Control; ControlDetail maps to the implemented-requirement layer; EvidenceDocument maps to AssessmentResults. The Architecture document root relates to the OSCAL System Security Plan container."
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/oscal
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	oscal:Control	Control	semapv:LLMBasedMatching	CALM Control is a named, domain-scoped control requirement attached to a node or relationship; OSCAL Control is the canonical structured representation of a security control in a catalog or profile.
+calm:ControlRequirement	ControlRequirement	skos:closeMatch	oscal:Control	Control	semapv:LLMBasedMatching	CALM ControlRequirement defines a domain control schema (id, name, description); OSCAL Control captures the same specification with richer prose and parameter binding.
+calm:ControlDetail	ControlDetail	skos:closeMatch	oscal:SspImplementedRequirement	SspImplementedRequirement	semapv:LLMBasedMatching	CALM ControlDetail pairs a requirement-url with an inline or referenced config; OSCAL SspImplementedRequirement pairs a control reference with an implementation statement - both record how a control is satisfied.
+calm:EvidenceDocument	EvidenceDocument	skos:closeMatch	oscal:AssessmentResults	AssessmentResults	semapv:LLMBasedMatching	CALM EvidenceDocument links evidence paths to a control config URL; OSCAL AssessmentResults is the structured container for evidence collected during an assessment.
+calm:Architecture	Architecture	skos:relatedMatch	oscal:SystemSecurityPlan	SystemSecurityPlan	semapv:LLMBasedMatching	A CALM Architecture document describes a software system's structure including controls; an OSCAL System Security Plan describes the same system from a security authorisation perspective.
+calm:Node	Node	skos:relatedMatch	oscal:SspInventoryItem	SspInventoryItem	semapv:LLMBasedMatching	A CALM Node represents a logical or physical architecture element; an OSCAL SSP inventory item catalogues the components of an information system - both enumerate system elements.
+calm:Flow	Flow	skos:relatedMatch	oscal:SspControlImplementation	SspControlImplementation	semapv:LLMBasedMatching	A CALM Flow traces business transactions across relationships; OSCAL SspControlImplementation groups the implemented control statements - related as both describe cross-cutting behaviour of the system.
+calm:Timeline	Timeline	skos:relatedMatch	oscal:AssessmentResultsDocument	AssessmentResultsDocument	semapv:LLMBasedMatching	A CALM Timeline records architecture snapshots over time; OSCAL AssessmentResultsDocument records security posture at a point in time - both capture temporal views of a system.

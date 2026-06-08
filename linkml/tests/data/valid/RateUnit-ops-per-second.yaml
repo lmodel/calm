@@ -1,0 +1,4 @@
+# Valid RateUnit: operations per second throughput metric.
+# Class: RateUnit
+rate: 1500.0
+per: second

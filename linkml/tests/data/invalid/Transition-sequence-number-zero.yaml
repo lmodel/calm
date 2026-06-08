@@ -1,0 +1,7 @@
+# INVALID Transition: sequence_number below minimum value of 1.
+# Violation: sequence_number has minimum_value: 1; zero is not permitted.
+# Class: Transition
+relationship_unique_id: rel-api-to-db
+sequence_number: 0
+description: A transition with an invalid zero sequence number.
+direction: source_to_destination

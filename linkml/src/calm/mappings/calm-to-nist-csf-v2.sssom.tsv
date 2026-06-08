@@ -1,0 +1,19 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  nist_csf_v2: https://w3id.org/lmodel/nist-csf-v2/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-nist-csf-v2
+#mapping_set_title: CALM to NIST Cybersecurity Framework 2.0 class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the NIST Cybersecurity Framework 2.0 LinkML schema. CALM Control maps to the CSF Subcategory (the leaf-level actionable outcome); ControlRequirement maps to CSFCategory (the grouping level); the Architecture document relates to CSFDocument; responsible parties in CALM flows relate to CSF ResponsibleParty.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/nist-csf-v2
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	nist_csf_v2:CSFSubcategory	CSFSubcategory	semapv:LLMBasedMatching	A CALM Control is an atomic, domain-scoped security requirement attached to architecture elements; a NIST CSF 2.0 Subcategory is the leaf-level outcome statement (e.g. ID.AM-01) - both represent the implementable leaf unit of a control framework.
+calm:ControlRequirement	ControlRequirement	skos:closeMatch	nist_csf_v2:CSFCategory	CSFCategory	semapv:LLMBasedMatching	A CALM ControlRequirement defines the specification for a control domain; a CSF Category groups related subcategory outcomes under a CSF Function - both model the intermediate grouping layer of a control taxonomy.
+calm:Architecture	Architecture	skos:relatedMatch	nist_csf_v2:CSFDocument	CSFDocument	semapv:LLMBasedMatching	A CALM Architecture is the technical system under governance; a CSF Document is the policy/profile artifact expressing the security posture - the Architecture is the subject that a CSF profile governs.
+calm:Flow	Flow	skos:relatedMatch	nist_csf_v2:CSFFunction	CSFFunction	semapv:LLMBasedMatching	A CALM Flow describes business processes mapped to architecture relationships; a CSF Function (Govern, Identify, Protect, Detect, Respond, Recover) describes a high-level cybersecurity activity - both organise related security activities at the process level.
+calm:Decorator	Decorator	skos:relatedMatch	nist_csf_v2:Link	Link	semapv:LLMBasedMatching	A CALM Decorator attaches supplementary references and data to architecture elements; a CSF Link connects a CSF element to an external informative reference - both add contextual cross-references to primary model elements.

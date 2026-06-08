@@ -1,0 +1,19 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  attack: https://w3id.org/lmodel/attack/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-attack
+#mapping_set_title: CALM to MITRE ATT&CK class mappings
+#mapping_set_description: "Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the MITRE ATT&CK LinkML schema. CALM's architecture primitives serve as threat modelling anchors: Node maps to ATT&CK Asset (things adversaries target); Control maps to ATT&CK Mitigation (defences applied to nodes); Relationship maps to ATT&CK AttackRelationship. These mappings support CALM-based threat modelling by anchoring CALM elements into the ATT&CK knowledge base."
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/attack
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Node	Node	skos:closeMatch	attack:Asset	Asset	semapv:LLMBasedMatching	A CALM Node is a logical or physical architecture element (system, service, database, network); an ATT&CK Asset is an infrastructure component that adversaries may target - when a CALM Node is an IT infrastructure element it aligns directly with the ATT&CK Asset concept.
+calm:Control	Control	skos:closeMatch	attack:Mitigation	Mitigation	semapv:LLMBasedMatching	A CALM Control is a domain-scoped security control applied to an architecture element; an ATT&CK Mitigation describes a security measure that limits the impact or likelihood of an adversary technique - both represent applied defences to system components.
+calm:Relationship	Relationship	skos:relatedMatch	attack:AttackRelationship	AttackRelationship	semapv:LLMBasedMatching	A CALM Relationship is a typed directed link between nodes; an ATT&CK AttackRelationship expresses how ATT&CK objects (groups, techniques, mitigations, assets) relate - related as both are structured typed edges in their respective directed graphs.
+calm:Flow	Flow	skos:relatedMatch	attack:Tactic	Tactic	semapv:LLMBasedMatching	A CALM Flow captures the sequential traversal of a business process over architecture nodes; an ATT&CK Tactic represents a high-level adversary goal category (e.g. Initial Access, Lateral Movement) - related as both describe high-level ordered activity sequences across system elements.
+calm:ControlRequirement	ControlRequirement	skos:relatedMatch	attack:Technique	Technique	semapv:LLMBasedMatching	A CALM ControlRequirement specifies the domain definition of a control; an ATT&CK Technique describes a specific adversary method that a control must defend against - related in that control requirements are often derived from or validated against known attack techniques.

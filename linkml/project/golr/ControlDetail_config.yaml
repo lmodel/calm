@@ -1,0 +1,16 @@
+# metamodel_version: 1.11.0# version: 1.2id: ControlDetail
+schema_generating: true
+description: A single control requirement and its inline / referenced configuration.
+display_name: ControlDetail
+document_category: ControlDetail
+weight: 20
+fields:
+- id: requirement_url
+  description: The requirement schema that specifies how a control should be defined
+  display_name: ControlDetail_requirement_url
+- id: config_url
+  description: The configuration of how the control requirement schema is met
+  display_name: config_url
+- id: config
+  description: Inline configuration of how the control requirement schema is met
+  display_name: config

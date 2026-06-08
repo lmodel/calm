@@ -1,0 +1,26 @@
+id,mappings,description
+Architecture,,Top-level CALM architecture document.
+ComposedOfRelationship,,A ``composed-of`` containment relationship.
+ConnectsRelationship,,A ``connects`` relationship between two node interfaces.
+Control,,A named control attached to an architecture element.
+ControlDetail,,A single control requirement and its inline / referenced configuration.
+ControlRequirement,,Domain-defined control requirement that controls can reference.
+Decision,,A candidate decision within an ``options`` relationship.
+Decorator,,"Cross-cutting annotation attached to nodes, relationships, or flows."
+DeployedInRelationship,,A ``deployed-in`` containment relationship.
+EvidenceDocument,,Top-level CALM evidence document linking control configurations to evidence artefacts.
+Flow,,Business flow mapped onto architecture relationships.
+InteractsRelationship,,An ``interacts`` relationship between an actor and one or more nodes.
+InterfaceDefinition,,Modular interface definition referencing an external schema.
+InterfaceType,,Inline (free-form) interface definition keyed by unique-id.
+Node,,"A logical or physical element of an architecture (system, service, actor, ...)."
+NodeInterface,,Reference to one or more interfaces exposed by a node.
+NodeMoment,,An architecture moment - a point-in-time snapshot of the architecture.
+OptionList,,Wrapper around the list of ``Decision`` alternatives in an options relationship.
+RateUnit,,"A rate (count per time unit), e.g. operations per second."
+Relationship,,A typed link between architecture elements.
+RelationshipType,,"Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values."
+Timeline,,CALM timeline document capturing architecture moments over time.
+TimeUnit,,A quantity of time expressed as a numeric value and a unit.
+Transition,,"A single step in a flow, anchored on a relationship."
+

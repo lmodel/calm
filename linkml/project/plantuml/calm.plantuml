@@ -1,0 +1,152 @@
+@startuml
+skinparam nodesep 10
+hide circle
+hide empty members
+class "Flow" [[{Business flow mapped onto architecture relationships.}]] {
+    {field} unique_id : string  
+    {field} name : string  
+    {field} description : string  
+    {field} requirement_url : string  
+    {field} metadata : Metadata  
+}
+class "Transition" [[{A single step in a flow, anchored on a relationship.}]] {
+    {field} relationship_unique_id : string  
+    {field} sequence_number : integer  
+    {field} description : string  
+    {field} direction : TransitionDirection  
+}
+"Flow" *--> "1..*" "Transition" : "transitions"
+class "Timeline" [[{CALM timeline document capturing architecture moments over time.}]] {
+    {field} current_moment : string  
+    {field} moments : string  [1..*]
+    {field} metadata : Metadata  
+}
+class "TimeUnit" [[{A quantity of time expressed as a numeric value and a unit.}]] {
+    {field} unit : TimeUnitName  
+    {field} value : float  
+}
+class "RelationshipType" [[{Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.}]] {
+
+}
+class "Decision" [[{A candidate decision within an ``options`` relationship.}]] {
+    {field} description : string  
+}
+class "ComposedOfRelationship" [[{A ``composed-of`` containment relationship.}]] {
+    {field} container : string  
+}
+class "DeployedInRelationship" [[{A ``deployed-in`` containment relationship.}]] {
+    {field} container : string  
+}
+class "ConnectsRelationship" [[{A ``connects`` relationship between two node interfaces.}]] {
+
+}
+class "InteractsRelationship" [[{An ``interacts`` relationship between an actor and one or more nodes.}]] {
+    {field} actor : string  
+}
+class "Relationship" [[{A typed link between architecture elements.}]] {
+    {field} unique_id : string  
+    {field} description : string  
+    {field} protocol : Protocol  
+    {field} metadata : Metadata  
+}
+"RelationshipType" *--> "0..*" "Decision" : "options"
+"RelationshipType" *--> "0..1" "ComposedOfRelationship" : "composed_of"
+"RelationshipType" *--> "0..1" "DeployedInRelationship" : "deployed_in"
+"RelationshipType" *--> "0..1" "ConnectsRelationship" : "connects"
+"RelationshipType" *--> "0..1" "InteractsRelationship" : "interacts"
+"Relationship" *--> "1" "RelationshipType" : "relationship_type"
+class "Control" [[{A named control attached to an architecture element.}]] {
+
+}
+class "Architecture" [[{Top-level CALM architecture document.}]] {
+    {field} metadata : Metadata  
+    {field} adrs : string  [0..*]
+}
+"Relationship" *--> "0..1" "Control" : "controls"
+"Architecture" *--> "0..*" "Relationship" : "relationships"
+"Decision" *--> "1..*" "Relationship" : "relationships"
+"Architecture" --> "0..*" "Relationship" : "relationships"(i)
+"Decision" --> "0..*" "Relationship" : "relationships"(i)
+class "RateUnit" [[{A rate (count per time unit), e.g. operations per second.}]] {
+    {field} rate : float  
+    {field} per : RatePerUnit  
+}
+class "OptionList" [[{Wrapper around the list of ``Decision`` alternatives in an options relationship.}]] {
+
+}
+"OptionList" *--> "0..*" "Decision" : "decisions"
+class "NodeInterface" [[{Reference to one or more interfaces exposed by a node.}]] {
+    {field} node : string  
+}
+class "InterfaceDefinition" [[{Modular interface definition referencing an external schema.}]] {
+    {field} unique_id : string  
+    {field} definition_url : string  
+    {field} config : Metadata  
+}
+"NodeInterface" *--> "0..*" "InterfaceDefinition" : "interfaces"
+"ConnectsRelationship" *--> "1" "NodeInterface" : "destination"
+"ConnectsRelationship" *--> "1" "NodeInterface" : "source"
+class "Node" [[{A logical or physical element of an architecture (system, service, actor, ...).}]] {
+    {field} unique_id : string  
+    {field} node_type : NodeType  
+    {field} name : string  
+    {field} description : string  
+    {field} details : Metadata  
+    {field} metadata : Metadata  
+}
+class "NodeMoment" [[{An architecture moment - a point-in-time snapshot of the architecture.}]] {
+    {field} valid_from : date  
+    {field} adrs : string  [0..*]
+    {field} details : Metadata  
+    {field} unique_id(i) : string  
+    {field} node_type(i) : NodeType  
+    {field} name(i) : string  
+    {field} description(i) : string  
+    {field} metadata(i) : Metadata  
+}
+"Node" *--> "0..1" "Control" : "controls"
+"Node" *--> "0..*" "InterfaceDefinition" : "interfaces"
+"Architecture" *--> "0..*" "Node" : "nodes"
+"ComposedOfRelationship" --> "1..*" "Node" : "nodes"
+"Decision" *--> "1..*" "Node" : "nodes"
+"DeployedInRelationship" --> "1..*" "Node" : "nodes"
+"InteractsRelationship" --> "1..*" "Node" : "nodes"
+"Architecture" --> "0..*" "Node" : "nodes"(i)
+"InteractsRelationship" --> "0..*" "Node" : "nodes"(i)
+"DeployedInRelationship" --> "0..*" "Node" : "nodes"(i)
+"ComposedOfRelationship" --> "0..*" "Node" : "nodes"(i)
+"Decision" --> "0..*" "Node" : "nodes"(i)
+"Node" ^-- "NodeMoment"
+"NodeMoment" *--> "0..1" "Control" : "controls"(i)
+"NodeMoment" --> "0..*" "InterfaceDefinition" : "interfaces"
+class "InterfaceType" [[{Inline (free-form) interface definition keyed by unique-id.}]] {
+    {field} unique_id : string  
+}
+"Node" --> "0..*" "InterfaceDefinition" : "interfaces"(i)
+"NodeInterface" --> "0..*" "InterfaceDefinition" : "interfaces"(i)
+"Flow" *--> "0..1" "Control" : "controls"
+"Architecture" *--> "0..*" "Flow" : "flows"
+"Architecture" --> "0..*" "Flow" : "flows"(i)
+class "EvidenceDocument" [[{Top-level CALM evidence document linking control configurations to evidence artefacts.}]] {
+    {field} evidence : Metadata  
+}
+class "Decorator" [[{Cross-cutting annotation attached to nodes, relationships, or flows.}]] {
+    {field} unique_id : string  
+    {field} type : string  
+    {field} target : string  [1..*]
+    {field} applies_to : string  [1..*]
+    {field} data : Metadata  
+}
+"Decision" *--> "0..1" "Control" : "controls"
+class "ControlRequirement" [[{Domain-defined control requirement that controls can reference.}]] {
+    {field} control_id : string  
+    {field} name : string  
+    {field} description : string  
+}
+class "ControlDetail" [[{A single control requirement and its inline / referenced configuration.}]] {
+    {field} requirement_url : string  
+    {field} config_url : string  
+    {field} config : Metadata  
+}
+"Architecture" *--> "0..1" "Control" : "controls"
+@enduml

@@ -1,0 +1,5 @@
+# INVALID TimeUnit: value is negative (below minimum_value: 0).
+# Violation: value has minimum_value: 0; negative values are not permitted.
+# Class: TimeUnit
+unit: seconds
+value: -5.0

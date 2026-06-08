@@ -1,0 +1,7 @@
+# Invalid vendor fixture: Node missing required unique_id (identifier).
+# Source: derived from https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+node_type: service
+name: Order Service
+description: Handles order creation, updates, and retrieval across the platform
+# unique_id intentionally omitted - required identifier

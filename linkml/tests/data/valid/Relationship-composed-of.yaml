@@ -1,0 +1,10 @@
+# Valid Relationship: composed-of composition variant.
+# Class: Relationship
+unique_id: rel-platform-composed-of-svc
+description: The e-commerce platform is composed of the payment service and the inventory service.
+relationship_type:
+  composed_of:
+    container: node-ecommerce-platform
+    nodes:
+      - node-payment-svc
+      - node-inventory-svc

@@ -1,0 +1,3 @@
+# Valid EvidenceDocument: links evidence paths to a control configuration URL.
+# Class: EvidenceDocument
+evidence: '{"control_config_url": "https://calm.example.com/configs/tls-policy", "evidence_paths": ["audit/tls-scan-2026-06.pdf", "audit/pen-test-report-2026-Q1.pdf"]}'

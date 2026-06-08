@@ -1,0 +1,38 @@
+# metamodel_version: 1.11.0# version: 1.2id: NodeMoment
+schema_generating: true
+description: An architecture moment - a point-in-time snapshot of the architecture.
+display_name: NodeMoment
+document_category: NodeMoment
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: name
+  description: Short human-readable name.
+  display_name: name
+- id: description
+  description: Free-form description of the element.
+  display_name: Node_description
+- id: controls
+  display_name: controls
+- id: metadata
+  display_name: metadata
+- id: node_type
+  description: Category of the node (system, service, actor, etc.).
+  display_name: node_type
+- id: valid_from
+  description: The date when this architecture moment came into effect.
+  display_name: valid_from
+- id: adrs
+  description: External links to ADRs (Architecture Decision Records) or similar documents
+    that provide context or decisions related to the architecture. These can be URLs
+    or references to internal documentation.
+  display_name: adrs
+  cardinality: multi
+- id: interfaces
+  description: Interface definitions exposed by nodes.
+  display_name: interfaces
+  cardinality: multi
+- id: details
+  display_name: NodeMoment_details

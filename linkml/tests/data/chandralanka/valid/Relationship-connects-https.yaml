@@ -1,0 +1,20 @@
+# Vendor fixture: Connects relationship (gateway ->  service via HTTPS).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Relationship
+unique_id: api-gateway-to-order-service
+description: API Gateway routes order traffic to the Order Service
+protocol: HTTPS
+relationship_type:
+  connects:
+    source:
+      node: api-gateway
+      interfaces:
+        - unique_id: iface-gw-order-out
+          definition_url: https://api.ecommerce.example.com
+          config: '{"port": 443}'
+    destination:
+      node: order-service
+      interfaces:
+        - unique_id: iface-order-in
+          definition_url: https://api.ecommerce.example.com/orders
+          config: '{"port": 8080}'

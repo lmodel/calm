@@ -1,0 +1,7 @@
+# Valid NodeInterface: references a node and one of its interfaces.
+# Class: NodeInterface
+node: node-api-svc
+interfaces:
+  - unique_id: iface-api-jdbc-out
+    definition_url: https://calm.example.com/interfaces/jdbc-out
+    config: '{"driver": "org.postgresql.Driver"}'

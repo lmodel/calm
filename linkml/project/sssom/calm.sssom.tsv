@@ -1,0 +1,126 @@
+#license: Apache-2.0
+#mapping_set_id: https://w3id.org/lmodel/calm
+#mapping_tool: https://w3id.org/linkml/
+#creator_id: linkml_user
+#mapping_date: 2026-07-03
+#curie_map: 
+# calm: https://w3id.org/lmodel/calm/
+# linkml: https://w3id.org/linkml/
+# schema: http://schema.org/
+# dct: http://purl.org/dc/terms/
+# skos: http://www.w3.org/2004/02/skos/core#
+# rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+# rdfs: http://www.w3.org/2000/01/rdf-schema#
+# xsd: http://www.w3.org/2001/XMLSchema#
+# owl: http://www.w3.org/2002/07/owl#
+# prov: http://www.w3.org/ns/prov#
+# finos_calm: https://calm.finos.org/release/1.2/meta/
+# ai_governance_framework: https://w3id.org/lmodel/ai-governance-framework/
+# attack: https://w3id.org/lmodel/attack/
+# capec: https://w3id.org/lmodel/capec/
+# cis_controls: https://w3id.org/lmodel/cis-controls/
+# dpv: https://w3id.org/lmodel/dpv/
+# fluxnova_bpmn_platform: https://w3id.org/lmodel/fluxnova-bpm-platform/
+# gist: https://w3id.org/lmodel/gist/
+# iso27001: https://w3id.org/lmodel/iso27001/
+# nist_csf_v2: https://w3id.org/lmodel/nist-csf-v2/
+# nist_sp_800_53: https://w3id.org/lmodel/nist-sp-800-53/
+# ocsf: https://w3id.org/lmodel/ocsf/
+# oscal: https://w3id.org/lmodel/oscal/
+# stix: https://w3id.org/lmodel/stix/
+# shex: http://www.w3.org/ns/shex#
+subject_id	subject_label	predicate_id	predicate_modifier	object_id	object_label	match_type	subject_source	object_source	mapping_tool	confidence	subject_match_field	object_match_field	subject_category	object_category	match_string	comment
+calm:NodeType#actor	actor	skos:exactMatch		calm:node-type/actor		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#ecosystem	ecosystem	skos:exactMatch		calm:node-type/ecosystem		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#system	system	skos:exactMatch		calm:node-type/system		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#service	service	skos:exactMatch		calm:node-type/service		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#database	database	skos:exactMatch		calm:node-type/database		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#network	network	skos:exactMatch		calm:node-type/network		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#ldap	ldap	skos:exactMatch		calm:node-type/ldap		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#webclient	webclient	skos:exactMatch		calm:node-type/webclient		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:NodeType#data_asset	data_asset	skos:exactMatch		calm:node-type/data-asset		skos:exactMatch	https://w3id.org/lmodel/calm						NodeType			
+calm:Protocol#HTTP	HTTP	skos:exactMatch		calm:protocol/HTTP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#HTTPS	HTTPS	skos:exactMatch		calm:protocol/HTTPS		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#FTP	FTP	skos:exactMatch		calm:protocol/FTP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#SFTP	SFTP	skos:exactMatch		calm:protocol/SFTP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#JDBC	JDBC	skos:exactMatch		calm:protocol/JDBC		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#WebSocket	WebSocket	skos:exactMatch		calm:protocol/WebSocket		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#SocketIO	SocketIO	skos:exactMatch		calm:protocol/SocketIO		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#LDAP	LDAP	skos:exactMatch		calm:protocol/LDAP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#AMQP	AMQP	skos:exactMatch		calm:protocol/AMQP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#TLS	TLS	skos:exactMatch		calm:protocol/TLS		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#mTLS	mTLS	skos:exactMatch		calm:protocol/mTLS		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Protocol#TCP	TCP	skos:exactMatch		calm:protocol/TCP		skos:exactMatch	https://w3id.org/lmodel/calm						Protocol			
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		capec:Category		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		cis_controls:CISControlsDocument		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		dpv:Context		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		iso27001:InformationSecurityManagementSystem		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		nist_csf_v2:CSFDocument		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		nist_sp_800_53:Catalog		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		oscal:SystemSecurityPlan		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:relatedMatch		stix:Bundle		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:closeMatch		schema:SoftwareApplication		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Architecture	Common Architecture Language Model (CALM) Vocab	skos:closeMatch		gist:System		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:relatedMatch		schema:Action		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:relatedMatch		capec:Category		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:relatedMatch		stix:Core		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		attack:Mitigation		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		cis_controls:Safeguard		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		dpv:TechnicalOrganisationalMeasure		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		iso27001:SecurityControl		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		nist_csf_v2:CSFSubcategory		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		nist_sp_800_53:Control		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		ocsf:Compliance		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Control	Control	skos:closeMatch		oscal:Control		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlDetail	ControlDetail	skos:relatedMatch		nist_sp_800_53:ControlGroup		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:ControlDetail	ControlDetail	skos:closeMatch		dpv:TechnicalMeasure		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlDetail	ControlDetail	skos:closeMatch		oscal:SspImplementedRequirement		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:relatedMatch		attack:Technique		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:relatedMatch		capec:View		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:relatedMatch		nist_sp_800_53:ControlEnhancement		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:closeMatch		cis_controls:CISControl		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:closeMatch		dpv:OrganisationalMeasure		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:closeMatch		iso27001:SecurityControl		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:closeMatch		nist_csf_v2:CSFCategory		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:ControlRequirement	Common Architecture Language Model Control Requirement	skos:closeMatch		oscal:Control		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Decorator	Decorator	skos:relatedMatch		iso27001:MonitoringItem		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Decorator	Decorator	skos:relatedMatch		nist_csf_v2:Link		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Decorator	Decorator	skos:relatedMatch		stix:ExtensionDefinition		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:EvidenceDocument	Common Architecture Language Model Evidence	skos:relatedMatch		dpv:LegalMeasure		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:EvidenceDocument	Common Architecture Language Model Evidence	skos:closeMatch		iso27001:DocumentedInformation		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:EvidenceDocument	Common Architecture Language Model Evidence	skos:closeMatch		ocsf:Evidences		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:EvidenceDocument	Common Architecture Language Model Evidence	skos:closeMatch		oscal:AssessmentResults		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		attack:Tactic		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		fluxnova_bpmn_platform:SubProcess		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		gist:ServiceSpecification		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		iso27001:OperationalProcedure		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		nist_csf_v2:CSFFunction		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		ocsf:NetworkTraffic		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:relatedMatch		oscal:SspControlImplementation		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Flow	Flow	skos:closeMatch		fluxnova_bpmn_platform:FlowElement		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:InterfaceDefinition	InterfaceDefinition	skos:relatedMatch		gist:Network		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:InterfaceDefinition	InterfaceDefinition	skos:closeMatch		ocsf:NetworkInterface		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:relatedMatch		capec:AttackPattern		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:relatedMatch		cis_controls:Safeguard		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:relatedMatch		dpv:DataController		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:relatedMatch		oscal:SspInventoryItem		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:broadMatch		stix:StixDomainObject		skos:broadMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		schema:Thing		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		attack:Asset		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		gist:NetworkNode		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		iso27001:Asset		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		ocsf:Node		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Node	Node	skos:closeMatch		ocsf:Actor		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:NodeMoment	NodeMoment	skos:relatedMatch		fluxnova_bpmn_platform:FlowNode		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:NodeMoment	NodeMoment	skos:relatedMatch		fluxnova_bpmn_platform:EndEvent		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Relationship	Relationship	skos:relatedMatch		prov:wasInfluencedBy		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Relationship	Relationship	skos:relatedMatch		attack:AttackRelationship		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Relationship	Relationship	skos:relatedMatch		ocsf:NetworkEndpoint		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Relationship	Relationship	skos:closeMatch		gist:NetworkLink		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Relationship	Relationship	skos:closeMatch		stix:StixRelationshipObject		skos:closeMatch	https://w3id.org/lmodel/calm									
+calm:Timeline	Common Architecture Language Model (CALM) Timelines Vocab	skos:relatedMatch		fluxnova_bpmn_platform:Process		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Timeline	Common Architecture Language Model (CALM) Timelines Vocab	skos:relatedMatch		gist:TemporalRelation		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Timeline	Common Architecture Language Model (CALM) Timelines Vocab	skos:relatedMatch		iso27001:ManagementReview		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:Timeline	Common Architecture Language Model (CALM) Timelines Vocab	skos:relatedMatch		oscal:AssessmentResultsDocument		skos:relatedMatch	https://w3id.org/lmodel/calm									
+calm:TimeUnit	TimeUnit	skos:exactMatch		schema:Duration		skos:exactMatch	https://w3id.org/lmodel/calm									
+calm:Transition	Transition	skos:closeMatch		fluxnova_bpmn_platform:SequenceFlow		skos:closeMatch	https://w3id.org/lmodel/calm									

@@ -1,0 +1,956 @@
+{
+    "$defs": {
+        "Architecture": {
+            "additionalProperties": false,
+            "description": "Top-level CALM architecture document.",
+            "properties": {
+                "adrs": {
+                    "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "flows": {
+                    "items": {
+                        "$ref": "#/$defs/Flow"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "nodes": {
+                    "items": {
+                        "$ref": "#/$defs/Node"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "relationships": {
+                    "items": {
+                        "$ref": "#/$defs/Relationship"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "Architecture",
+            "type": "object"
+        },
+        "ComposedOfRelationship": {
+            "additionalProperties": false,
+            "description": "A ``composed-of`` containment relationship.",
+            "properties": {
+                "container": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "container",
+                "nodes"
+            ],
+            "title": "ComposedOfRelationship",
+            "type": "object"
+        },
+        "ConnectsRelationship": {
+            "additionalProperties": false,
+            "description": "A ``connects`` relationship between two node interfaces.",
+            "properties": {
+                "destination": {
+                    "$ref": "#/$defs/NodeInterface"
+                },
+                "source": {
+                    "$ref": "#/$defs/NodeInterface"
+                }
+            },
+            "required": [
+                "source",
+                "destination"
+            ],
+            "title": "ConnectsRelationship",
+            "type": "object"
+        },
+        "Control": {
+            "additionalProperties": false,
+            "description": "A named control attached to an architecture element.",
+            "title": "Control",
+            "type": "object"
+        },
+        "ControlDetail": {
+            "additionalProperties": false,
+            "description": "A single control requirement and its inline / referenced configuration.",
+            "properties": {
+                "config": {
+                    "description": "Inline configuration of how the control requirement schema is met",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "config_url": {
+                    "description": "The configuration of how the control requirement schema is met",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "requirement_url": {
+                    "description": "The requirement schema that specifies how a control should be defined",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "requirement_url"
+            ],
+            "title": "ControlDetail",
+            "type": "object"
+        },
+        "ControlRequirement": {
+            "additionalProperties": false,
+            "description": "Domain-defined control requirement that controls can reference.",
+            "properties": {
+                "control_id": {
+                    "description": "The unique identifier of this control, which has the potential to be used for linking evidence",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Short human-readable name.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "control_id",
+                "name",
+                "description"
+            ],
+            "title": "ControlRequirement",
+            "type": "object"
+        },
+        "Decision": {
+            "additionalProperties": false,
+            "description": "A candidate decision within an ``options`` relationship.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "nodes": {
+                    "items": {
+                        "$ref": "#/$defs/Node"
+                    },
+                    "type": "array"
+                },
+                "relationships": {
+                    "items": {
+                        "$ref": "#/$defs/Relationship"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "description",
+                "nodes",
+                "relationships"
+            ],
+            "title": "Decision",
+            "type": "object"
+        },
+        "Decorator": {
+            "additionalProperties": false,
+            "description": "Cross-cutting annotation attached to nodes, relationships, or flows.",
+            "properties": {
+                "applies_to": {
+                    "description": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "data": {
+                    "description": "Free-form JSON object containing the decorator's data",
+                    "type": "string"
+                },
+                "target": {
+                    "description": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "type": {
+                    "description": "Type of decorator - a free-form string identifying the decorator category",
+                    "type": "string"
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "type",
+                "target",
+                "applies_to",
+                "data"
+            ],
+            "title": "Decorator",
+            "type": "object"
+        },
+        "DeployedInRelationship": {
+            "additionalProperties": false,
+            "description": "A ``deployed-in`` containment relationship.",
+            "properties": {
+                "container": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "container",
+                "nodes"
+            ],
+            "title": "DeployedInRelationship",
+            "type": "object"
+        },
+        "EvidenceDocument": {
+            "additionalProperties": false,
+            "description": "Top-level CALM evidence document linking control configurations to evidence artefacts.",
+            "properties": {
+                "evidence": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "evidence"
+            ],
+            "title": "EvidenceDocument",
+            "type": "object"
+        },
+        "Flow": {
+            "additionalProperties": false,
+            "description": "Business flow mapped onto architecture relationships.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "Short human-readable name.",
+                    "type": "string"
+                },
+                "requirement_url": {
+                    "description": "The requirement schema that specifies how a control should be defined",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "transitions": {
+                    "items": {
+                        "$ref": "#/$defs/Transition"
+                    },
+                    "type": "array"
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "name",
+                "description",
+                "transitions"
+            ],
+            "title": "Flow",
+            "type": "object"
+        },
+        "InteractsRelationship": {
+            "additionalProperties": false,
+            "description": "An ``interacts`` relationship between an actor and one or more nodes.",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "actor",
+                "nodes"
+            ],
+            "title": "InteractsRelationship",
+            "type": "object"
+        },
+        "InterfaceDefinition": {
+            "additionalProperties": false,
+            "description": "Modular interface definition referencing an external schema.",
+            "properties": {
+                "config": {
+                    "description": "Inline configuration of how the control requirement schema is met",
+                    "type": "string"
+                },
+                "definition_url": {
+                    "description": "URI of the external schema this interface configuration conforms to",
+                    "type": "string"
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "definition_url",
+                "config"
+            ],
+            "title": "InterfaceDefinition",
+            "type": "object"
+        },
+        "InterfaceType": {
+            "additionalProperties": false,
+            "description": "Inline (free-form) interface definition keyed by unique-id.",
+            "properties": {
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id"
+            ],
+            "title": "InterfaceType",
+            "type": "object"
+        },
+        "Node": {
+            "additionalProperties": false,
+            "description": "A logical or physical element of an architecture (system, service, actor, ...).",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "details": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "interfaces": {
+                    "description": "Interface definitions exposed by nodes.",
+                    "items": {
+                        "$ref": "#/$defs/InterfaceDefinition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "Short human-readable name.",
+                    "type": "string"
+                },
+                "node_type": {
+                    "$ref": "#/$defs/NodeType",
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/NodeType"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Category of the node (system, service, actor, etc.)."
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "node_type",
+                "name",
+                "description"
+            ],
+            "title": "Node",
+            "type": "object"
+        },
+        "NodeInterface": {
+            "additionalProperties": false,
+            "description": "Reference to one or more interfaces exposed by a node.",
+            "properties": {
+                "interfaces": {
+                    "description": "Interface definitions exposed by nodes.",
+                    "items": {
+                        "$ref": "#/$defs/InterfaceDefinition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "node": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "node"
+            ],
+            "title": "NodeInterface",
+            "type": "object"
+        },
+        "NodeMoment": {
+            "additionalProperties": false,
+            "description": "An architecture moment - a point-in-time snapshot of the architecture.",
+            "properties": {
+                "adrs": {
+                    "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "interfaces": {
+                    "description": "Interface definitions exposed by nodes.",
+                    "items": {
+                        "$ref": "#/$defs/InterfaceDefinition"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "Short human-readable name.",
+                    "type": "string"
+                },
+                "node_type": {
+                    "$ref": "#/$defs/NodeType",
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/NodeType"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "Category of the node (system, service, actor, etc.)."
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                },
+                "valid_from": {
+                    "description": "The date when this architecture moment came into effect.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "node_type",
+                "unique_id",
+                "name",
+                "description",
+                "details"
+            ],
+            "title": "NodeMoment",
+            "type": "object"
+        },
+        "NodeType": {
+            "description": "Category of architecture node. The CALM JSON-Schema allows arbitrary strings; this enum lists the canonical values plus an escape hatch via ``any_of`` on the slot.",
+            "enum": [
+                "actor",
+                "ecosystem",
+                "system",
+                "service",
+                "database",
+                "network",
+                "ldap",
+                "webclient",
+                "data_asset"
+            ],
+            "title": "NodeType",
+            "type": "string"
+        },
+        "OptionList": {
+            "additionalProperties": false,
+            "description": "Wrapper around the list of ``Decision`` alternatives in an options relationship.",
+            "properties": {
+                "decisions": {
+                    "description": "Alternative decisions under an ``options`` relationship.",
+                    "items": {
+                        "$ref": "#/$defs/Decision"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "OptionList",
+            "type": "object"
+        },
+        "Protocol": {
+            "description": "Wire-level protocol used by a relationship.",
+            "enum": [
+                "HTTP",
+                "HTTPS",
+                "FTP",
+                "SFTP",
+                "JDBC",
+                "WebSocket",
+                "SocketIO",
+                "LDAP",
+                "AMQP",
+                "TLS",
+                "mTLS",
+                "TCP"
+            ],
+            "title": "Protocol",
+            "type": "string"
+        },
+        "RatePerUnit": {
+            "description": "Time interval denominator used by ``RateUnit``.",
+            "enum": [
+                "nanosecond",
+                "microsecond",
+                "millisecond",
+                "second",
+                "minute",
+                "hour",
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+            ],
+            "title": "RatePerUnit",
+            "type": "string"
+        },
+        "RateUnit": {
+            "additionalProperties": false,
+            "description": "A rate (count per time unit), e.g. operations per second.",
+            "properties": {
+                "per": {
+                    "$ref": "#/$defs/RatePerUnit",
+                    "description": "The time unit defining the rate interval."
+                },
+                "rate": {
+                    "description": "The numeric value representing the rate.",
+                    "minimum": 0,
+                    "type": "number"
+                }
+            },
+            "required": [
+                "rate",
+                "per"
+            ],
+            "title": "RateUnit",
+            "type": "object"
+        },
+        "Relationship": {
+            "additionalProperties": false,
+            "description": "A typed link between architecture elements.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/Control"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "protocol": {
+                    "$ref": "#/$defs/Protocol"
+                },
+                "relationship_type": {
+                    "$ref": "#/$defs/RelationshipType"
+                },
+                "unique_id": {
+                    "description": "Stable opaque identifier used to cross-link CALM elements.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "relationship_type"
+            ],
+            "title": "Relationship",
+            "type": "object"
+        },
+        "RelationshipKind": {
+            "description": "Discriminator for the variant of a ``relationship-type``: exactly one of the following keys is set on a relationship's ``relationship-type``.",
+            "enum": [
+                "interacts",
+                "connects",
+                "deployed_in",
+                "composed_of",
+                "options"
+            ],
+            "title": "RelationshipKind",
+            "type": "string"
+        },
+        "RelationshipType": {
+            "additionalProperties": false,
+            "description": "Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.",
+            "properties": {
+                "composed_of": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ComposedOfRelationship"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "connects": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ConnectsRelationship"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "deployed_in": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/DeployedInRelationship"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "interacts": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/InteractsRelationship"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "options": {
+                    "items": {
+                        "$ref": "#/$defs/Decision"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "RelationshipType",
+            "type": "object"
+        },
+        "TimeUnit": {
+            "additionalProperties": false,
+            "description": "A quantity of time expressed as a numeric value and a unit.",
+            "properties": {
+                "unit": {
+                    "$ref": "#/$defs/TimeUnitName",
+                    "description": "The unit of time (e.g., seconds, minutes, hours)."
+                },
+                "value": {
+                    "description": "The numeric value representing the amount of time.",
+                    "minimum": 0,
+                    "type": "number"
+                }
+            },
+            "required": [
+                "unit",
+                "value"
+            ],
+            "title": "TimeUnit",
+            "type": "object"
+        },
+        "TimeUnitName": {
+            "description": "Named unit of time used by ``TimeUnit``.",
+            "enum": [
+                "nanoseconds",
+                "microseconds",
+                "milliseconds",
+                "seconds",
+                "minutes",
+                "hours",
+                "days",
+                "weeks",
+                "months",
+                "quarters",
+                "years"
+            ],
+            "title": "TimeUnitName",
+            "type": "string"
+        },
+        "Timeline": {
+            "additionalProperties": false,
+            "description": "CALM timeline document capturing architecture moments over time.",
+            "properties": {
+                "current_moment": {
+                    "description": "The unique-id of the current architecture moment within the timeline.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "moments": {
+                    "description": "A list of significant architecture states or points in time, each represented as a 'moment'.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "moments"
+            ],
+            "title": "Timeline",
+            "type": "object"
+        },
+        "Transition": {
+            "additionalProperties": false,
+            "description": "A single step in a flow, anchored on a relationship.",
+            "properties": {
+                "description": {
+                    "description": "Free-form description of the element.",
+                    "type": "string"
+                },
+                "direction": {
+                    "$ref": "#/$defs/TransitionDirection",
+                    "description": "Direction of flow on the transition."
+                },
+                "relationship_unique_id": {
+                    "description": "Unique identifier for the relationship in the architecture",
+                    "type": "string"
+                },
+                "sequence_number": {
+                    "description": "Indicates the sequence of the relationship in the flow",
+                    "minimum": 1,
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "relationship_unique_id",
+                "sequence_number",
+                "description"
+            ],
+            "title": "Transition",
+            "type": "object"
+        },
+        "TransitionDirection": {
+            "description": "Direction of flow on a transition.",
+            "enum": [
+                "source_to_destination",
+                "destination_to_source"
+            ],
+            "title": "TransitionDirection",
+            "type": "string"
+        }
+    },
+    "$id": "https://w3id.org/lmodel/calm",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": true,
+    "description": "Top-level CALM architecture document.",
+    "metamodel_version": "1.11.0",
+    "properties": {
+        "adrs": {
+            "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+            "items": {
+                "type": "string"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "controls": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/Control"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "flows": {
+            "items": {
+                "$ref": "#/$defs/Flow"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "metadata": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "nodes": {
+            "items": {
+                "$ref": "#/$defs/Node"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "relationships": {
+            "items": {
+                "$ref": "#/$defs/Relationship"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        }
+    },
+    "required": [
+        "moments"
+    ],
+    "title": "calm",
+    "type": "object",
+    "version": "1.2"
+}

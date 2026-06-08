@@ -1,0 +1,10 @@
+# INVALID Decorator: missing required field 'type'.
+# Violation: type is required on Decorator.
+# Class: Decorator
+unique_id: dec-no-type
+# type: intentionally omitted - required field
+target:
+  - https://calm.example.com/architectures/payments-arch.yaml
+applies_to:
+  - node-payment-svc
+data: '{"scope": "CDE"}'

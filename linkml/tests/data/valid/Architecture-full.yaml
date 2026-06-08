@@ -1,0 +1,89 @@
+# Valid Architecture: full document exercising all top-level slots.
+# Class: Architecture
+nodes:
+  - unique_id: node-web
+    node_type: webclient
+    name: Web Browser
+    description: End-user web browser client.
+
+  - unique_id: node-api
+    node_type: service
+    name: API Gateway
+    description: Entry-point API gateway routing requests to backend services.
+
+  - unique_id: node-db
+    node_type: database
+    name: Orders Database
+    description: Relational database storing order records.
+
+  - unique_id: node-actor
+    node_type: actor
+    name: Customer
+    description: Human customer interacting with the system.
+
+relationships:
+  - unique_id: rel-actor-to-web
+    description: Customer uses the web browser to access the system.
+    relationship_type:
+      interacts:
+        actor: node-actor
+        nodes:
+          - node-web
+
+  - unique_id: rel-web-to-api
+    description: Browser sends HTTPS requests to the API gateway.
+    protocol: HTTPS
+    relationship_type:
+      connects:
+        source:
+          node: node-web
+          interfaces:
+            - unique_id: iface-web-out
+              definition_url: https://calm.example.com/interfaces/web-out
+              config: '{"port": 443}'
+        destination:
+          node: node-api
+          interfaces:
+            - unique_id: iface-api-in
+              definition_url: https://calm.example.com/interfaces/api-in
+              config: '{"port": 8080}'
+
+  - unique_id: rel-api-to-db
+    description: API gateway reads and writes order data via JDBC.
+    protocol: JDBC
+    relationship_type:
+      connects:
+        source:
+          node: node-api
+          interfaces:
+            - unique_id: iface-api-db-out
+              definition_url: https://calm.example.com/interfaces/jdbc-out
+              config: '{"driver": "org.postgresql.Driver"}'
+        destination:
+          node: node-db
+          interfaces:
+            - unique_id: iface-db-in
+              definition_url: https://calm.example.com/interfaces/db-in
+              config: '{"port": 5432}'
+
+flows:
+  - unique_id: flow-order-placement
+    name: Order Placement Flow
+    description: End-to-end flow from customer placing an order to database persistence.
+    requirement_url: https://calm.example.com/flows/order-placement
+    transitions:
+      - relationship_unique_id: rel-actor-to-web
+        sequence_number: 1
+        description: Customer opens the browser and navigates to the order form.
+        direction: source_to_destination
+      - relationship_unique_id: rel-web-to-api
+        sequence_number: 2
+        description: Browser submits the order via REST API call.
+        direction: source_to_destination
+      - relationship_unique_id: rel-api-to-db
+        sequence_number: 3
+        description: API persists the order record to the database.
+        direction: source_to_destination
+
+adrs:
+  - https://docs.example.com/adr/0001-api-gateway.md

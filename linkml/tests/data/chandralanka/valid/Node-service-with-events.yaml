@@ -1,0 +1,17 @@
+# Vendor fixture: Service node with REST + event-stream interfaces.
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+unique_id: order-service
+node_type: service
+name: Order Service
+description: Handles order creation, updates, and retrieval across the platform
+interfaces:
+  - unique_id: order-service-rest-interface
+    definition_url: https://api.ecommerce.example.com/orders
+    config: '{"protocol": "HTTPS"}'
+  - unique_id: order-service-health-interface
+    definition_url: https://api.ecommerce.example.com/orders/health
+    config: '{"protocol": "HTTPS", "type": "health-check"}'
+  - unique_id: order-service-events-interface
+    definition_url: amqp://events.ecommerce.example.com
+    config: '{"type": "event-stream", "events": ["OrderCreated", "OrderUpdated", "OrderCancelled"]}'

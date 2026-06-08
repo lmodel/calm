@@ -1,0 +1,9 @@
+# Valid Relationship: deployed-in containment variant.
+# Class: Relationship
+unique_id: rel-svc-in-cluster
+description: Payment service is deployed inside the Kubernetes cluster.
+relationship_type:
+  deployed_in:
+    container: node-k8s-cluster
+    nodes:
+      - node-payment-svc

@@ -1,0 +1,17 @@
+# Valid Decision: candidate decision within an options relationship.
+# Nodes and relationships are embedded inline (per CALM semantics).
+# Class: Decision
+description: Deploy the service on Kubernetes using a standard Deployment manifest.
+nodes:
+  - unique_id: node-k8s-cluster
+    node_type: network
+    name: Kubernetes Cluster
+    description: Managed Kubernetes cluster hosting containerised services.
+relationships:
+  - unique_id: rel-svc-in-cluster
+    description: Payment service is deployed inside the Kubernetes cluster.
+    relationship_type:
+      deployed_in:
+        container: node-k8s-cluster
+        nodes:
+          - node-payment-svc

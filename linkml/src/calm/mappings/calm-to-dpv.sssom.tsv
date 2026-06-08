@@ -1,0 +1,20 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  dpv: https://w3id.org/lmodel/dpv/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-dpv
+#mapping_set_title: CALM to W3C Data Privacy Vocabulary (DPV) class mappings
+#mapping_set_description: "Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the W3C Data Privacy Vocabulary (DPV) LinkML schema. CALM's control framework has natural affinity with DPV's technical and organisational measures vocabulary: CALM Control maps to DPV TechnicalOrganisationalMeasure; ControlRequirement maps to the sub-level OrganisationalMeasure or TechnicalMeasure depending on domain; EvidenceDocument maps to DocumentedInformation in DPV-style evidence records. These mappings enable CALM architectures to be annotated with DPV privacy categories."
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/dpv
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	dpv:TechnicalOrganisationalMeasure	TechnicalOrganisationalMeasure	semapv:LLMBasedMatching	A CALM Control is a domain-scoped security or compliance safeguard applied to an architecture element; a DPV TechnicalOrganisationalMeasure is the superclass for any technical or organisational safeguard implemented for privacy or security compliance - both represent an applied bounded safeguard on a system component.
+calm:ControlRequirement	ControlRequirement	skos:closeMatch	dpv:OrganisationalMeasure	OrganisationalMeasure	semapv:LLMBasedMatching	A CALM ControlRequirement defines the domain schema for a control (id, name, description, url); a DPV OrganisationalMeasure is a policy, procedure, or governance mechanism - when a CALM ControlRequirement is policy-oriented, it aligns closely with DPV OrganisationalMeasure.
+calm:ControlDetail	ControlDetail	skos:closeMatch	dpv:TechnicalMeasure	TechnicalMeasure	semapv:LLMBasedMatching	A CALM ControlDetail pairs a requirement-url with implementation-specific configuration; a DPV TechnicalMeasure is an implemented technical safeguard - when a CALM ControlDetail is a technical implementation it aligns with DPV TechnicalMeasure.
+calm:Node	Node	skos:relatedMatch	dpv:DataController	DataController	semapv:LLMBasedMatching	A CALM Node typed as an actor or system processing personal data corresponds to a DPV DataController - the entity that determines the purpose and means of processing - when the node represents a data-handling system.
+calm:EvidenceDocument	EvidenceDocument	skos:relatedMatch	dpv:LegalMeasure	LegalMeasure	semapv:LLMBasedMatching	A CALM EvidenceDocument links compliance artefacts to control configuration; a DPV LegalMeasure represents a legal basis or contractual safeguard serving as compliance evidence - both provide legal or documentary evidence for a control.
+calm:Architecture	Architecture	skos:relatedMatch	dpv:Context	Context	semapv:LLMBasedMatching	A CALM Architecture describes the technical context of a system under governance; DPV Context provides the top-level framing for a data processing scenario - related as both establish the bounded scope within which data processing and controls are defined.

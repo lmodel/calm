@@ -1,0 +1,18 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  nist_sp_800_53: https://w3id.org/lmodel/nist-sp-800-53/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-nist-sp-800-53
+#mapping_set_title: CALM to NIST SP 800-53 Rev 5 class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the NIST Special Publication 800-53 Revision 5 Security and Privacy Controls LinkML schema. CALM Control maps closely to the SP 800-53 Control class; ControlRequirement maps to ControlEnhancement (the structured sub-control); Architecture maps broadly to the Catalog container.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/nist-sp-800-53
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Control	Control	skos:closeMatch	nist_sp_800_53:Control	Control	semapv:LLMBasedMatching	A CALM Control is a named, domain-scoped requirement on an architecture element with a requirement-url and configuration; an SP 800-53 Control is a structured security or privacy safeguard with statement, supplemental guidance, and control enhancements - both represent the fundamental bounded control unit.
+calm:ControlRequirement	ControlRequirement	skos:relatedMatch	nist_sp_800_53:ControlEnhancement	ControlEnhancement	semapv:LLMBasedMatching	A CALM ControlRequirement specifies the metadata schema for a control domain; an SP 800-53 ControlEnhancement adds scoped additional capability to a base control - related as both add specificity to the base control construct.
+calm:Architecture	Architecture	skos:relatedMatch	nist_sp_800_53:Catalog	Catalog	semapv:LLMBasedMatching	A CALM Architecture document contains all nodes, relationships, and control overlays; an SP 800-53 Catalog is the organised collection of security and privacy controls - both are the top-level containers for their respective control collections.
+calm:ControlDetail	ControlDetail	skos:relatedMatch	nist_sp_800_53:ControlGroup	ControlGroup	semapv:LLMBasedMatching	A CALM ControlDetail attaches implementation-specific configuration to a control requirement reference; an SP 800-53 ControlGroup clusters related controls - related in that both provide organisational context for individual controls.

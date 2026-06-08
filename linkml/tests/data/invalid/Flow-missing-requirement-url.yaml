@@ -1,0 +1,13 @@
+# INVALID Flow: missing required field 'description'.
+# Violation: description is required on Flow (via slot_usage).
+# Class: Flow
+unique_id: flow-no-desc
+name: Orphan Flow
+# description: intentionally omitted - required per slot_usage
+requirement_url: https://calm.example.com/flows/orphan
+transitions:
+  - relationship_unique_id: rel-001
+    sequence_number: 1
+    description: First step.
+    description: First step.
+    direction: source_to_destination

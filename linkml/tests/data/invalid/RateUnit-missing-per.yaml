@@ -1,0 +1,5 @@
+# INVALID RateUnit: missing required field 'per'.
+# Violation: per is required on RateUnit.
+# Class: RateUnit
+rate: 1000.0
+# per: intentionally omitted - required field

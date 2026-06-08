@@ -1,0 +1,16 @@
+# metamodel_version: 1.11.0# version: 1.2id: InterfaceDefinition
+schema_generating: true
+description: Modular interface definition referencing an external schema.
+display_name: InterfaceDefinition
+document_category: InterfaceDefinition
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: definition_url
+  description: URI of the external schema this interface configuration conforms to
+  display_name: definition_url
+- id: config
+  description: Inline configuration of how the control requirement schema is met
+  display_name: InterfaceDefinition_config

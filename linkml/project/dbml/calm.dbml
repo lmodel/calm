@@ -1,0 +1,176 @@
+// DBML generated from LinkML schema
+
+Project {
+  name: 'calm'
+}
+
+Table Architecture {
+Architecture_nodes varchar
+Architecture_relationships varchar
+metadata varchar
+controls varchar
+Architecture_flows varchar
+adrs varchar
+}
+
+Table Node {
+unique_id varchar [not null, primary key]
+node_type varchar [not null]
+name varchar [not null]
+Node_description varchar [not null]
+details varchar
+Node_interfaces varchar
+controls varchar
+metadata varchar
+}
+
+Table Relationship {
+unique_id varchar [not null, primary key]
+description varchar
+relationship_type varchar [not null]
+protocol varchar
+metadata varchar
+controls varchar
+}
+
+Table InteractsRelationship {
+actor varchar [not null]
+InteractsRelationship_nodes varchar [not null]
+}
+
+Table ConnectsRelationship {
+source varchar [not null]
+destination varchar [not null]
+}
+
+Table DeployedInRelationship {
+container varchar [not null]
+DeployedInRelationship_nodes varchar [not null]
+}
+
+Table ComposedOfRelationship {
+container varchar [not null]
+ComposedOfRelationship_nodes varchar [not null]
+}
+
+Table Decision {
+Decision_description varchar [not null]
+Decision_nodes varchar [not null]
+Decision_relationships varchar [not null]
+controls varchar
+}
+
+Table ControlDetail {
+ControlDetail_requirement_url varchar [not null]
+config_url varchar
+config varchar
+}
+
+Table Control {
+}
+
+Table ControlRequirement {
+control_id varchar [not null, primary key]
+name varchar [not null]
+ControlRequirement_description varchar [not null]
+}
+
+Table Decorator {
+unique_id varchar [not null, primary key]
+type varchar [not null]
+target varchar [not null]
+applies_to varchar [not null]
+data varchar [not null]
+}
+
+Table EvidenceDocument {
+evidence varchar [not null]
+}
+
+Table Transition {
+relationship_unique_id varchar [not null]
+sequence_number int [not null]
+Transition_description varchar [not null]
+direction varchar
+}
+
+Table Flow {
+unique_id varchar [not null, primary key]
+name varchar [not null]
+Flow_description varchar [not null]
+requirement_url varchar
+transitions varchar [not null]
+controls varchar
+metadata varchar
+}
+
+Table InterfaceDefinition {
+unique_id varchar [not null, primary key]
+definition_url varchar [not null]
+InterfaceDefinition_config varchar [not null]
+}
+
+Table InterfaceType {
+unique_id varchar [not null, primary key]
+}
+
+Table NodeInterface {
+node varchar [not null]
+NodeInterface_interfaces varchar
+}
+
+Table Timeline {
+current_moment varchar
+moments varchar [not null]
+metadata varchar
+}
+
+Table NodeMoment {
+unique_id varchar [not null, primary key]
+name varchar [not null]
+Node_description varchar [not null]
+controls varchar
+metadata varchar
+node_type varchar [not null]
+valid_from date
+adrs varchar
+interfaces varchar
+NodeMoment_details varchar [not null]
+details varchar
+Node_interfaces varchar
+}
+
+Table TimeUnit {
+unit varchar [not null]
+value float [not null]
+}
+
+Table RateUnit {
+rate float [not null]
+per varchar [not null]
+}
+
+Table OptionList {
+decisions varchar
+}
+
+Table RelationshipType {
+interacts varchar
+connects varchar
+deployed_in varchar
+composed_of varchar
+options varchar
+}
+
+Ref: Architecture.Architecture_nodes > Node.unique_id
+Ref: Architecture.Architecture_relationships > Relationship.unique_id
+Ref: Architecture.Architecture_flows > Flow.unique_id
+Ref: Node.Node_interfaces > InterfaceDefinition.unique_id
+Ref: InteractsRelationship.InteractsRelationship_nodes > Node.unique_id
+Ref: DeployedInRelationship.DeployedInRelationship_nodes > Node.unique_id
+Ref: ComposedOfRelationship.ComposedOfRelationship_nodes > Node.unique_id
+Ref: Decision.Decision_nodes > Node.unique_id
+Ref: Decision.Decision_relationships > Relationship.unique_id
+Ref: NodeInterface.NodeInterface_interfaces > InterfaceDefinition.unique_id
+Ref: NodeMoment.interfaces > InterfaceDefinition.unique_id
+Ref: NodeMoment.Node_interfaces > InterfaceDefinition.unique_id

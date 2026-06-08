@@ -1,0 +1,11 @@
+# Vendor fixture: Database node with JDBC interface.
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+unique_id: payment-database
+node_type: database
+name: Payment Database
+description: Stores payment transactions, receipts, and reconciliation records with PCI-DSS compliance
+interfaces:
+  - unique_id: payment-database-jdbc-interface
+    definition_url: jdbc:postgresql://payment-db.ecommerce.example.com:5432/payments
+    config: '{"type": "JDBC"}'

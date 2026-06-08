@@ -1,0 +1,19 @@
+# Valid Relationship: connects variant linking two node interfaces.
+# Class: Relationship
+unique_id: rel-api-to-db
+description: API service connects to the orders database over JDBC.
+protocol: JDBC
+relationship_type:
+  connects:
+    source:
+      node: node-api-svc
+      interfaces:
+        - unique_id: iface-api-jdbc-out
+          definition_url: https://calm.example.com/interfaces/jdbc-out
+          config: '{"driver": "org.postgresql.Driver"}'
+    destination:
+      node: node-orders-db
+      interfaces:
+        - unique_id: iface-db-jdbc-in
+          definition_url: https://calm.example.com/interfaces/jdbc-in
+          config: '{"port": 5432}'

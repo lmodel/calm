@@ -1,0 +1,7 @@
+# Vendor fixture: System node (logical boundary, no interfaces).
+# Source: https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Node
+unique_id: ecommerce-platform
+node_type: system
+name: E-Commerce Platform
+description: Logical system boundary encompassing the order processing services and databases

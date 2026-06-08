@@ -1,0 +1,20 @@
+# metamodel_version: 1.11.0# version: 1.2id: RelationshipType
+schema_generating: true
+description: Tagged-union container for the variant body of a relationship. Exactly
+  one of ``interacts``, ``connects``, ``deployed_in``, ``composed_of``, ``options``
+  is populated; see ``RelationshipKind`` for the discriminator values.
+display_name: RelationshipType
+document_category: RelationshipType
+weight: 20
+fields:
+- id: interacts
+  display_name: interacts
+- id: connects
+  display_name: connects
+- id: deployed_in
+  display_name: deployed_in
+- id: composed_of
+  display_name: composed_of
+- id: options
+  display_name: options
+  cardinality: multi

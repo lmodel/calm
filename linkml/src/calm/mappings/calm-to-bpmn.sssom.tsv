@@ -1,0 +1,20 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  fluxnova_bpmn_platform: https://w3id.org/lmodel/fluxnova-bpm-platform/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-bpmn
+#mapping_set_title: CALM to FluxNova BPMN Model class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) flow constructs and the FluxNova BPMN Model Instance LinkML schema (based on OMG BPMN 2.0). CALM's flow model - Flow, Transition, Timeline, NodeMoment - maps to BPMN's process execution concepts. Flow maps to FlowElement (the BPMN abstract base for all flow elements in a process); Transition maps to SequenceFlow (the directed connection between flow nodes); Timeline maps to Process (the BPMN container); NodeMoment maps to FlowNode (the abstract BPMN base for events, activities, and gateways).
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/fluxnova-bpmn-model
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Flow	Flow	skos:closeMatch	fluxnova_bpmn_platform:FlowElement	FlowElement	semapv:LLMBasedMatching	A CALM Flow is an ordered sequence of transitions capturing a business process over architecture nodes; a BPMN FlowElement is the abstract base for all elements that participate in the flow of a process - both model the core unit of a business process traversal.
+calm:Transition	Transition	skos:closeMatch	fluxnova_bpmn_platform:SequenceFlow	SequenceFlow	semapv:LLMBasedMatching	A CALM Transition is a directed step between two nodes in a CALM Flow with a direction and optional guard; a BPMN SequenceFlow is a directed connection between FlowNodes with an optional condition expression - both model a directed conditional edge in a process graph.
+calm:Timeline	Timeline	skos:relatedMatch	fluxnova_bpmn_platform:Process	Process	semapv:LLMBasedMatching	A CALM Timeline is an ordered container of NodeMoments representing sequential architecture states; a BPMN Process is the container for an ordered collection of FlowElements - both serve as the top-level container for an ordered sequence of process steps.
+calm:NodeMoment	NodeMoment	skos:relatedMatch	fluxnova_bpmn_platform:FlowNode	FlowNode	semapv:LLMBasedMatching	A CALM NodeMoment captures the state of a node at a point in a timeline; a BPMN FlowNode is the abstract base for events, activities, and gateways - related as both represent a bounded state or activity point in an ordered process graph.
+calm:NodeMoment	NodeMoment	skos:relatedMatch	fluxnova_bpmn_platform:EndEvent	EndEvent	semapv:LLMBasedMatching	When a CALM NodeMoment represents the terminal state of a timeline or flow, it aligns with a BPMN EndEvent - the point at which a flow reaches its conclusion.
+calm:Flow	Flow	skos:relatedMatch	fluxnova_bpmn_platform:SubProcess	SubProcess	semapv:LLMBasedMatching	A CALM Flow can be nested within a larger Architecture flow hierarchy; a BPMN SubProcess is a contained process within a parent process - related as both support hierarchical decomposition of process flows.

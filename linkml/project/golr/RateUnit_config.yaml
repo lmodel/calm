@@ -1,0 +1,13 @@
+# metamodel_version: 1.11.0# version: 1.2id: RateUnit
+schema_generating: true
+description: A rate (count per time unit), e.g. operations per second.
+display_name: RateUnit
+document_category: RateUnit
+weight: 20
+fields:
+- id: rate
+  description: The numeric value representing the rate.
+  display_name: rate
+- id: per
+  description: The time unit defining the rate interval.
+  display_name: per

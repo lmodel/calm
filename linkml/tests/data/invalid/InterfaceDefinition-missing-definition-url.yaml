@@ -1,0 +1,6 @@
+# INVALID InterfaceDefinition: missing required field 'definition_url'.
+# Violation: definition_url is required on InterfaceDefinition.
+# Class: InterfaceDefinition
+unique_id: iface-no-def-url
+# definition_url: intentionally omitted - required field
+config: '{"port": 8080}'

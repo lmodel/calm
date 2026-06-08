@@ -1,0 +1,4 @@
+# Valid TimeUnit: a quantity of time expressed as value + unit.
+# Class: TimeUnit
+unit: seconds
+value: 30.0

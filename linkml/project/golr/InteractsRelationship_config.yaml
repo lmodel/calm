@@ -1,0 +1,12 @@
+# metamodel_version: 1.11.0# version: 1.2id: InteractsRelationship
+schema_generating: true
+description: An ``interacts`` relationship between an actor and one or more nodes.
+display_name: InteractsRelationship
+document_category: InteractsRelationship
+weight: 20
+fields:
+- id: actor
+  display_name: actor
+- id: nodes
+  display_name: InteractsRelationship_nodes
+  cardinality: multi

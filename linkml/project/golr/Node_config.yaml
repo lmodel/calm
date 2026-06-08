@@ -1,0 +1,30 @@
+# metamodel_version: 1.11.0# version: 1.2id: Node
+schema_generating: true
+description: A logical or physical element of an architecture (system, service, actor,
+  ...).
+display_name: Node
+document_category: Node
+weight: 20
+fields:
+- id: unique_id
+  description: Stable opaque identifier used to cross-link CALM elements.
+  display_name: unique_id
+- id: node_type
+  description: Category of the node (system, service, actor, etc.).
+  display_name: node_type
+- id: name
+  description: Short human-readable name.
+  display_name: name
+- id: description
+  description: Free-form description of the element.
+  display_name: Node_description
+- id: details
+  display_name: details
+- id: interfaces
+  description: Interface definitions exposed by nodes.
+  display_name: Node_interfaces
+  cardinality: multi
+- id: controls
+  display_name: controls
+- id: metadata
+  display_name: metadata

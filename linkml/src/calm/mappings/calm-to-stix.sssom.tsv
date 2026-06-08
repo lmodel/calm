@@ -1,0 +1,19 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  stix: https://w3id.org/lmodel/stix/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-stix
+#mapping_set_title: CALM to STIX 2.1 class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the OASIS STIX 2.1 LinkML schema. STIX 2.1 defines two primary object categories - StixDomainObject (SDO) and StixRelationshipObject (SRO) - which correspond at a broad level to CALM Nodes and Relationships respectively. CALM Architecture maps to the STIX Bundle (the serialisation container). CALM Decorator maps to STIX ExtensionDefinition, which is the STIX mechanism for attaching additional structured properties to existing STIX objects.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/stix
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Node	Node	skos:broadMatch	stix:StixDomainObject	StixDomainObject	semapv:LLMBasedMatching	A CALM Node is a bounded architecture element; a STIX Domain Object (SDO) is any STIX-defined entity (threat actor, identity, infrastructure, tool, etc.) - the CALM Node concept is broader and maps broadly to the SDO abstract base, with specific CALM node types mapping to specific SDO subtypes.
+calm:Relationship	Relationship	skos:closeMatch	stix:StixRelationshipObject	StixRelationshipObject	semapv:LLMBasedMatching	A CALM Relationship is a typed directed link between two CALM Nodes with a defined relationship-type; a STIX Relationship Object (SRO) is a typed directed edge between two SDOs with a relationship_type - both model the same typed-edge relationship graph pattern.
+calm:Architecture	Architecture	skos:relatedMatch	stix:Bundle	Bundle	semapv:LLMBasedMatching	A CALM Architecture is the root container holding all nodes, relationships, and control overlays; a STIX Bundle is the serialisation container holding a collection of STIX objects - both serve as the root envelope for a complete description of a system or threat landscape.
+calm:Decorator	Decorator	skos:relatedMatch	stix:ExtensionDefinition	ExtensionDefinition	semapv:LLMBasedMatching	A CALM Decorator attaches supplementary cross-cutting information to architecture elements; a STIX ExtensionDefinition defines an extension that adds structured properties to STIX objects - both are the extension mechanism for adding non-core properties to primary model elements.
+calm:Control	Control	skos:relatedMatch	stix:Core	Core	semapv:LLMBasedMatching	A CALM Control is a named security requirement on an architecture element; the STIX Core abstract class provides the common properties (id, type, spec_version, etc.) shared by all STIX objects including CourseOfAction (the STIX equivalent of a security control) - related at the structural base level.

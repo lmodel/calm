@@ -1,0 +1,21 @@
+#curie_map:
+#  calm: https://w3id.org/lmodel/calm/
+#  ocsf: https://w3id.org/lmodel/ocsf/
+#  semapv: https://w3id.org/semapv/vocab/
+#  skos: http://www.w3.org/2004/02/skos/core#
+#mapping_set_id: https://w3id.org/lmodel/calm/mappings/calm-to-ocsf
+#mapping_set_title: CALM to OCSF (Open Cybersecurity Schema Framework) class mappings
+#mapping_set_description: Schema-level mappings between the FINOS Common Architecture Language Model (CALM 1.2) and the Open Cybersecurity Schema Framework (OCSF) LinkML schema. OCSF's objects.yaml defines Node, Actor, Compliance, Evidences, NetworkInterface, and NetworkTraffic - these align closely with CALM's architecture primitives. CALM Node maps to both OCSF Node and Actor; CALM Control maps to OCSF Compliance; CALM EvidenceDocument maps to OCSF Evidences; CALM Flow maps to NetworkTraffic.
+#mapping_set_version: 0.1.0
+#license: https://creativecommons.org/licenses/by/4.0/
+#subject_source: https://w3id.org/lmodel/calm
+#object_source: https://w3id.org/lmodel/ocsf
+#mapping_date: 2026-06-08
+subject_id	subject_label	predicate_id	object_id	object_label	mapping_justification	comment
+calm:Node	Node	skos:closeMatch	ocsf:Node	Node	semapv:LLMBasedMatching	CALM Node and OCSF Node are both named structural elements representing infrastructure or logical components in a system - the concepts align directly, with OCSF Node specifically modelling endpoint and infrastructure elements.
+calm:Node	Node	skos:closeMatch	ocsf:Actor	Actor	semapv:LLMBasedMatching	When a CALM Node is typed as a human or service actor (e.g. actor node-type), it aligns with OCSF Actor which represents the entity performing an action - the actor sub-role of CALM Node maps closely to OCSF Actor.
+calm:Control	Control	skos:closeMatch	ocsf:Compliance	Compliance	semapv:LLMBasedMatching	A CALM Control specifies a domain-scoped security requirement on an architecture element; OCSF Compliance captures compliance check results including the control mapping - both represent the compliance status of a controlled element.
+calm:EvidenceDocument	EvidenceDocument	skos:closeMatch	ocsf:Evidences	Evidences	semapv:LLMBasedMatching	A CALM EvidenceDocument links evidence artefacts to a control configuration URL; OCSF Evidences is a structured container for evidence data objects in security events - both package evidence related to a security control or finding.
+calm:InterfaceDefinition	InterfaceDefinition	skos:closeMatch	ocsf:NetworkInterface	NetworkInterface	semapv:LLMBasedMatching	A CALM InterfaceDefinition specifies a named interface on a node (with host, port, protocol); OCSF NetworkInterface captures the same network interface properties - both model a bounded network attachment point on a component.
+calm:Flow	Flow	skos:relatedMatch	ocsf:NetworkTraffic	NetworkTraffic	semapv:LLMBasedMatching	A CALM Flow describes a business process traversing nodes and relationships via a sequence of transitions; OCSF NetworkTraffic models the network packets and sessions traversing a network - related as both trace end-to-end traversal of a system.
+calm:Relationship	Relationship	skos:relatedMatch	ocsf:NetworkEndpoint	NetworkEndpoint	semapv:LLMBasedMatching	A CALM Relationship is a typed directed link between two CALM Nodes; OCSF NetworkEndpoint represents the source or destination in a network interaction - related in that both model a directed connectivity between components.

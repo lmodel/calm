@@ -1,0 +1,4 @@
+# Valid ControlDetail: requirement URL with inline config object instead of URL.
+# Class: ControlDetail
+requirement_url: https://calm.example.com/controls/audit-logging
+config: '{"log_level": "INFO", "retention_days": 90, "destination": "splunk"}'

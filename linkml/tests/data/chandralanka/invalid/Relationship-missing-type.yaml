@@ -1,0 +1,7 @@
+# Invalid vendor fixture: Relationship missing required relationship_type.
+# Source: derived from https://github.com/chandralanka/architectures/ecommerce-platform.json
+# Class: Relationship
+unique_id: customer-to-api-gateway
+description: Customer interacts with the API gateway to submit and view orders
+protocol: HTTPS
+# relationship_type intentionally omitted - required by schema
