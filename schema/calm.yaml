@@ -92,19 +92,19 @@ subsets:
     definition_uri: https://w3id.org/lmodel/calm/Core
     description: Core architecture vocabulary (nodes, relationships, decisions).
     from_schema: https://w3id.org/lmodel/calm
-  controls:
-    name: controls
-    definition_uri: https://w3id.org/lmodel/calm/Controls
+  control_framework:
+    name: control_framework
+    definition_uri: https://w3id.org/lmodel/calm/ControlFramework
     description: 'Control framework: controls, requirements, evidence.'
     from_schema: https://w3id.org/lmodel/calm
-  flows:
-    name: flows
-    definition_uri: https://w3id.org/lmodel/calm/Flows
+  flow_modeling:
+    name: flow_modeling
+    definition_uri: https://w3id.org/lmodel/calm/FlowModeling
     description: 'Business flow modeling: flows and transitions.'
     from_schema: https://w3id.org/lmodel/calm
-  interfaces:
-    name: interfaces
-    definition_uri: https://w3id.org/lmodel/calm/Interfaces
+  interface_defs:
+    name: interface_defs
+    definition_uri: https://w3id.org/lmodel/calm/InterfaceDefs
     description: Interface definitions exposed by nodes.
     from_schema: https://w3id.org/lmodel/calm
   decorators:
@@ -1760,7 +1760,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/ControlDetail
     description: A single control requirement and its inline / referenced configuration.
     in_subset:
-    - controls
+    - control_framework
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:ControlDetail
@@ -1783,7 +1783,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/Control
     description: A named control attached to an architecture element.
     in_subset:
-    - controls
+    - control_framework
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:Control
@@ -1807,7 +1807,7 @@ classes:
     description: Domain-defined control requirement that controls can reference.
     title: Common Architecture Language Model Control Requirement
     in_subset:
-    - controls
+    - control_framework
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:ControlRequirement
@@ -1857,7 +1857,7 @@ classes:
       evidence artefacts.
     title: Common Architecture Language Model Evidence
     in_subset:
-    - controls
+    - control_framework
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:EvidenceDocument
@@ -1875,7 +1875,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/Transition
     description: A single step in a flow, anchored on a relationship.
     in_subset:
-    - flows
+    - flow_modeling
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:Transition
@@ -1896,7 +1896,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/Flow
     description: Business flow mapped onto architecture relationships.
     in_subset:
-    - flows
+    - flow_modeling
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:Flow
@@ -1928,7 +1928,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/InterfaceDefinition
     description: Modular interface definition referencing an external schema.
     in_subset:
-    - interfaces
+    - interface_defs
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:InterfaceDefinition
@@ -1950,7 +1950,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/InterfaceType
     description: Inline (free-form) interface definition keyed by unique-id.
     in_subset:
-    - interfaces
+    - interface_defs
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:InterfaceType
@@ -1962,7 +1962,7 @@ classes:
     definition_uri: https://w3id.org/lmodel/calm/NodeInterface
     description: Reference to one or more interfaces exposed by a node.
     in_subset:
-    - interfaces
+    - interface_defs
     from_schema: https://w3id.org/lmodel/calm
     mappings:
     - calm:NodeInterface
@@ -2082,7 +2082,7 @@ classes:
     class_uri: calm:RelationshipType
 metamodel_version: 1.11.0
 source_file: calm.yaml
-source_file_date: '2026-06-08T23:58:13'
-source_file_size: 23589
-generation_date: '2026-06-08T23:58:25'
+source_file_date: '2026-06-09T14:01:17'
+source_file_size: 23674
+generation_date: '2026-06-09T14:01:28'
 

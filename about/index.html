@@ -406,7 +406,7 @@
   <a href="#stage-1-schema-generation-scriptscalm_to_linkmlpy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 1 — Schema Generation (scripts/calm_to_linkml.py)
+        Stage 1 - Schema Generation (scripts/calm_to_linkml.py)
       
     </span>
   </a>
@@ -417,7 +417,7 @@
   <a href="#stage-2-semantic-mapping-scriptsapply_sssom_overlaypy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 2 — Semantic Mapping (scripts/apply_sssom_overlay.py)
+        Stage 2 - Semantic Mapping (scripts/apply_sssom_overlay.py)
       
     </span>
   </a>
@@ -428,7 +428,7 @@
   <a href="#stage-3-artefact-generation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 3 — Artefact Generation
+        Stage 3 - Artefact Generation
       
     </span>
   </a>
@@ -534,7 +534,7 @@
   <a href="#stage-1-schema-generation-scriptscalm_to_linkmlpy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 1 — Schema Generation (scripts/calm_to_linkml.py)
+        Stage 1 - Schema Generation (scripts/calm_to_linkml.py)
       
     </span>
   </a>
@@ -545,7 +545,7 @@
   <a href="#stage-2-semantic-mapping-scriptsapply_sssom_overlaypy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 2 — Semantic Mapping (scripts/apply_sssom_overlay.py)
+        Stage 2 - Semantic Mapping (scripts/apply_sssom_overlay.py)
       
     </span>
   </a>
@@ -556,7 +556,7 @@
   <a href="#stage-3-artefact-generation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Stage 3 — Artefact Generation
+        Stage 3 - Artefact Generation
       
     </span>
   </a>
@@ -645,7 +645,7 @@
         └──▶ gen-project / gen-json-schema / gen-python …  ← Stage 3: artefacts
 </code></pre></div>
 <hr />
-<h3 id="stage-1-schema-generation-scriptscalm_to_linkmlpy">Stage 1 — Schema Generation (<code>scripts/calm_to_linkml.py</code>)</h3>
+<h3 id="stage-1-schema-generation-scriptscalm_to_linkmlpy">Stage 1 - Schema Generation (<code>scripts/calm_to_linkml.py</code>)</h3>
 <p>The CALM specification is authored as a set of JSON-Schema meta files (one per vocabulary domain). <code>calm_to_linkml.py</code> reads those files at build time and emits a single consolidated LinkML YAML schema.</p>
 <p><strong>Key design decisions:</strong></p>
 <table>
@@ -684,12 +684,12 @@
 </table>
 <p><strong>Generated schema statistics:</strong></p>
 <ul>
-<li><strong>32 classes</strong> (8 enums / types, 24 data classes) across <strong>7 subsets</strong>: <code>core</code>, <code>controls</code>, <code>flows</code>, <code>interfaces</code>, <code>decorators</code>, <code>timeline</code>, <code>units</code></li>
+<li><strong>32 classes</strong> (8 enums / types, 24 data classes) across <strong>7 subsets</strong>: <code>core</code>, <code>controls_framework</code>, <code>flow_modeling</code>, <code>interface_defs</code>, <code>decorators</code>, <code>timeline</code>, <code>units</code></li>
 <li><strong>56 slots</strong>, enriched with slot URIs, aliases, identifier flags, and range constraints</li>
 <li>Schema file: <code>src/calm/schema/calm.yaml</code> (~941 lines)</li>
 </ul>
 <hr />
-<h3 id="stage-2-semantic-mapping-scriptsapply_sssom_overlaypy">Stage 2 — Semantic Mapping (<code>scripts/apply_sssom_overlay.py</code>)</h3>
+<h3 id="stage-2-semantic-mapping-scriptsapply_sssom_overlaypy">Stage 2 - Semantic Mapping (<code>scripts/apply_sssom_overlay.py</code>)</h3>
 <p>CALM concepts are mapped to well-known ontologies and standards using <a href="https://mapping-commons.github.io/sssom/">SSSOM</a> (Simple Standard for Sharing Ontological Mappings). Twelve mapping sets are maintained as TSV files under <code>src/calm/mappings/</code>.</p>
 <p><strong>Mapping targets (12 files, 68 total mappings):</strong></p>
 <table>
@@ -750,9 +750,9 @@
 </tr>
 </tbody>
 </table>
-<p><code>apply_sssom_overlay.py</code> reads all mapping files and writes <code>exact_mappings</code>, <code>close_mappings</code>, and <code>related_mappings</code> predicates directly into <code>calm.yaml</code>. The overlay is <strong>idempotent</strong> — it overwrites only mapping keys and leaves all other schema content unchanged.</p>
+<p><code>apply_sssom_overlay.py</code> reads all mapping files and writes <code>exact_mappings</code>, <code>close_mappings</code>, and <code>related_mappings</code> predicates directly into <code>calm.yaml</code>. The overlay is <strong>idempotent</strong> - it overwrites only mapping keys and leaves all other schema content unchanged.</p>
 <hr />
-<h3 id="stage-3-artefact-generation">Stage 3 — Artefact Generation</h3>
+<h3 id="stage-3-artefact-generation">Stage 3 - Artefact Generation</h3>
 <p>Standard LinkML generators consume <code>calm.yaml</code> to produce downstream artefacts via <code>just gen-project</code>:</p>
 <table>
 <thead>
@@ -792,10 +792,13 @@
 <h3 id="data-validation">Data Validation</h3>
 <p>Test fixtures in <code>tests/data/</code> validate that the generated schema correctly accepts and rejects CALM instance documents:</p>
 <ul>
-<li><strong>23 valid fixtures</strong> (<code>tests/data/valid/</code>) — one per major class, exercising required fields and embedded object inlining</li>
-<li><strong>25 invalid fixtures</strong> (<code>tests/data/invalid/</code>) — one violation per fixture (missing required field, value below <code>minimum_value</code>, or disallowed additional property)</li>
+<li><strong>23 valid fixtures</strong> (<code>tests/data/valid/</code>) - one per major class, exercising required fields and embedded object inlining</li>
+<li><strong>25 invalid fixtures</strong> (<code>tests/data/invalid/</code>) - one violation per fixture (missing required field, value below <code>minimum_value</code>, or disallowed additional property)</li>
+<li><strong>10 valid vendor fixtures</strong> (<code>tests/data/chandralanka/valid/</code>) - real-world "in-the-wild" data derived from the CALM examples repository (e-commerce platform architecture with actors, services, databases, and all relationship types)</li>
+<li><strong>3 invalid vendor fixtures</strong> (<code>tests/data/chandralanka/invalid/</code>) - vendor data with required fields omitted</li>
 </ul>
 <p>Tests call <code>linkml-validate --target-class &lt;ClassName&gt; &lt;file.yaml&gt;</code> via subprocess. The target class is derived from the filename stem (<code>ClassName-description.yaml</code> → <code>ClassName</code>). All 48 parameterised tests run in <code>tests/test_data.py</code>.</p>
+<p>The <code>just test</code> recipe runs both the core fixtures and vendor fixtures via <code>linkml-run-examples</code>.</p>
 <hr />
 <h3 id="build-commands">Build Commands</h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Regenerate schema from CALM 1.2 JSON-Schema sources</span>
@@ -816,9 +819,9 @@ uv<span class="w"> </span>run<span class="w"> </span>linkml-lint<span class="w">
 <hr />
 <h3 id="known-limitations">Known Limitations</h3>
 <ul>
-<li><strong><code>controls</code> slot</strong> — CALM's <code>controls</code> property uses a JSON-Schema <code>patternProperties</code> map keyed by control ID. LinkML has no native <code>patternProperties</code> equivalent; the slot is emitted with <code>range: Control</code> (a single nullable object) and the map structure is lost. Instance documents that embed an array of controls will fail schema validation.</li>
-<li><strong><code>InterfaceType</code></strong> — The <code>any_of: [InterfaceDefinition, InterfaceType]</code> union on the <code>interfaces</code> slot is collapsed to <code>range: InterfaceDefinition</code> to work around a LinkML upstream bug (see <code>upstream-releases/ISSUE.md</code>). <code>InterfaceType</code> objects are not currently validatable via <code>linkml-validate</code>.</li>
-<li><strong><code>additionalProperties</code></strong> — JSON Schema <code>additionalProperties: false</code> constraints are generated for most classes, but <code>linkml-validate</code> enforces them inconsistently for empty/null documents.</li>
+<li><strong><code>controls</code> slot</strong> - CALM's <code>controls</code> property uses a JSON-Schema <code>patternProperties</code> map keyed by control ID. LinkML has no native <code>patternProperties</code> equivalent; the slot is emitted with <code>range: Control</code> (a single nullable object) and the map structure is lost. Instance documents that embed an array of controls will fail schema validation.</li>
+<li><strong><code>InterfaceType</code></strong> - The <code>any_of: [InterfaceDefinition, InterfaceType]</code> union on the <code>interfaces</code> slot is collapsed to <code>range: InterfaceDefinition</code> to work around a LinkML upstream bug (see <code>upstream-releases/ISSUE.md</code>). <code>InterfaceType</code> objects are not currently validatable via <code>linkml-validate</code>.</li>
+<li><strong><code>additionalProperties</code></strong> - JSON Schema <code>additionalProperties: false</code> constraints are generated for most classes, but <code>linkml-validate</code> enforces them inconsistently for empty/null documents.</li>
 </ul>
 
 
