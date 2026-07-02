@@ -48,6 +48,9 @@ prefixes:
   finos_calm:
     prefix_prefix: finos_calm
     prefix_reference: https://calm.finos.org/release/1.2/meta/
+  ai_governance_framework:
+    prefix_prefix: ai_governance_framework
+    prefix_reference: https://w3id.org/lmodel/ai-governance-framework/
   attack:
     prefix_prefix: attack
     prefix_reference: https://w3id.org/lmodel/attack/
@@ -2082,7 +2085,7 @@ classes:
     class_uri: calm:RelationshipType
 metamodel_version: 1.11.0
 source_file: calm.yaml
-source_file_date: '2026-07-02T23:31:56'
-source_file_size: 23565
-generation_date: '2026-07-02T23:32:07'
+source_file_date: '2026-07-02T23:43:15'
+source_file_size: 23641
+generation_date: '2026-07-02T23:43:24'
 
