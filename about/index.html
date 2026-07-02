@@ -458,10 +458,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#known-limitations" class="md-nav__link">
+  <a href="#known-limitations-issues-raised-upstream" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Known Limitations
+        Known Limitations (issues raised upstream)
       
     </span>
   </a>
@@ -586,10 +586,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#known-limitations" class="md-nav__link">
+  <a href="#known-limitations-issues-raised-upstream" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Known Limitations
+        Known Limitations (issues raised upstream)
       
     </span>
   </a>
@@ -817,11 +817,11 @@ uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </sp
 uv<span class="w"> </span>run<span class="w"> </span>linkml-lint<span class="w"> </span>src/calm/schema/calm.yaml
 </code></pre></div>
 <hr />
-<h3 id="known-limitations">Known Limitations</h3>
+<h3 id="known-limitations-issues-raised-upstream">Known Limitations (issues raised upstream)</h3>
 <ul>
-<li><strong><code>controls</code> slot</strong> - CALM's <code>controls</code> property uses a JSON-Schema <code>patternProperties</code> map keyed by control ID. LinkML has no native <code>patternProperties</code> equivalent; the slot is emitted with <code>range: Control</code> (a single nullable object) and the map structure is lost. Instance documents that embed an array of controls will fail schema validation.</li>
-<li><strong><code>InterfaceType</code></strong> - The <code>any_of: [InterfaceDefinition, InterfaceType]</code> union on the <code>interfaces</code> slot is collapsed to <code>range: InterfaceDefinition</code> to work around a LinkML upstream bug (see <code>upstream-releases/ISSUE.md</code>). <code>InterfaceType</code> objects are not currently validatable via <code>linkml-validate</code>.</li>
-<li><strong><code>additionalProperties</code></strong> - JSON Schema <code>additionalProperties: false</code> constraints are generated for most classes, but <code>linkml-validate</code> enforces them inconsistently for empty/null documents.</li>
+<li><strong><code>controls</code> slot</strong> - CALM's <code>controls</code> property uses a JSON-Schema <code>patternProperties</code> map keyed by control ID. LinkML has no native <code>patternProperties</code> equivalent; the slot is emitted with <code>range: Control</code> (a single nullable object) and the map structure is lost. Instance documents that embed an array of controls will fail schema validation. <a href="https://github.com/linkml/linkml/issues/3493">https://github.com/linkml/linkml/issues/3493</a></li>
+<li><strong><code>InterfaceType</code></strong> - The <code>any_of: [InterfaceDefinition, InterfaceType]</code> union on the <code>interfaces</code> slot is collapsed to <code>range: InterfaceDefinition</code> to work around a LinkML upstream bug (todo: issue number). <code>InterfaceType</code> objects are not currently validatable via <code>linkml-validate</code>.</li>
+<li><strong><code>additionalProperties</code></strong> - JSON Schema <code>additionalProperties: false</code> constraints are generated for most classes, but <code>linkml-validate</code> enforces them inconsistently for empty/null documents. <a href="https://github.com/linkml/linkml/issues/3415#issuecomment-4285177163">https://github.com/linkml/linkml/issues/3415#issuecomment-4285177163</a></li>
 </ul>
 
 

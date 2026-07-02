@@ -60,9 +60,9 @@ prefixes:
   dpv:
     prefix_prefix: dpv
     prefix_reference: https://w3id.org/lmodel/dpv/
-  fluxnova_bpmn_model_instance:
-    prefix_prefix: fluxnova_bpmn_model_instance
-    prefix_reference: https://w3id.org/lmodel/fluxnova-bpmn-model/fluxnova_bpmn_model_instance/
+  fluxnova_bpmn_platform:
+    prefix_prefix: fluxnova_bpmn_platform
+    prefix_reference: https://w3id.org/lmodel/fluxnova-bpm-platform/
   gist:
     prefix_prefix: gist
     prefix_reference: https://w3id.org/lmodel/gist/
@@ -1880,7 +1880,7 @@ classes:
     mappings:
     - calm:Transition
     close_mappings:
-    - fluxnova_bpmn_model_instance:SequenceFlow
+    - fluxnova_bpmn_platform:SequenceFlow
     slots:
     - relationship_unique_id
     - sequence_number
@@ -1901,10 +1901,10 @@ classes:
     mappings:
     - calm:Flow
     close_mappings:
-    - fluxnova_bpmn_model_instance:FlowElement
+    - fluxnova_bpmn_platform:FlowElement
     related_mappings:
     - attack:Tactic
-    - fluxnova_bpmn_model_instance:SubProcess
+    - fluxnova_bpmn_platform:SubProcess
     - gist:ServiceSpecification
     - iso27001:OperationalProcedure
     - nist_csf_v2:CSFFunction
@@ -1986,7 +1986,7 @@ classes:
     mappings:
     - calm:Timeline
     related_mappings:
-    - fluxnova_bpmn_model_instance:Process
+    - fluxnova_bpmn_platform:Process
     - gist:TemporalRelation
     - iso27001:ManagementReview
     - oscal:AssessmentResultsDocument
@@ -2006,8 +2006,8 @@ classes:
     mappings:
     - calm:NodeMoment
     related_mappings:
-    - fluxnova_bpmn_model_instance:FlowNode
-    - fluxnova_bpmn_model_instance:EndEvent
+    - fluxnova_bpmn_platform:FlowNode
+    - fluxnova_bpmn_platform:EndEvent
     is_a: Node
     slots:
     - unique_id
@@ -2082,7 +2082,7 @@ classes:
     class_uri: calm:RelationshipType
 metamodel_version: 1.11.0
 source_file: calm.yaml
-source_file_date: '2026-06-09T14:01:17'
-source_file_size: 23674
-generation_date: '2026-06-09T14:01:28'
+source_file_date: '2026-07-02T23:31:56'
+source_file_size: 23565
+generation_date: '2026-07-02T23:32:07'
 
