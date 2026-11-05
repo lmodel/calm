@@ -1,0 +1,4 @@
+# A control detail gives its configuration one way.
+requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+config-url: https://example.org/controls/permitted-connection.config.json
+config: {}

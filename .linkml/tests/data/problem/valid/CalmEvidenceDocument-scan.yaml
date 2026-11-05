@@ -1,0 +1,6 @@
+# Evidence for one control configuration.
+evidence:
+  unique-id: scan-1
+  evidence-paths:
+    - reports/scan.json
+  control-config-url: https://example.org/controls/permitted-connection.config.json

@@ -1,0 +1,8 @@
+# A moment's node-type is moment.
+unique-id: pilot
+node-type: service
+name: Pilot
+description: The pilot.
+details:
+  detailed-architecture: https://example.org/pilot.json
+valid-from: '2026-01-05'

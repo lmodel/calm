@@ -1,0 +1,6 @@
+# An interface definition holds three keys only.
+unique-id: order-api
+definition-url: https://calm.finos.org/interfaces/url.json
+config:
+  url: https://orders.example.org/api
+port: 80

@@ -1,0 +1,14 @@
+# A choice between two options.
+unique-id: store-choice
+relationship-type:
+  options:
+    - description: Keep orders in the store.
+      nodes:
+        - order-store
+      relationships: []
+    - description: Send orders to the bus.
+      nodes:
+        - message-bus
+      relationships: []
+      controls:
+        - security

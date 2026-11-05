@@ -1,0 +1,5 @@
+# A control requirement met by inline configuration.
+requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+config:
+  allowed:
+    - api-gateway

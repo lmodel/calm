@@ -1,0 +1,104 @@
+# An architecture with every kind of relationship, a flow and controls.
+nodes:
+  - unique-id: customer
+    node-type: actor
+    name: Customer
+    description: The customer.
+  - unique-id: api-gateway
+    node-type: service
+    name: Api Gateway
+    description: The api gateway.
+    interfaces:
+      - unique-id: order-port
+        port: 8443
+  - unique-id: order-service
+    node-type: service
+    name: Order Service
+    description: The order service.
+    interfaces:
+      - unique-id: order-api
+        definition-url: https://calm.finos.org/interfaces/url.json
+        config:
+          url: https://orders.example.org/api
+    controls: &id001
+      security:
+        description: Only the gateway may reach the order service.
+        requirements:
+          - requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+            config-url: https://example.org/controls/permitted-connection.config.json
+    details:
+      detailed-architecture: https://example.org/order-service.architecture.json
+  - unique-id: order-store
+    node-type: database
+    name: Order Store
+    description: The order store.
+  - unique-id: cluster
+    node-type: system
+    name: Cluster
+    description: The cluster.
+  - unique-id: message-bus
+    node-type: queue
+    name: Message Bus
+    description: The message bus.
+relationships:
+  - unique-id: customer-uses-gateway
+    description: Customers use the gateway.
+    relationship-type:
+      interacts:
+        actor: customer
+        nodes:
+          - api-gateway
+  - unique-id: gateway-to-orders
+    relationship-type:
+      connects:
+        source:
+          node: api-gateway
+        destination:
+          node: order-service
+          interfaces:
+            - order-api
+    protocol: HTTPS
+    controls: *id001
+  - unique-id: orders-in-cluster
+    relationship-type:
+      deployed-in:
+        container: cluster
+        nodes:
+          - order-service
+          - order-store
+  - unique-id: cluster-parts
+    relationship-type:
+      composed-of:
+        container: cluster
+        nodes:
+          - api-gateway
+  - unique-id: store-choice
+    relationship-type:
+      options:
+        - description: Keep orders in the store.
+          nodes:
+            - order-store
+          relationships: []
+        - description: Send orders to the bus.
+          nodes:
+            - message-bus
+          relationships: []
+          controls:
+            - security
+flows:
+  - unique-id: place-order
+    name: Place an order
+    description: A customer places an order through the gateway.
+    transitions:
+      - relationship-unique-id: customer-uses-gateway
+        sequence-number: 1
+        description: The customer submits the order.
+      - relationship-unique-id: gateway-to-orders
+        sequence-number: 2
+        description: The gateway forwards it.
+        direction: source-to-destination
+    controls: *id001
+metadata:
+  - owner: trading
+adrs:
+  - https://example.org/adr/0001-gateway.md

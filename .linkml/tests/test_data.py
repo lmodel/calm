@@ -1,64 +1,79 @@
-"""Data test."""
+"""Checks each example against CALM's form of the schema.
 
-import os
-import glob
-import subprocess
-import pytest
+An example is a CALM document or part of one, with CALM's keys, such as unique-id.
+linkml-validate and the example runner read keys by slot name (unique_id), so they
+cannot read one; the examples sit under tests/data/problem/, where the runner does
+not look, and this test validates them against the files scripts/calm_meta.py gives,
+and against CALM's own, by the definition the class's exact mapping names.
+`tests/data/problem/valid/<Class>-<anything>.yaml` must pass both, and
+`tests/data/problem/invalid/<Class>-<anything>.yaml` must fail both.
+"""
+
+import importlib.util
+from functools import lru_cache
 from pathlib import Path
 
-DATA_DIR_VALID = Path(__file__).parent / "data" / "valid"
-DATA_DIR_INVALID = Path(__file__).parent / "data" / "invalid"
-DATA_DIR_CHANDRALANKA_VALID = Path(__file__).parent / "data" / "chandralanka" / "valid"
-DATA_DIR_CHANDRALANKA_INVALID = Path(__file__).parent / "data" / "chandralanka" / "invalid"
+import pytest
+import yaml
 
-VALID_EXAMPLE_FILES = glob.glob(os.path.join(DATA_DIR_VALID, "*.yaml")) + \
-    glob.glob(os.path.join(DATA_DIR_CHANDRALANKA_VALID, "*.yaml"))
-INVALID_EXAMPLE_FILES = glob.glob(os.path.join(DATA_DIR_INVALID, "*.yaml")) + \
-    glob.glob(os.path.join(DATA_DIR_CHANDRALANKA_INVALID, "*.yaml"))
+import calm_parity as parity
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = PROJECT_ROOT / "src" / "calm" / "schema" / "calm.yaml"
+DATA = Path(__file__).parent / "data" / "problem"
+VALID = sorted((DATA / "valid").glob("*.yaml"))
+INVALID = sorted((DATA / "invalid").glob("*.yaml"))
 
 
-def _validate(filepath: str, target_class_name: str) -> subprocess.CompletedProcess[str]:
-    """Run linkml-validate against one fixture and target class."""
-    return subprocess.run(
-        [
-            "uv",
-            "run",
-            "linkml-validate",
-            "--schema",
-            str(SCHEMA_PATH),
-            "--target-class",
-            target_class_name,
-            filepath,
-        ],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
-        check=False,
+@lru_cache(maxsize=1)
+def _shaper():
+    spec = importlib.util.spec_from_file_location(
+        "calm_meta_for_data", parity.ROOT / "scripts" / "calm_meta.py"
     )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.Shaper()
 
 
-@pytest.mark.parametrize("filepath", VALID_EXAMPLE_FILES)
-def test_valid_data_files(filepath):
-    """Test all valid data files pass linkml-validate."""
-    target_class_name = Path(filepath).stem.split("-")[0]
-    result = _validate(filepath, target_class_name)
-    assert result.returncode == 0, (
-        f"Expected valid fixture to pass: {filepath}\n"
-        f"STDOUT:\n{result.stdout}\n"
-        f"STDERR:\n{result.stderr}"
-    )
+def _target(path: Path) -> str:
+    cls = path.stem.split("-")[0]
+    file, key = _shaper().published(cls)
+    return file if key is None else f"{file}#/defs/{key}"
 
 
-@pytest.mark.parametrize("filepath", INVALID_EXAMPLE_FILES)
-def test_invalid_data_files(filepath):
-    """Test all invalid data files fail linkml-validate."""
-    target_class_name = Path(filepath).stem.split("-")[0]
-    result = _validate(filepath, target_class_name)
-    assert result.returncode != 0, (
-        f"Expected invalid fixture to fail: {filepath}\n"
-        f"STDOUT:\n{result.stdout}\n"
-        f"STDERR:\n{result.stderr}"
-    )
+def _load(path: Path):
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("path", VALID, ids=lambda p: p.stem)
+def test_valid_example(path):
+    target, data = _target(path), _load(path)
+    assert parity.verdict("generated", target, data)
+    assert parity.verdict("published", target, data)
+
+
+@pytest.mark.parametrize("path", INVALID, ids=lambda p: p.stem)
+def test_counter_example(path):
+    target, data = _target(path), _load(path)
+    assert not parity.verdict("generated", target, data)
+    assert not parity.verdict("published", target, data)
+
+
+def test_every_published_class_has_an_example():
+    named = {p.stem.split("-")[0] for p in VALID}
+    published = {
+        name
+        for name in _shaper().sv.all_classes()
+        if _shaper().published(name) is not None
+    }
+    assert published <= named
+
+
+def test_examples_the_schema_gives_validate():
+    """The examples a class or type states, which the build copies into CALM's files."""
+    shaper = _shaper()
+    for name in shaper.sv.all_classes():
+        for example in shaper.sv.get_class(name).examples or []:
+            file, key = shaper.published(name)
+            target = file if key is None else f"{file}#/defs/{key}"
+            assert parity.verdict("generated", target, dict(example.object._items())), (
+                name
+            )

@@ -1,0 +1,7 @@
+# An option that adds a node and a control.
+description: Send orders to the bus.
+nodes:
+  - message-bus
+relationships: []
+controls:
+  - security

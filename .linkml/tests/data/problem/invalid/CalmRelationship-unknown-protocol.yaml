@@ -1,0 +1,11 @@
+# A protocol is one of CALM's.
+protocol: HTTP/3
+relationship-type:
+  connects:
+    destination:
+      interfaces:
+        - order-api
+      node: order-service
+    source:
+      node: api-gateway
+unique-id: gateway-to-orders

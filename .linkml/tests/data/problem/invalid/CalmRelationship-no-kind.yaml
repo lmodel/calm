@@ -1,0 +1,4 @@
+# A relationship type names its kind.
+protocol: HTTPS
+relationship-type: {}
+unique-id: gateway-to-orders

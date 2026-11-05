@@ -1,0 +1,3 @@
+# An interface definition carries its configuration.
+definition-url: https://calm.finos.org/interfaces/url.json
+unique-id: order-api

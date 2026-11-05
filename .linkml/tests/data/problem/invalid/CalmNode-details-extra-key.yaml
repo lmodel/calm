@@ -1,0 +1,7 @@
+# A node's details hold two keys only.
+description: The order service.
+name: Order Service
+node-type: service
+unique-id: order-service
+details:
+  owner: x

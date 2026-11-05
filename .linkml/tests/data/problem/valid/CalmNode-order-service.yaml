@@ -1,0 +1,20 @@
+# A node with both kinds of interface, controls and metadata as an object.
+unique-id: order-service
+node-type: service
+name: Order Service
+description: The order service.
+interfaces:
+  - unique-id: order-api
+    definition-url: https://calm.finos.org/interfaces/url.json
+    config:
+      url: https://orders.example.org/api
+  - unique-id: order-port
+    port: 8443
+controls:
+  security:
+    description: Only the gateway may reach the order service.
+    requirements:
+      - requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+        config-url: https://example.org/controls/permitted-connection.config.json
+metadata:
+  tier: '1'

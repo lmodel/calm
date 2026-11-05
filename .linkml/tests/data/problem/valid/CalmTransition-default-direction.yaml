@@ -1,0 +1,4 @@
+# A transition that leaves the direction to its default.
+relationship-unique-id: customer-uses-gateway
+sequence-number: 1
+description: The customer submits the order.

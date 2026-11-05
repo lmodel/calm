@@ -1,0 +1,9 @@
+# A moment has no interfaces.
+unique-id: pilot
+node-type: moment
+name: Pilot
+description: The pilot.
+details:
+  detailed-architecture: https://example.org/pilot.json
+valid-from: '2026-01-05'
+interfaces: []
