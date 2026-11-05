@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/flow.json",
+  "title": "Business Flow Model",
+  "description": "Defines business flows that relate to technical architectures, allowing mapping of flows to technical components and attaching control requirements.",
+  "defs": {
+    "flow": {
+      "description": "A business flow, as an ordered list of transitions across the architecture's relationships.",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "Unique identifier for the flow",
+          "type": "string"
+        },
+        "name": {
+          "description": "Descriptive name for the business flow",
+          "type": "string"
+        },
+        "description": {
+          "description": "Detailed description of the flow's purpose",
+          "type": "string"
+        },
+        "requirement-url": {
+          "description": "Link to a detailed requirement document",
+          "type": "string"
+        },
+        "transitions": {
+          "description": "The steps of the flow, each across one relationship.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/defs/transition"
+          }
+        },
+        "controls": {
+          "description": "The controls that apply to this flow.",
+          "$ref": "control.json#/defs/controls"
+        },
+        "metadata": {
+          "description": "Free-form metadata about this flow.",
+          "$ref": "core.json#/defs/metadata"
+        }
+      },
+      "required": [
+        "unique-id",
+        "name",
+        "description",
+        "transitions"
+      ],
+      "additionalProperties": false
+    },
+    "transition": {
+      "description": "One step of a flow, across one relationship of the architecture.",
+      "type": "object",
+      "properties": {
+        "relationship-unique-id": {
+          "description": "Unique identifier for the relationship in the architecture",
+          "type": "string"
+        },
+        "sequence-number": {
+          "description": "Indicates the sequence of the relationship in the flow",
+          "type": "integer"
+        },
+        "description": {
+          "description": "Functional summary of what is happening in the transition",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Which way along the relationship the step goes.",
+          "type": "string",
+          "enum": [
+            "source-to-destination",
+            "destination-to-source"
+          ],
+          "default": "source-to-destination"
+        }
+      },
+      "required": [
+        "relationship-unique-id",
+        "sequence-number",
+        "description"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

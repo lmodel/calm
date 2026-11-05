@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/evidence.json",
+  "title": "Common Architecture Language Model Evidence",
+  "description": "Schema for defining evidence for control requirements within the Common Architecture Language Model.",
+  "type": "object",
+  "properties": {
+    "evidence": {
+      "description": "The evidence this document holds.",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "CALM unique-id for future linking and uniquely defining this evidence",
+          "type": "string"
+        },
+        "evidence-paths": {
+          "description": "Paths to the evidence relating to a specific control",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "control-config-url": {
+          "description": "URI for the control configuration this evidence relates to",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique-id",
+        "evidence-paths",
+        "control-config-url"
+      ],
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "evidence"
+  ],
+  "additionalProperties": true
+}

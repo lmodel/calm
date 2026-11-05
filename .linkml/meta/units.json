@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/units.json",
+  "title": "Common Architecture Language Model Units",
+  "description": "Amounts of time, rates and cron schedules, for patterns and standards to reference.",
+  "defs": {
+    "time-unit": {
+      "description": "A unit of time with a value and a unit type.",
+      "type": "object",
+      "properties": {
+        "unit": {
+          "description": "The unit of time (e.g., seconds, minutes, hours).",
+          "type": "string",
+          "enum": [
+            "nanoseconds",
+            "microseconds",
+            "milliseconds",
+            "seconds",
+            "minutes",
+            "hours",
+            "days",
+            "weeks",
+            "months",
+            "quarters",
+            "years"
+          ]
+        },
+        "value": {
+          "description": "The numeric value representing the amount of time.",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "unit",
+        "value"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "unit": "seconds",
+          "value": 30
+        },
+        {
+          "unit": "minutes",
+          "value": 15
+        },
+        {
+          "unit": "hours",
+          "value": 1
+        },
+        {
+          "unit": "days",
+          "value": 7
+        }
+      ]
+    },
+    "rate-unit": {
+      "description": "A unit representing a rate (e.g., operations per second).",
+      "type": "object",
+      "properties": {
+        "rate": {
+          "description": "The numeric value representing the rate.",
+          "type": "number",
+          "minimum": 0
+        },
+        "per": {
+          "description": "The time unit defining the rate interval.",
+          "type": "string",
+          "enum": [
+            "nanosecond",
+            "microsecond",
+            "millisecond",
+            "second",
+            "minute",
+            "hour",
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        }
+      },
+      "required": [
+        "rate",
+        "per"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "per": "second",
+          "rate": 30
+        },
+        {
+          "per": "minute",
+          "rate": 1000
+        },
+        {
+          "per": "millisecond",
+          "rate": 5
+        }
+      ]
+    },
+    "cron-expression": {
+      "title": "Cron Expression",
+      "description": "A valid Unix-style cron expression.",
+      "type": "string",
+      "pattern": "^([0-5]?\\d)\\s([01]?\\d|2[0-3])\\s(3[01]|[12]\\d|0?[1-9])\\s(1[0-2]|0?[1-9])\\s([0-6])$",
+      "examples": [
+        "0 0 * * 0",
+        "30 14 1 * 5",
+        "15 10 * * *"
+      ]
+    }
+  }
+}

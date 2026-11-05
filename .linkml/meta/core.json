@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/core.json",
+  "title": "Common Architecture Language Model (CALM) Vocab",
+  "description": "The nodes and relationships of a CALM architecture, the four kinds of relationship and the decisions between options, and the protocols and metadata they carry.",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "description": "The components of the architecture.",
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/node"
+      }
+    },
+    "relationships": {
+      "description": "The links between the architecture's nodes.",
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/relationship"
+      }
+    },
+    "metadata": {
+      "description": "Free-form metadata about the architecture.",
+      "$ref": "#/defs/metadata"
+    },
+    "controls": {
+      "description": "The controls that apply to the whole architecture.",
+      "$ref": "control.json#/defs/controls"
+    },
+    "flows": {
+      "description": "The business flows that run across the architecture.",
+      "type": "array",
+      "items": {
+        "$ref": "flow.json#/defs/flow"
+      }
+    },
+    "adrs": {
+      "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "defs": {
+    "node": {
+      "description": "A component of the architecture, such as a system, service, database or actor, with its interfaces and controls.",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "The node's identifier, unique within the architecture.",
+          "type": "string"
+        },
+        "node-type": {
+          "description": "What kind of node this is, one of CALM's built-in types or any other name.",
+          "$ref": "#/defs/node-type-definition"
+        },
+        "name": {
+          "description": "The node's name.",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the node is and does.",
+          "type": "string"
+        },
+        "details": {
+          "description": "Where a more detailed architecture of this node is, and the pattern it must follow.",
+          "type": "object",
+          "properties": {
+            "detailed-architecture": {
+              "description": "The address of an architecture document that describes this node in detail.",
+              "type": "string"
+            },
+            "required-pattern": {
+              "description": "The address of a pattern that the detailed architecture must follow.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "interfaces": {
+          "description": "The interfaces the node exposes.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "interface.json#/defs/interface-definition"
+              },
+              {
+                "$ref": "interface.json#/defs/interface-type"
+              }
+            ]
+          }
+        },
+        "controls": {
+          "description": "The controls that apply to this node.",
+          "$ref": "control.json#/defs/controls"
+        },
+        "metadata": {
+          "description": "Free-form metadata about this node.",
+          "$ref": "#/defs/metadata"
+        }
+      },
+      "required": [
+        "unique-id",
+        "node-type",
+        "name",
+        "description"
+      ],
+      "additionalProperties": true
+    },
+    "relationship": {
+      "description": "A link between nodes, of one of CALM's kinds, or a choice between options.",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "The relationship's identifier, unique within the architecture.",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the relationship is for.",
+          "type": "string"
+        },
+        "relationship-type": {
+          "description": "The kind of the relationship and the nodes it links.",
+          "type": "object",
+          "properties": {
+            "interacts": {
+              "description": "An actor that interacts with nodes.",
+              "$ref": "#/defs/interacts-type"
+            },
+            "connects": {
+              "description": "A connection from one node's interfaces to another's.",
+              "$ref": "#/defs/connects-type"
+            },
+            "deployed-in": {
+              "description": "Nodes deployed in a container node.",
+              "$ref": "#/defs/deployed-in-type"
+            },
+            "composed-of": {
+              "description": "Nodes that make up a container node.",
+              "$ref": "#/defs/composed-of-type"
+            },
+            "options": {
+              "description": "Decisions between options, each naming the nodes and relationships it would add.",
+              "$ref": "#/defs/option-type"
+            }
+          },
+          "additionalProperties": true,
+          "oneOf": [
+            {
+              "properties": {
+                "deployed-in": {}
+              },
+              "required": [
+                "deployed-in"
+              ]
+            },
+            {
+              "properties": {
+                "composed-of": {}
+              },
+              "required": [
+                "composed-of"
+              ]
+            },
+            {
+              "properties": {
+                "interacts": {}
+              },
+              "required": [
+                "interacts"
+              ]
+            },
+            {
+              "properties": {
+                "connects": {}
+              },
+              "required": [
+                "connects"
+              ]
+            },
+            {
+              "properties": {
+                "options": {
+                  "type": "array",
+                  "items": {}
+                }
+              },
+              "required": [
+                "options"
+              ]
+            }
+          ]
+        },
+        "protocol": {
+          "description": "The protocol a connection uses.",
+          "$ref": "#/defs/protocol"
+        },
+        "metadata": {
+          "description": "Free-form metadata about this relationship.",
+          "$ref": "#/defs/metadata"
+        },
+        "controls": {
+          "description": "The controls that apply to this relationship.",
+          "$ref": "control.json#/defs/controls"
+        }
+      },
+      "required": [
+        "unique-id",
+        "relationship-type"
+      ],
+      "additionalProperties": true
+    },
+    "interacts-type": {
+      "description": "A relationship in which an actor interacts with nodes.",
+      "type": "object",
+      "properties": {
+        "actor": {
+          "description": "The unique-id of the node that acts.",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The unique-ids of the nodes it interacts with.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "actor",
+        "nodes"
+      ],
+      "additionalProperties": true
+    },
+    "connects-type": {
+      "description": "A relationship in which one node connects to another through their interfaces.",
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "The end that opens the connection.",
+          "$ref": "interface.json#/defs/node-interface"
+        },
+        "destination": {
+          "description": "The end the connection reaches.",
+          "$ref": "interface.json#/defs/node-interface"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "additionalProperties": true
+    },
+    "deployed-in-type": {
+      "description": "A relationship in which nodes are deployed in a container node.",
+      "type": "object",
+      "properties": {
+        "container": {
+          "description": "The unique-id of the node the others are deployed in.",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The unique-ids of the deployed nodes.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "container",
+        "nodes"
+      ],
+      "additionalProperties": true
+    },
+    "composed-of-type": {
+      "description": "A relationship in which nodes make up a container node.",
+      "type": "object",
+      "properties": {
+        "container": {
+          "description": "The unique-id of the node the others make up.",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The unique-ids of the nodes it is made of.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "container",
+        "nodes"
+      ],
+      "additionalProperties": true
+    },
+    "decision": {
+      "description": "One option of a choice, naming the nodes, relationships and controls it would add.",
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "What choosing this option means.",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The unique-ids of the nodes this option adds.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relationships": {
+          "description": "The unique-ids of the relationships this option adds.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "controls": {
+          "description": "The keys of the controls this option adds.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "description",
+        "nodes",
+        "relationships"
+      ],
+      "additionalProperties": true
+    },
+    "metadata": {
+      "description": "Free-form metadata, as an object or a list of objects."
+    },
+    "protocol": {
+      "description": "The protocol a relationship uses.",
+      "type": "string",
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "FTP",
+        "SFTP",
+        "JDBC",
+        "WebSocket",
+        "SocketIO",
+        "LDAP",
+        "AMQP",
+        "TLS",
+        "mTLS",
+        "TCP"
+      ]
+    },
+    "node-type-definition": {
+      "description": "CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any other string.",
+      "anyOf": [
+        {
+          "enum": [
+            "actor",
+            "ecosystem",
+            "system",
+            "service",
+            "database",
+            "network",
+            "ldap",
+            "webclient",
+            "data-asset"
+          ]
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "option-type": {
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/decision"
+      }
+    }
+  }
+}

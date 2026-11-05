@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+  "title": "Common Architecture Language Model Control Requirement",
+  "description": "Schema for defining control requirements within the Common Architecture Language Model.",
+  "type": "object",
+  "properties": {
+    "control-id": {
+      "description": "The unique identifier of this control, which has the potential to be used for linking evidence",
+      "type": "string"
+    },
+    "name": {
+      "description": "The name of the control requirement that provides contextual meaning within a given domain",
+      "type": "string"
+    },
+    "description": {
+      "description": "A more detailed description of the control and information on what a developer needs to consider",
+      "type": "string"
+    }
+  },
+  "required": [
+    "control-id",
+    "name",
+    "description"
+  ],
+  "additionalProperties": true,
+  "examples": [
+    {
+      "description": "Ensure that access to sensitive information is restricted.",
+      "control-id": "CR-001",
+      "name": "Access Control"
+    }
+  ]
+}
