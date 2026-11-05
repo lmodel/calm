@@ -1,0 +1,304 @@
+{
+   "@context": {
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "calm": "https://w3id.org/lmodel/calm/",
+      "calm_meta": "https://calm.finos.org/release/1.3/meta/",
+      "linkml": "https://w3id.org/linkml/",
+      "schema": "http://schema.org/",
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "@vocab": "https://w3id.org/lmodel/calm/",
+      "adrs": {
+         "@id": "adrs"
+      },
+      "controls": {
+         "@type": "@id",
+         "@id": "controls"
+      },
+      "flows": {
+         "@type": "@id",
+         "@id": "flows"
+      },
+      "metadata": {
+         "@type": "@id",
+         "@id": "metadata"
+      },
+      "nodes": {
+         "@id": "nodes"
+      },
+      "relationships": {
+         "@id": "relationships"
+      },
+      "container": {
+         "@id": "container"
+      },
+      "destination": {
+         "@type": "@id",
+         "@id": "destination"
+      },
+      "source": {
+         "@type": "@id",
+         "@id": "source"
+      },
+      "description": {
+         "@id": "schema:description"
+      },
+      "requirements": {
+         "@type": "@id",
+         "@id": "requirements"
+      },
+      "config": {
+         "@type": "@id",
+         "@id": "config"
+      },
+      "config_url": {
+         "@id": "config_url"
+      },
+      "requirement_url": {
+         "@id": "requirement_url"
+      },
+      "control_id": {
+         "@id": "control_id"
+      },
+      "name": {
+         "@id": "schema:name"
+      },
+      "applies_to": {
+         "@id": "applies_to"
+      },
+      "data": {
+         "@type": "@id",
+         "@id": "data"
+      },
+      "decorator_schema": {
+         "@id": "decorator_schema"
+      },
+      "type": {
+         "@id": "type"
+      },
+      "target": {
+         "@id": "target"
+      },
+      "target_type": {
+         "@context": {
+            "text": "skos:notation",
+            "description": "skos:prefLabel",
+            "meaning": "@id"
+         },
+         "@id": "target_type"
+      },
+      "unique_id": {
+         "@id": "unique_id"
+      },
+      "control_config_url": {
+         "@id": "control_config_url"
+      },
+      "evidence_paths": {
+         "@id": "evidence_paths"
+      },
+      "evidence": {
+         "@type": "@id",
+         "@id": "evidence"
+      },
+      "transitions": {
+         "@type": "@id",
+         "@id": "transitions"
+      },
+      "actor": {
+         "@id": "actor"
+      },
+      "definition_url": {
+         "@id": "definition_url"
+      },
+      "details": {
+         "@type": "@id",
+         "@id": "details"
+      },
+      "interfaces": {
+         "@id": "interfaces"
+      },
+      "node_type": {
+         "@id": "node_type"
+      },
+      "detailed_architecture": {
+         "@id": "detailed_architecture"
+      },
+      "required_pattern": {
+         "@id": "required_pattern"
+      },
+      "node": {
+         "@id": "node"
+      },
+      "valid_from": {
+         "@type": "xsd:date",
+         "@id": "valid_from"
+      },
+      "per": {
+         "@context": {
+            "text": "skos:notation",
+            "description": "skos:prefLabel",
+            "meaning": "@id"
+         },
+         "@id": "per"
+      },
+      "rate": {
+         "@type": "xsd:float",
+         "@id": "rate"
+      },
+      "protocol": {
+         "@context": {
+            "text": "skos:notation",
+            "description": "skos:prefLabel",
+            "meaning": "@id"
+         },
+         "@id": "protocol"
+      },
+      "relationship_type": {
+         "@type": "@id",
+         "@id": "relationship_type"
+      },
+      "composed_of": {
+         "@type": "@id",
+         "@id": "composed_of"
+      },
+      "connects": {
+         "@type": "@id",
+         "@id": "connects"
+      },
+      "deployed_in": {
+         "@type": "@id",
+         "@id": "deployed_in"
+      },
+      "interacts": {
+         "@type": "@id",
+         "@id": "interacts"
+      },
+      "options": {
+         "@type": "@id",
+         "@id": "options"
+      },
+      "current_moment": {
+         "@id": "current_moment"
+      },
+      "moments": {
+         "@type": "@id",
+         "@id": "moments"
+      },
+      "unit": {
+         "@context": {
+            "text": "skos:notation",
+            "description": "skos:prefLabel",
+            "meaning": "@id"
+         },
+         "@id": "unit"
+      },
+      "value": {
+         "@type": "xsd:float",
+         "@id": "value"
+      },
+      "direction": {
+         "@context": {
+            "text": "skos:notation",
+            "description": "skos:prefLabel",
+            "meaning": "@id"
+         },
+         "@id": "direction"
+      },
+      "relationship_unique_id": {
+         "@id": "relationship_unique_id"
+      },
+      "sequence_number": {
+         "@type": "xsd:integer",
+         "@id": "sequence_number"
+      },
+      "CalmArchitecture": {
+         "@id": "CalmArchitecture"
+      },
+      "CalmComposedOfType": {
+         "@id": "CalmComposedOfType"
+      },
+      "CalmConnectsType": {
+         "@id": "CalmConnectsType"
+      },
+      "CalmControl": {
+         "@id": "CalmControl"
+      },
+      "CalmControlConfig": {
+         "@id": "CalmControlConfig"
+      },
+      "CalmControlDetail": {
+         "@id": "CalmControlDetail"
+      },
+      "CalmControlRequirement": {
+         "@id": "CalmControlRequirement"
+      },
+      "CalmControls": {
+         "@id": "CalmControls"
+      },
+      "CalmDecision": {
+         "@id": "CalmDecision"
+      },
+      "CalmDecorator": {
+         "@id": "CalmDecorator"
+      },
+      "CalmDecoratorData": {
+         "@id": "CalmDecoratorData"
+      },
+      "CalmDeployedInType": {
+         "@id": "CalmDeployedInType"
+      },
+      "CalmEvidence": {
+         "@id": "CalmEvidence"
+      },
+      "CalmEvidenceDocument": {
+         "@id": "CalmEvidenceDocument"
+      },
+      "CalmFlow": {
+         "@id": "CalmFlow"
+      },
+      "CalmInteractsType": {
+         "@id": "CalmInteractsType"
+      },
+      "CalmInterfaceConfig": {
+         "@id": "CalmInterfaceConfig"
+      },
+      "CalmInterfaceDefinition": {
+         "@id": "CalmInterfaceDefinition"
+      },
+      "CalmInterfaceType": {
+         "@id": "CalmInterfaceType"
+      },
+      "CalmMetadata": {
+         "@id": "linkml:Any"
+      },
+      "CalmNode": {
+         "@id": "CalmNode"
+      },
+      "CalmNodeDetails": {
+         "@id": "CalmNodeDetails"
+      },
+      "CalmNodeInterface": {
+         "@id": "CalmNodeInterface"
+      },
+      "CalmNodeMoment": {
+         "@id": "CalmNodeMoment"
+      },
+      "CalmRateUnit": {
+         "@id": "CalmRateUnit"
+      },
+      "CalmRelationship": {
+         "@id": "CalmRelationship"
+      },
+      "CalmRelationshipType": {
+         "@id": "CalmRelationshipType"
+      },
+      "CalmTimeline": {
+         "@id": "CalmTimeline"
+      },
+      "CalmTimeUnit": {
+         "@id": "CalmTimeUnit"
+      },
+      "CalmTransition": {
+         "@id": "CalmTransition"
+      }
+   }
+}

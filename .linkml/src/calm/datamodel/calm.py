@@ -1,9 +1,8 @@
 # Auto generated from calm.yaml by pythongen.py version: 0.0.1
-# Generation date: 2026-07-03T00:41:53
 # Schema: calm
 #
 # id: https://w3id.org/lmodel/calm
-# description: LinkML representation of the FINOS Common Architecture Language Model (CALM) 1.2 specification. CALM is a declarative, JSON-based modeling language for describing complex software architectures (nodes, relationships, controls, flows, decorators, timelines, evidence, and units). This LinkML schema is generated from the CALM JSON-Schema meta files.
+# description: A LinkML model of CALM 1.3, the Common Architecture Language Model of FINOS's Architecture as Code project. Each module renders one file of the CALM Meta Schema and keeps CALM's keys, so a CALM document validates here unchanged, and CALM's JSON Schema files can be generated from the model.
 # license: Apache-2.0
 
 import dataclasses
@@ -59,118 +58,60 @@ from rdflib import (
 from linkml_runtime.linkml_model.types import Date, Float, Integer, String
 from linkml_runtime.utils.metamodelcore import XSDDate
 
-metamodel_version = "1.11.0"
-version = "1.2"
+metamodel_version = "1.12.0"
+version = "1.3"
 
 # Namespaces
-AI_GOVERNANCE_FRAMEWORK = CurieNamespace('ai_governance_framework', 'https://w3id.org/lmodel/ai-governance-framework/')
-ATTACK = CurieNamespace('attack', 'https://w3id.org/lmodel/attack/')
 CALM = CurieNamespace('calm', 'https://w3id.org/lmodel/calm/')
-CAPEC = CurieNamespace('capec', 'https://w3id.org/lmodel/capec/')
-CIS_CONTROLS = CurieNamespace('cis_controls', 'https://w3id.org/lmodel/cis-controls/')
-DCT = CurieNamespace('dct', 'http://purl.org/dc/terms/')
-DPV = CurieNamespace('dpv', 'https://w3id.org/lmodel/dpv/')
-FINOS_CALM = CurieNamespace('finos_calm', 'https://calm.finos.org/release/1.2/meta/')
-FLUXNOVA_BPMN_PLATFORM = CurieNamespace('fluxnova_bpmn_platform', 'https://w3id.org/lmodel/fluxnova-bpm-platform/')
-GIST = CurieNamespace('gist', 'https://w3id.org/lmodel/gist/')
-ISO27001 = CurieNamespace('iso27001', 'https://w3id.org/lmodel/iso27001/')
+CALM_META = CurieNamespace('calm_meta', 'https://calm.finos.org/release/1.3/meta/')
 LINKML = CurieNamespace('linkml', 'https://w3id.org/linkml/')
-NIST_CSF_V2 = CurieNamespace('nist_csf_v2', 'https://w3id.org/lmodel/nist-csf-v2/')
-NIST_SP_800_53 = CurieNamespace('nist_sp_800_53', 'https://w3id.org/lmodel/nist-sp-800-53/')
-OCSF = CurieNamespace('ocsf', 'https://w3id.org/lmodel/ocsf/')
-OSCAL = CurieNamespace('oscal', 'https://w3id.org/lmodel/oscal/')
-OWL = CurieNamespace('owl', 'http://www.w3.org/2002/07/owl#')
-PROV = CurieNamespace('prov', 'http://www.w3.org/ns/prov#')
-RDF = CurieNamespace('rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#')
-RDFS = CurieNamespace('rdfs', 'http://www.w3.org/2000/01/rdf-schema#')
 SCHEMA = CurieNamespace('schema', 'http://schema.org/')
-SKOS = CurieNamespace('skos', 'http://www.w3.org/2004/02/skos/core#')
-STIX = CurieNamespace('stix', 'https://w3id.org/lmodel/stix/')
 XSD = CurieNamespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 DEFAULT_ = CALM
 
 
 # Types
-class CronExpression(str):
-    """ A Unix-style cron expression (minute, hour, day, month, weekday). """
+class CalmCronExpression(String):
+    """ A valid Unix-style cron expression. """
     type_class_uri = XSD["string"]
     type_class_curie = "xsd:string"
-    type_name = "CronExpression"
-    type_model_uri = CALM.CronExpression
-
-
-class Metadata(str):
-    """ Opaque key/value metadata payload. JSON-Schema allows either an object or an array of objects; in LinkML this is modeled as a permissive string type that downstream consumers parse as JSON. """
-    type_class_uri = XSD["string"]
-    type_class_curie = "xsd:string"
-    type_name = "Metadata"
-    type_model_uri = CALM.Metadata
+    type_name = "CalmCronExpression"
+    type_model_uri = CALM.CalmCronExpression
 
 
 # Class references
-class NodeUniqueId(extended_str):
-    pass
 
-
-class RelationshipUniqueId(extended_str):
-    pass
-
-
-class ControlRequirementControlId(extended_str):
-    pass
-
-
-class DecoratorUniqueId(extended_str):
-    pass
-
-
-class FlowUniqueId(extended_str):
-    pass
-
-
-class InterfaceDefinitionUniqueId(extended_str):
-    pass
-
-
-class InterfaceTypeUniqueId(extended_str):
-    pass
-
-
-class NodeMomentUniqueId(NodeUniqueId):
-    pass
 
 
 @dataclass(repr=False)
-class Architecture(YAMLRoot):
+class CalmArchitecture(YAMLRoot):
     """
-    Top-level CALM architecture document.
+    A CALM architecture document: the nodes of a system, the relationships between them, its business flows, and the
+    controls that apply to it.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Architecture"]
-    class_class_curie: ClassVar[str] = "calm:Architecture"
-    class_name: ClassVar[str] = "Architecture"
-    class_model_uri: ClassVar[URIRef] = CALM.Architecture
+    class_class_uri: ClassVar[URIRef] = CALM["CalmArchitecture"]
+    class_class_curie: ClassVar[str] = "calm:CalmArchitecture"
+    class_name: ClassVar[str] = "CalmArchitecture"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmArchitecture
 
-    nodes: Optional[Union[dict[Union[str, NodeUniqueId], Union[dict, "Node"]], list[Union[dict, "Node"]]]] = empty_dict()
-    relationships: Optional[Union[dict[Union[str, RelationshipUniqueId], Union[dict, "Relationship"]], list[Union[dict, "Relationship"]]]] = empty_dict()
-    metadata: Optional[str] = None
-    controls: Optional[Union[dict, "Control"]] = None
-    flows: Optional[Union[dict[Union[str, FlowUniqueId], Union[dict, "Flow"]], list[Union[dict, "Flow"]]]] = empty_dict()
+    nodes: Optional[Union[Union[dict, "CalmNode"], list[Union[dict, "CalmNode"]]]] = empty_list()
+    relationships: Optional[Union[Union[dict, "CalmRelationship"], list[Union[dict, "CalmRelationship"]]]] = empty_list()
+    metadata: Optional[Union[dict, "CalmMetadata"]] = None
+    controls: Optional[Union[dict, "CalmControls"]] = None
+    flows: Optional[Union[Union[dict, "CalmFlow"], list[Union[dict, "CalmFlow"]]]] = empty_list()
     adrs: Optional[Union[str, list[str]]] = empty_list()
 
     def __post_init__(self, *_: str, **kwargs: Any):
-        self._normalize_inlined_as_list(slot_name="nodes", slot_type=Node, key_name="unique_id", keyed=True)
+        self._normalize_inlined_as_list(slot_name="nodes", slot_type=CalmNode, key_name="unique-id", keyed=False)
 
-        self._normalize_inlined_as_list(slot_name="relationships", slot_type=Relationship, key_name="unique_id", keyed=True)
+        self._normalize_inlined_as_list(slot_name="relationships", slot_type=CalmRelationship, key_name="unique-id", keyed=False)
 
-        if self.metadata is not None and not isinstance(self.metadata, str):
-            self.metadata = str(self.metadata)
+        if self.controls is not None and not isinstance(self.controls, CalmControls):
+            self.controls = CalmControls()
 
-        if self.controls is not None and not isinstance(self.controls, Control):
-            self.controls = Control()
-
-        self._normalize_inlined_as_list(slot_name="flows", slot_type=Flow, key_name="unique_id", keyed=True)
+        self._normalize_inlined_as_list(slot_name="flows", slot_type=CalmFlow, key_name="unique-id", keyed=False)
 
         if not isinstance(self.adrs, list):
             self.adrs = [self.adrs] if self.adrs is not None else []
@@ -179,37 +120,226 @@ class Architecture(YAMLRoot):
         super().__post_init__(**kwargs)
 
 
-@dataclass(repr=False)
-class Node(YAMLRoot):
+class CalmControls(YAMLRoot):
     """
-    A logical or physical element of an architecture (system, service, actor, ...).
+    The controls that apply to an architecture element, each under a key of letters, digits and hyphens.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Node"]
-    class_class_curie: ClassVar[str] = "calm:Node"
-    class_name: ClassVar[str] = "Node"
-    class_model_uri: ClassVar[URIRef] = CALM.Node
+    class_class_uri: ClassVar[URIRef] = CALM["CalmControls"]
+    class_class_curie: ClassVar[str] = "calm:CalmControls"
+    class_name: ClassVar[str] = "CalmControls"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmControls
 
-    unique_id: Union[str, NodeUniqueId] = None
-    node_type: Union[str, "NodeType"] = None
-    name: str = None
+
+@dataclass(repr=False)
+class CalmControl(YAMLRoot):
+    """
+    One control in a controls map, with the requirements that define it.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmControl"]
+    class_class_curie: ClassVar[str] = "calm:CalmControl"
+    class_name: ClassVar[str] = "CalmControl"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmControl
+
     description: str = None
-    details: Optional[str] = None
-    interfaces: Optional[Union[dict[Union[str, InterfaceDefinitionUniqueId], Union[dict, "InterfaceDefinition"]], list[Union[dict, "InterfaceDefinition"]]]] = empty_dict()
-    controls: Optional[Union[dict, "Control"]] = None
-    metadata: Optional[str] = None
+    requirements: Union[Union[dict, "CalmControlDetail"], list[Union[dict, "CalmControlDetail"]]] = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.description):
+            self.MissingRequiredField("description")
+        if not isinstance(self.description, str):
+            self.description = str(self.description)
+
+        if self._is_empty(self.requirements):
+            self.MissingRequiredField("requirements")
+        self._normalize_inlined_as_list(slot_name="requirements", slot_type=CalmControlDetail, key_name="requirement-url", keyed=False)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmControlDetail(YAMLRoot):
+    """
+    A control requirement this control applies, with its configuration given by address or inline, but not both.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmControlDetail"]
+    class_class_curie: ClassVar[str] = "calm:CalmControlDetail"
+    class_name: ClassVar[str] = "CalmControlDetail"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmControlDetail
+
+    requirement_url: str = None
+    config_url: Optional[str] = None
+    config: Optional[Union[dict, "CalmControlConfig"]] = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.requirement_url):
+            self.MissingRequiredField("requirement_url")
+        if not isinstance(self.requirement_url, str):
+            self.requirement_url = str(self.requirement_url)
+
+        if self.config_url is not None and not isinstance(self.config_url, str):
+            self.config_url = str(self.config_url)
+
+        if self.config is not None and not isinstance(self.config, CalmControlConfig):
+            self.config = CalmControlConfig()
+
+        super().__post_init__(**kwargs)
+
+
+class CalmControlConfig(YAMLRoot):
+    """
+    A configuration object, free in shape, that meets a control requirement.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmControlConfig"]
+    class_class_curie: ClassVar[str] = "calm:CalmControlConfig"
+    class_name: ClassVar[str] = "CalmControlConfig"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmControlConfig
+
+
+@dataclass(repr=False)
+class CalmInterfaceDefinition(YAMLRoot):
+    """
+    A modular interface definition referencing an external schema
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmInterfaceDefinition"]
+    class_class_curie: ClassVar[str] = "calm:CalmInterfaceDefinition"
+    class_name: ClassVar[str] = "CalmInterfaceDefinition"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmInterfaceDefinition
+
+    unique_id: str = None
+    definition_url: str = None
+    config: Union[dict, "CalmInterfaceConfig"] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unique_id):
             self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, NodeUniqueId):
-            self.unique_id = NodeUniqueId(self.unique_id)
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
+
+        if self._is_empty(self.definition_url):
+            self.MissingRequiredField("definition_url")
+        if not isinstance(self.definition_url, str):
+            self.definition_url = str(self.definition_url)
+
+        if self._is_empty(self.config):
+            self.MissingRequiredField("config")
+        if not isinstance(self.config, CalmInterfaceConfig):
+            self.config = CalmInterfaceConfig()
+
+        super().__post_init__(**kwargs)
+
+
+class CalmInterfaceConfig(YAMLRoot):
+    """
+    A configuration object, free in shape, that an interface definition's schema checks.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmInterfaceConfig"]
+    class_class_curie: ClassVar[str] = "calm:CalmInterfaceConfig"
+    class_name: ClassVar[str] = "CalmInterfaceConfig"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmInterfaceConfig
+
+
+@dataclass(repr=False)
+class CalmInterfaceType(YAMLRoot):
+    """
+    An interface given by its own keys, such as a host and port, rather than by an external schema.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmInterfaceType"]
+    class_class_curie: ClassVar[str] = "calm:CalmInterfaceType"
+    class_name: ClassVar[str] = "CalmInterfaceType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmInterfaceType
+
+    unique_id: str = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.unique_id):
+            self.MissingRequiredField("unique_id")
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmNodeInterface(YAMLRoot):
+    """
+    One end of a connection, naming a node and, optionally, which of its interfaces.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmNodeInterface"]
+    class_class_curie: ClassVar[str] = "calm:CalmNodeInterface"
+    class_name: ClassVar[str] = "CalmNodeInterface"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmNodeInterface
+
+    node: str = None
+    interfaces: Optional[Union[str, list[str]]] = empty_list()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.node):
+            self.MissingRequiredField("node")
+        if not isinstance(self.node, str):
+            self.node = str(self.node)
+
+        if not isinstance(self.interfaces, list):
+            self.interfaces = [self.interfaces] if self.interfaces is not None else []
+        self.interfaces = [v if isinstance(v, str) else str(v) for v in self.interfaces]
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmNode(YAMLRoot):
+    """
+    A component of the architecture, such as a system, service, database or actor, with its interfaces and controls.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmNode"]
+    class_class_curie: ClassVar[str] = "calm:CalmNode"
+    class_name: ClassVar[str] = "CalmNode"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmNode
+
+    unique_id: str = None
+    node_type: Union[str, "CalmNodeTypeDefinition"] = None
+    name: str = None
+    description: str = None
+    details: Optional[Union[dict, "CalmNodeDetails"]] = None
+    interfaces: Optional[Union[str, list[str]]] = empty_list()
+    controls: Optional[Union[dict, CalmControls]] = None
+    metadata: Optional[Union[dict, "CalmMetadata"]] = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.unique_id):
+            self.MissingRequiredField("unique_id")
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
 
         if self._is_empty(self.node_type):
             self.MissingRequiredField("node_type")
-        if not isinstance(self.node_type, NodeType):
-            self.node_type = NodeType(self.node_type)
+        if not isinstance(self.node_type, (CalmNodeTypeDefinition, str)):
+            value = self.node_type
+            for _coerce in (lambda: CalmNodeTypeDefinition(value), lambda: str(value)):
+                try:
+                    self.node_type = _coerce()
+                    break
+                except (ValueError, TypeError):
+                    continue
+            else:
+                raise ValueError(f"None of the candidate types Union[CalmNodeTypeDefinition, str] could be constructed from {value!r} for slot node_type")
 
         if self._is_empty(self.name):
             self.MissingRequiredField("name")
@@ -221,79 +351,137 @@ class Node(YAMLRoot):
         if not isinstance(self.description, str):
             self.description = str(self.description)
 
-        if self.details is not None and not isinstance(self.details, str):
-            self.details = str(self.details)
+        if self.details is not None and not isinstance(self.details, CalmNodeDetails):
+            self.details = CalmNodeDetails(**as_dict(self.details))
 
-        self._normalize_inlined_as_list(slot_name="interfaces", slot_type=InterfaceDefinition, key_name="unique_id", keyed=True)
+        if not isinstance(self.interfaces, list):
+            self.interfaces = [self.interfaces] if self.interfaces is not None else []
+        self.interfaces = [v if isinstance(v, str) else str(v) for v in self.interfaces]
 
-        if self.controls is not None and not isinstance(self.controls, Control):
-            self.controls = Control()
-
-        if self.metadata is not None and not isinstance(self.metadata, str):
-            self.metadata = str(self.metadata)
+        if self.controls is not None and not isinstance(self.controls, CalmControls):
+            self.controls = CalmControls()
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class Relationship(YAMLRoot):
+class CalmNodeDetails(YAMLRoot):
     """
-    A typed link between architecture elements.
+    References from a node to a more detailed architecture and to the pattern it must follow.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Relationship"]
-    class_class_curie: ClassVar[str] = "calm:Relationship"
-    class_name: ClassVar[str] = "Relationship"
-    class_model_uri: ClassVar[URIRef] = CALM.Relationship
+    class_class_uri: ClassVar[URIRef] = CALM["CalmNodeDetails"]
+    class_class_curie: ClassVar[str] = "calm:CalmNodeDetails"
+    class_name: ClassVar[str] = "CalmNodeDetails"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmNodeDetails
 
-    unique_id: Union[str, RelationshipUniqueId] = None
-    relationship_type: Union[dict, "RelationshipType"] = None
+    detailed_architecture: Optional[str] = None
+    required_pattern: Optional[str] = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self.detailed_architecture is not None and not isinstance(self.detailed_architecture, str):
+            self.detailed_architecture = str(self.detailed_architecture)
+
+        if self.required_pattern is not None and not isinstance(self.required_pattern, str):
+            self.required_pattern = str(self.required_pattern)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmRelationship(YAMLRoot):
+    """
+    A link between nodes, of one of CALM's kinds, or a choice between options.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmRelationship"]
+    class_class_curie: ClassVar[str] = "calm:CalmRelationship"
+    class_name: ClassVar[str] = "CalmRelationship"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmRelationship
+
+    unique_id: str = None
+    relationship_type: Union[dict, "CalmRelationshipType"] = None
     description: Optional[str] = None
-    protocol: Optional[Union[str, "Protocol"]] = None
-    metadata: Optional[str] = None
-    controls: Optional[Union[dict, "Control"]] = None
+    protocol: Optional[Union[str, "CalmProtocol"]] = None
+    metadata: Optional[Union[dict, "CalmMetadata"]] = None
+    controls: Optional[Union[dict, CalmControls]] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unique_id):
             self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, RelationshipUniqueId):
-            self.unique_id = RelationshipUniqueId(self.unique_id)
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
 
         if self._is_empty(self.relationship_type):
             self.MissingRequiredField("relationship_type")
-        if not isinstance(self.relationship_type, RelationshipType):
-            self.relationship_type = RelationshipType(**as_dict(self.relationship_type))
+        if not isinstance(self.relationship_type, CalmRelationshipType):
+            self.relationship_type = CalmRelationshipType(**as_dict(self.relationship_type))
 
         if self.description is not None and not isinstance(self.description, str):
             self.description = str(self.description)
 
-        if self.protocol is not None and not isinstance(self.protocol, Protocol):
-            self.protocol = Protocol(self.protocol)
+        if self.protocol is not None and not isinstance(self.protocol, CalmProtocol):
+            self.protocol = CalmProtocol(self.protocol)
 
-        if self.metadata is not None and not isinstance(self.metadata, str):
-            self.metadata = str(self.metadata)
-
-        if self.controls is not None and not isinstance(self.controls, Control):
-            self.controls = Control()
+        if self.controls is not None and not isinstance(self.controls, CalmControls):
+            self.controls = CalmControls()
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class InteractsRelationship(YAMLRoot):
+class CalmRelationshipType(YAMLRoot):
     """
-    An ``interacts`` relationship between an actor and one or more nodes.
+    The kind of a relationship, given by exactly one of its keys: interacts, connects, deployed-in, composed-of or
+    options.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["InteractsRelationship"]
-    class_class_curie: ClassVar[str] = "calm:InteractsRelationship"
-    class_name: ClassVar[str] = "InteractsRelationship"
-    class_model_uri: ClassVar[URIRef] = CALM.InteractsRelationship
+    class_class_uri: ClassVar[URIRef] = CALM["CalmRelationshipType"]
+    class_class_curie: ClassVar[str] = "calm:CalmRelationshipType"
+    class_name: ClassVar[str] = "CalmRelationshipType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmRelationshipType
+
+    interacts: Optional[Union[dict, "CalmInteractsType"]] = None
+    connects: Optional[Union[dict, "CalmConnectsType"]] = None
+    deployed_in: Optional[Union[dict, "CalmDeployedInType"]] = None
+    composed_of: Optional[Union[dict, "CalmComposedOfType"]] = None
+    options: Optional[Union[Union[dict, "CalmDecision"], list[Union[dict, "CalmDecision"]]]] = empty_list()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self.interacts is not None and not isinstance(self.interacts, CalmInteractsType):
+            self.interacts = CalmInteractsType(**as_dict(self.interacts))
+
+        if self.connects is not None and not isinstance(self.connects, CalmConnectsType):
+            self.connects = CalmConnectsType(**as_dict(self.connects))
+
+        if self.deployed_in is not None and not isinstance(self.deployed_in, CalmDeployedInType):
+            self.deployed_in = CalmDeployedInType(**as_dict(self.deployed_in))
+
+        if self.composed_of is not None and not isinstance(self.composed_of, CalmComposedOfType):
+            self.composed_of = CalmComposedOfType(**as_dict(self.composed_of))
+
+        self._normalize_inlined_as_list(slot_name="options", slot_type=CalmDecision, key_name="description", keyed=False)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmInteractsType(YAMLRoot):
+    """
+    A relationship in which an actor interacts with nodes.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmInteractsType"]
+    class_class_curie: ClassVar[str] = "calm:CalmInteractsType"
+    class_name: ClassVar[str] = "CalmInteractsType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmInteractsType
 
     actor: str = None
-    nodes: Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]] = None
+    nodes: Union[str, list[str]] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.actor):
@@ -305,54 +493,54 @@ class InteractsRelationship(YAMLRoot):
             self.MissingRequiredField("nodes")
         if not isinstance(self.nodes, list):
             self.nodes = [self.nodes] if self.nodes is not None else []
-        self.nodes = [v if isinstance(v, NodeUniqueId) else NodeUniqueId(v) for v in self.nodes]
+        self.nodes = [v if isinstance(v, str) else str(v) for v in self.nodes]
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class ConnectsRelationship(YAMLRoot):
+class CalmConnectsType(YAMLRoot):
     """
-    A ``connects`` relationship between two node interfaces.
+    A relationship in which one node connects to another through their interfaces.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["ConnectsRelationship"]
-    class_class_curie: ClassVar[str] = "calm:ConnectsRelationship"
-    class_name: ClassVar[str] = "ConnectsRelationship"
-    class_model_uri: ClassVar[URIRef] = CALM.ConnectsRelationship
+    class_class_uri: ClassVar[URIRef] = CALM["CalmConnectsType"]
+    class_class_curie: ClassVar[str] = "calm:CalmConnectsType"
+    class_name: ClassVar[str] = "CalmConnectsType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmConnectsType
 
-    source: Union[dict, "NodeInterface"] = None
-    destination: Union[dict, "NodeInterface"] = None
+    source: Union[dict, CalmNodeInterface] = None
+    destination: Union[dict, CalmNodeInterface] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.source):
             self.MissingRequiredField("source")
-        if not isinstance(self.source, NodeInterface):
-            self.source = NodeInterface(**as_dict(self.source))
+        if not isinstance(self.source, CalmNodeInterface):
+            self.source = CalmNodeInterface(**as_dict(self.source))
 
         if self._is_empty(self.destination):
             self.MissingRequiredField("destination")
-        if not isinstance(self.destination, NodeInterface):
-            self.destination = NodeInterface(**as_dict(self.destination))
+        if not isinstance(self.destination, CalmNodeInterface):
+            self.destination = CalmNodeInterface(**as_dict(self.destination))
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class DeployedInRelationship(YAMLRoot):
+class CalmDeployedInType(YAMLRoot):
     """
-    A ``deployed-in`` containment relationship.
+    A relationship in which nodes are deployed in a container node.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["DeployedInRelationship"]
-    class_class_curie: ClassVar[str] = "calm:DeployedInRelationship"
-    class_name: ClassVar[str] = "DeployedInRelationship"
-    class_model_uri: ClassVar[URIRef] = CALM.DeployedInRelationship
+    class_class_uri: ClassVar[URIRef] = CALM["CalmDeployedInType"]
+    class_class_curie: ClassVar[str] = "calm:CalmDeployedInType"
+    class_name: ClassVar[str] = "CalmDeployedInType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmDeployedInType
 
     container: str = None
-    nodes: Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]] = None
+    nodes: Union[str, list[str]] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.container):
@@ -364,25 +552,25 @@ class DeployedInRelationship(YAMLRoot):
             self.MissingRequiredField("nodes")
         if not isinstance(self.nodes, list):
             self.nodes = [self.nodes] if self.nodes is not None else []
-        self.nodes = [v if isinstance(v, NodeUniqueId) else NodeUniqueId(v) for v in self.nodes]
+        self.nodes = [v if isinstance(v, str) else str(v) for v in self.nodes]
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class ComposedOfRelationship(YAMLRoot):
+class CalmComposedOfType(YAMLRoot):
     """
-    A ``composed-of`` containment relationship.
+    A relationship in which nodes make up a container node.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["ComposedOfRelationship"]
-    class_class_curie: ClassVar[str] = "calm:ComposedOfRelationship"
-    class_name: ClassVar[str] = "ComposedOfRelationship"
-    class_model_uri: ClassVar[URIRef] = CALM.ComposedOfRelationship
+    class_class_uri: ClassVar[URIRef] = CALM["CalmComposedOfType"]
+    class_class_curie: ClassVar[str] = "calm:CalmComposedOfType"
+    class_name: ClassVar[str] = "CalmComposedOfType"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmComposedOfType
 
     container: str = None
-    nodes: Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]] = None
+    nodes: Union[str, list[str]] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.container):
@@ -394,27 +582,27 @@ class ComposedOfRelationship(YAMLRoot):
             self.MissingRequiredField("nodes")
         if not isinstance(self.nodes, list):
             self.nodes = [self.nodes] if self.nodes is not None else []
-        self.nodes = [v if isinstance(v, NodeUniqueId) else NodeUniqueId(v) for v in self.nodes]
+        self.nodes = [v if isinstance(v, str) else str(v) for v in self.nodes]
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class Decision(YAMLRoot):
+class CalmDecision(YAMLRoot):
     """
-    A candidate decision within an ``options`` relationship.
+    One option of a choice, naming the nodes, relationships and controls it would add.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Decision"]
-    class_class_curie: ClassVar[str] = "calm:Decision"
-    class_name: ClassVar[str] = "Decision"
-    class_model_uri: ClassVar[URIRef] = CALM.Decision
+    class_class_uri: ClassVar[URIRef] = CALM["CalmDecision"]
+    class_class_curie: ClassVar[str] = "calm:CalmDecision"
+    class_name: ClassVar[str] = "CalmDecision"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmDecision
 
     description: str = None
-    nodes: Union[dict[Union[str, NodeUniqueId], Union[dict, Node]], list[Union[dict, Node]]] = empty_dict()
-    relationships: Union[dict[Union[str, RelationshipUniqueId], Union[dict, Relationship]], list[Union[dict, Relationship]]] = empty_dict()
-    controls: Optional[Union[dict, "Control"]] = None
+    nodes: Union[str, list[str]] = None
+    relationships: Union[str, list[str]] = None
+    controls: Optional[Union[str, list[str]]] = empty_list()
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.description):
@@ -424,82 +612,50 @@ class Decision(YAMLRoot):
 
         if self._is_empty(self.nodes):
             self.MissingRequiredField("nodes")
-        self._normalize_inlined_as_list(slot_name="nodes", slot_type=Node, key_name="unique_id", keyed=True)
+        if not isinstance(self.nodes, list):
+            self.nodes = [self.nodes] if self.nodes is not None else []
+        self.nodes = [v if isinstance(v, str) else str(v) for v in self.nodes]
 
         if self._is_empty(self.relationships):
             self.MissingRequiredField("relationships")
-        self._normalize_inlined_as_list(slot_name="relationships", slot_type=Relationship, key_name="unique_id", keyed=True)
+        if not isinstance(self.relationships, list):
+            self.relationships = [self.relationships] if self.relationships is not None else []
+        self.relationships = [v if isinstance(v, str) else str(v) for v in self.relationships]
 
-        if self.controls is not None and not isinstance(self.controls, Control):
-            self.controls = Control()
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class ControlDetail(YAMLRoot):
-    """
-    A single control requirement and its inline / referenced configuration.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["ControlDetail"]
-    class_class_curie: ClassVar[str] = "calm:ControlDetail"
-    class_name: ClassVar[str] = "ControlDetail"
-    class_model_uri: ClassVar[URIRef] = CALM.ControlDetail
-
-    requirement_url: str = None
-    config_url: Optional[str] = None
-    config: Optional[str] = None
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.requirement_url):
-            self.MissingRequiredField("requirement_url")
-        if not isinstance(self.requirement_url, str):
-            self.requirement_url = str(self.requirement_url)
-
-        if self.config_url is not None and not isinstance(self.config_url, str):
-            self.config_url = str(self.config_url)
-
-        if self.config is not None and not isinstance(self.config, str):
-            self.config = str(self.config)
+        if not isinstance(self.controls, list):
+            self.controls = [self.controls] if self.controls is not None else []
+        self.controls = [v if isinstance(v, str) else str(v) for v in self.controls]
 
         super().__post_init__(**kwargs)
 
 
-class Control(YAMLRoot):
-    """
-    A named control attached to an architecture element.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["Control"]
-    class_class_curie: ClassVar[str] = "calm:Control"
-    class_name: ClassVar[str] = "Control"
-    class_model_uri: ClassVar[URIRef] = CALM.Control
-
+CalmMetadata = Any
 
 @dataclass(repr=False)
-class ControlRequirement(YAMLRoot):
+class CalmFlow(YAMLRoot):
     """
-    Domain-defined control requirement that controls can reference.
+    A business flow, as an ordered list of transitions across the architecture's relationships.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["ControlRequirement"]
-    class_class_curie: ClassVar[str] = "calm:ControlRequirement"
-    class_name: ClassVar[str] = "ControlRequirement"
-    class_model_uri: ClassVar[URIRef] = CALM.ControlRequirement
+    class_class_uri: ClassVar[URIRef] = CALM["CalmFlow"]
+    class_class_curie: ClassVar[str] = "calm:CalmFlow"
+    class_name: ClassVar[str] = "CalmFlow"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmFlow
 
-    control_id: Union[str, ControlRequirementControlId] = None
+    unique_id: str = None
     name: str = None
     description: str = None
+    transitions: Union[Union[dict, "CalmTransition"], list[Union[dict, "CalmTransition"]]] = None
+    requirement_url: Optional[str] = None
+    controls: Optional[Union[dict, CalmControls]] = None
+    metadata: Optional[Union[dict, CalmMetadata]] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.control_id):
-            self.MissingRequiredField("control_id")
-        if not isinstance(self.control_id, ControlRequirementControlId):
-            self.control_id = ControlRequirementControlId(self.control_id)
+        if self._is_empty(self.unique_id):
+            self.MissingRequiredField("unique_id")
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
 
         if self._is_empty(self.name):
             self.MissingRequiredField("name")
@@ -511,32 +667,142 @@ class ControlRequirement(YAMLRoot):
         if not isinstance(self.description, str):
             self.description = str(self.description)
 
+        if self._is_empty(self.transitions):
+            self.MissingRequiredField("transitions")
+        self._normalize_inlined_as_list(slot_name="transitions", slot_type=CalmTransition, key_name="relationship-unique-id", keyed=False)
+
+        if self.requirement_url is not None and not isinstance(self.requirement_url, str):
+            self.requirement_url = str(self.requirement_url)
+
+        if self.controls is not None and not isinstance(self.controls, CalmControls):
+            self.controls = CalmControls()
+
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class Decorator(YAMLRoot):
+class CalmTransition(YAMLRoot):
     """
-    Cross-cutting annotation attached to nodes, relationships, or flows.
+    One step of a flow, across one relationship of the architecture.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Decorator"]
-    class_class_curie: ClassVar[str] = "calm:Decorator"
-    class_name: ClassVar[str] = "Decorator"
-    class_model_uri: ClassVar[URIRef] = CALM.Decorator
+    class_class_uri: ClassVar[URIRef] = CALM["CalmTransition"]
+    class_class_curie: ClassVar[str] = "calm:CalmTransition"
+    class_name: ClassVar[str] = "CalmTransition"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmTransition
 
-    unique_id: Union[str, DecoratorUniqueId] = None
+    relationship_unique_id: str = None
+    sequence_number: int = None
+    description: str = None
+    direction: Optional[Union[str, "CalmTransitionDirection"]] = 'source-to-destination'
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.relationship_unique_id):
+            self.MissingRequiredField("relationship_unique_id")
+        if not isinstance(self.relationship_unique_id, str):
+            self.relationship_unique_id = str(self.relationship_unique_id)
+
+        if self._is_empty(self.sequence_number):
+            self.MissingRequiredField("sequence_number")
+        if not isinstance(self.sequence_number, int):
+            self.sequence_number = int(self.sequence_number)
+
+        if self._is_empty(self.description):
+            self.MissingRequiredField("description")
+        if not isinstance(self.description, str):
+            self.description = str(self.description)
+
+        if self.direction is not None and not isinstance(self.direction, CalmTransitionDirection):
+            self.direction = CalmTransitionDirection(self.direction)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmTimeline(YAMLRoot):
+    """
+    A timeline document, listing the moments of an architecture and naming the current one.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmTimeline"]
+    class_class_curie: ClassVar[str] = "calm:CalmTimeline"
+    class_name: ClassVar[str] = "CalmTimeline"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmTimeline
+
+    moments: Union[Union[dict, "CalmNodeMoment"], list[Union[dict, "CalmNodeMoment"]]] = None
+    current_moment: Optional[str] = None
+    metadata: Optional[Union[dict, CalmMetadata]] = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.moments):
+            self.MissingRequiredField("moments")
+        self._normalize_inlined_as_list(slot_name="moments", slot_type=CalmNodeMoment, key_name="unique-id", keyed=False)
+
+        if self.current_moment is not None and not isinstance(self.current_moment, str):
+            self.current_moment = str(self.current_moment)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmNodeMoment(CalmNode):
+    """
+    A moment of a timeline: a node of type moment, with no interfaces, whose details point to the architecture of that
+    moment.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmNodeMoment"]
+    class_class_curie: ClassVar[str] = "calm:CalmNodeMoment"
+    class_name: ClassVar[str] = "CalmNodeMoment"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmNodeMoment
+
+    unique_id: str = None
+    node_type: Union[str, "CalmNodeTypeDefinition"] = None
+    name: str = None
+    description: str = None
+    valid_from: Optional[Union[str, XSDDate]] = None
+    adrs: Optional[Union[str, list[str]]] = empty_list()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self.valid_from is not None and not isinstance(self.valid_from, XSDDate):
+            self.valid_from = XSDDate(self.valid_from)
+
+        if not isinstance(self.adrs, list):
+            self.adrs = [self.adrs] if self.adrs is not None else []
+        self.adrs = [v if isinstance(v, str) else str(v) for v in self.adrs]
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmDecorator(YAMLRoot):
+    """
+    Supplementary information about elements of one or more architectures, kept apart from the architectures
+    themselves.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmDecorator"]
+    class_class_curie: ClassVar[str] = "calm:CalmDecorator"
+    class_name: ClassVar[str] = "CalmDecorator"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmDecorator
+
+    unique_id: str = None
     type: str = None
     target: Union[str, list[str]] = None
     applies_to: Union[str, list[str]] = None
-    data: str = None
+    data: Union[dict, "CalmDecoratorData"] = None
+    decorator_schema: Optional[str] = None
+    target_type: Optional[Union[Union[str, "CalmDecoratorTargetType"], list[Union[str, "CalmDecoratorTargetType"]]]] = empty_list()
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unique_id):
             self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, DecoratorUniqueId):
-            self.unique_id = DecoratorUniqueId(self.unique_id)
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
 
         if self._is_empty(self.type):
             self.MissingRequiredField("type")
@@ -557,99 +823,111 @@ class Decorator(YAMLRoot):
 
         if self._is_empty(self.data):
             self.MissingRequiredField("data")
-        if not isinstance(self.data, str):
-            self.data = str(self.data)
+        if not isinstance(self.data, CalmDecoratorData):
+            self.data = CalmDecoratorData()
+
+        if self.decorator_schema is not None and not isinstance(self.decorator_schema, str):
+            self.decorator_schema = str(self.decorator_schema)
+
+        if not isinstance(self.target_type, list):
+            self.target_type = [self.target_type] if self.target_type is not None else []
+        self.target_type = [v if isinstance(v, CalmDecoratorTargetType) else CalmDecoratorTargetType(v) for v in self.target_type]
 
         super().__post_init__(**kwargs)
 
 
-@dataclass(repr=False)
-class EvidenceDocument(YAMLRoot):
+class CalmDecoratorData(YAMLRoot):
     """
-    Top-level CALM evidence document linking control configurations to evidence artefacts.
+    The decorator's data, an object free in shape.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["EvidenceDocument"]
-    class_class_curie: ClassVar[str] = "calm:EvidenceDocument"
-    class_name: ClassVar[str] = "EvidenceDocument"
-    class_model_uri: ClassVar[URIRef] = CALM.EvidenceDocument
+    class_class_uri: ClassVar[URIRef] = CALM["CalmDecoratorData"]
+    class_class_curie: ClassVar[str] = "calm:CalmDecoratorData"
+    class_name: ClassVar[str] = "CalmDecoratorData"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmDecoratorData
 
-    evidence: str = None
+
+@dataclass(repr=False)
+class CalmEvidenceDocument(YAMLRoot):
+    """
+    An evidence document, which holds one piece of evidence for a control.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmEvidenceDocument"]
+    class_class_curie: ClassVar[str] = "calm:CalmEvidenceDocument"
+    class_name: ClassVar[str] = "CalmEvidenceDocument"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmEvidenceDocument
+
+    evidence: Union[dict, "CalmEvidence"] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.evidence):
             self.MissingRequiredField("evidence")
-        if not isinstance(self.evidence, str):
-            self.evidence = str(self.evidence)
+        if not isinstance(self.evidence, CalmEvidence):
+            self.evidence = CalmEvidence(**as_dict(self.evidence))
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class Transition(YAMLRoot):
+class CalmEvidence(YAMLRoot):
     """
-    A single step in a flow, anchored on a relationship.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["Transition"]
-    class_class_curie: ClassVar[str] = "calm:Transition"
-    class_name: ClassVar[str] = "Transition"
-    class_model_uri: ClassVar[URIRef] = CALM.Transition
-
-    relationship_unique_id: str = None
-    sequence_number: int = None
-    description: str = None
-    direction: Optional[Union[str, "TransitionDirection"]] = None
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.relationship_unique_id):
-            self.MissingRequiredField("relationship_unique_id")
-        if not isinstance(self.relationship_unique_id, str):
-            self.relationship_unique_id = str(self.relationship_unique_id)
-
-        if self._is_empty(self.sequence_number):
-            self.MissingRequiredField("sequence_number")
-        if not isinstance(self.sequence_number, int):
-            self.sequence_number = int(self.sequence_number)
-
-        if self._is_empty(self.description):
-            self.MissingRequiredField("description")
-        if not isinstance(self.description, str):
-            self.description = str(self.description)
-
-        if self.direction is not None and not isinstance(self.direction, TransitionDirection):
-            self.direction = TransitionDirection(self.direction)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class Flow(YAMLRoot):
-    """
-    Business flow mapped onto architecture relationships.
+    Evidence that a control's configuration is met, by the paths where it is kept.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["Flow"]
-    class_class_curie: ClassVar[str] = "calm:Flow"
-    class_name: ClassVar[str] = "Flow"
-    class_model_uri: ClassVar[URIRef] = CALM.Flow
+    class_class_uri: ClassVar[URIRef] = CALM["CalmEvidence"]
+    class_class_curie: ClassVar[str] = "calm:CalmEvidence"
+    class_name: ClassVar[str] = "CalmEvidence"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmEvidence
 
-    unique_id: Union[str, FlowUniqueId] = None
-    name: str = None
-    description: str = None
-    transitions: Union[Union[dict, Transition], list[Union[dict, Transition]]] = None
-    requirement_url: Optional[str] = None
-    controls: Optional[Union[dict, Control]] = None
-    metadata: Optional[str] = None
+    unique_id: str = None
+    evidence_paths: Union[str, list[str]] = None
+    control_config_url: str = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unique_id):
             self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, FlowUniqueId):
-            self.unique_id = FlowUniqueId(self.unique_id)
+        if not isinstance(self.unique_id, str):
+            self.unique_id = str(self.unique_id)
+
+        if self._is_empty(self.evidence_paths):
+            self.MissingRequiredField("evidence_paths")
+        if not isinstance(self.evidence_paths, list):
+            self.evidence_paths = [self.evidence_paths] if self.evidence_paths is not None else []
+        self.evidence_paths = [v if isinstance(v, str) else str(v) for v in self.evidence_paths]
+
+        if self._is_empty(self.control_config_url):
+            self.MissingRequiredField("control_config_url")
+        if not isinstance(self.control_config_url, str):
+            self.control_config_url = str(self.control_config_url)
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class CalmControlRequirement(YAMLRoot):
+    """
+    A control requirement: what a control must achieve, which a control detail's requirement-url points to.
+    """
+    _inherited_slots: ClassVar[list[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CALM["CalmControlRequirement"]
+    class_class_curie: ClassVar[str] = "calm:CalmControlRequirement"
+    class_name: ClassVar[str] = "CalmControlRequirement"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmControlRequirement
+
+    control_id: str = None
+    name: str = None
+    description: str = None
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.control_id):
+            self.MissingRequiredField("control_id")
+        if not isinstance(self.control_id, str):
+            self.control_id = str(self.control_id)
 
         if self._is_empty(self.name):
             self.MissingRequiredField("name")
@@ -661,209 +939,29 @@ class Flow(YAMLRoot):
         if not isinstance(self.description, str):
             self.description = str(self.description)
 
-        if self._is_empty(self.transitions):
-            self.MissingRequiredField("transitions")
-        self._normalize_inlined_as_list(slot_name="transitions", slot_type=Transition, key_name="relationship_unique_id", keyed=False)
-
-        if self.requirement_url is not None and not isinstance(self.requirement_url, str):
-            self.requirement_url = str(self.requirement_url)
-
-        if self.controls is not None and not isinstance(self.controls, Control):
-            self.controls = Control()
-
-        if self.metadata is not None and not isinstance(self.metadata, str):
-            self.metadata = str(self.metadata)
-
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class InterfaceDefinition(YAMLRoot):
+class CalmTimeUnit(YAMLRoot):
     """
-    Modular interface definition referencing an external schema.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["InterfaceDefinition"]
-    class_class_curie: ClassVar[str] = "calm:InterfaceDefinition"
-    class_name: ClassVar[str] = "InterfaceDefinition"
-    class_model_uri: ClassVar[URIRef] = CALM.InterfaceDefinition
-
-    unique_id: Union[str, InterfaceDefinitionUniqueId] = None
-    definition_url: str = None
-    config: str = None
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.unique_id):
-            self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, InterfaceDefinitionUniqueId):
-            self.unique_id = InterfaceDefinitionUniqueId(self.unique_id)
-
-        if self._is_empty(self.definition_url):
-            self.MissingRequiredField("definition_url")
-        if not isinstance(self.definition_url, str):
-            self.definition_url = str(self.definition_url)
-
-        if self._is_empty(self.config):
-            self.MissingRequiredField("config")
-        if not isinstance(self.config, str):
-            self.config = str(self.config)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class InterfaceType(YAMLRoot):
-    """
-    Inline (free-form) interface definition keyed by unique-id.
+    A unit of time with a value and a unit type.
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["InterfaceType"]
-    class_class_curie: ClassVar[str] = "calm:InterfaceType"
-    class_name: ClassVar[str] = "InterfaceType"
-    class_model_uri: ClassVar[URIRef] = CALM.InterfaceType
+    class_class_uri: ClassVar[URIRef] = CALM["CalmTimeUnit"]
+    class_class_curie: ClassVar[str] = "calm:CalmTimeUnit"
+    class_name: ClassVar[str] = "CalmTimeUnit"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmTimeUnit
 
-    unique_id: Union[str, InterfaceTypeUniqueId] = None
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.unique_id):
-            self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, InterfaceTypeUniqueId):
-            self.unique_id = InterfaceTypeUniqueId(self.unique_id)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class NodeInterface(YAMLRoot):
-    """
-    Reference to one or more interfaces exposed by a node.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["NodeInterface"]
-    class_class_curie: ClassVar[str] = "calm:NodeInterface"
-    class_name: ClassVar[str] = "NodeInterface"
-    class_model_uri: ClassVar[URIRef] = CALM.NodeInterface
-
-    node: str = None
-    interfaces: Optional[Union[dict[Union[str, InterfaceDefinitionUniqueId], Union[dict, InterfaceDefinition]], list[Union[dict, InterfaceDefinition]]]] = empty_dict()
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.node):
-            self.MissingRequiredField("node")
-        if not isinstance(self.node, str):
-            self.node = str(self.node)
-
-        self._normalize_inlined_as_list(slot_name="interfaces", slot_type=InterfaceDefinition, key_name="unique_id", keyed=True)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class Timeline(YAMLRoot):
-    """
-    CALM timeline document capturing architecture moments over time.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["Timeline"]
-    class_class_curie: ClassVar[str] = "calm:Timeline"
-    class_name: ClassVar[str] = "Timeline"
-    class_model_uri: ClassVar[URIRef] = CALM.Timeline
-
-    moments: Union[str, list[str]] = None
-    current_moment: Optional[str] = None
-    metadata: Optional[str] = None
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.moments):
-            self.MissingRequiredField("moments")
-        if not isinstance(self.moments, list):
-            self.moments = [self.moments] if self.moments is not None else []
-        self.moments = [v if isinstance(v, str) else str(v) for v in self.moments]
-
-        if self.current_moment is not None and not isinstance(self.current_moment, str):
-            self.current_moment = str(self.current_moment)
-
-        if self.metadata is not None and not isinstance(self.metadata, str):
-            self.metadata = str(self.metadata)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class NodeMoment(Node):
-    """
-    An architecture moment - a point-in-time snapshot of the architecture.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["NodeMoment"]
-    class_class_curie: ClassVar[str] = "calm:NodeMoment"
-    class_name: ClassVar[str] = "NodeMoment"
-    class_model_uri: ClassVar[URIRef] = CALM.NodeMoment
-
-    unique_id: Union[str, NodeMomentUniqueId] = None
-    name: str = None
-    description: str = None
-    node_type: Union[str, "NodeType"] = None
-    details: str = None
-    valid_from: Optional[Union[str, XSDDate]] = None
-    adrs: Optional[Union[str, list[str]]] = empty_list()
-    interfaces: Optional[Union[Union[str, InterfaceDefinitionUniqueId], list[Union[str, InterfaceDefinitionUniqueId]]]] = empty_list()
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.unique_id):
-            self.MissingRequiredField("unique_id")
-        if not isinstance(self.unique_id, NodeMomentUniqueId):
-            self.unique_id = NodeMomentUniqueId(self.unique_id)
-
-        if self._is_empty(self.node_type):
-            self.MissingRequiredField("node_type")
-        if not isinstance(self.node_type, NodeType):
-            self.node_type = NodeType(self.node_type)
-
-        if self._is_empty(self.details):
-            self.MissingRequiredField("details")
-        if not isinstance(self.details, str):
-            self.details = str(self.details)
-
-        if self.valid_from is not None and not isinstance(self.valid_from, XSDDate):
-            self.valid_from = XSDDate(self.valid_from)
-
-        if not isinstance(self.adrs, list):
-            self.adrs = [self.adrs] if self.adrs is not None else []
-        self.adrs = [v if isinstance(v, str) else str(v) for v in self.adrs]
-
-        if not isinstance(self.interfaces, list):
-            self.interfaces = [self.interfaces] if self.interfaces is not None else []
-        self.interfaces = [v if isinstance(v, InterfaceDefinitionUniqueId) else InterfaceDefinitionUniqueId(v) for v in self.interfaces]
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class TimeUnit(YAMLRoot):
-    """
-    A quantity of time expressed as a numeric value and a unit.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["TimeUnit"]
-    class_class_curie: ClassVar[str] = "calm:TimeUnit"
-    class_name: ClassVar[str] = "TimeUnit"
-    class_model_uri: ClassVar[URIRef] = CALM.TimeUnit
-
-    unit: Union[str, "TimeUnitName"] = None
+    unit: Union[str, "CalmTimeUnitName"] = None
     value: float = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unit):
             self.MissingRequiredField("unit")
-        if not isinstance(self.unit, TimeUnitName):
-            self.unit = TimeUnitName(self.unit)
+        if not isinstance(self.unit, CalmTimeUnitName):
+            self.unit = CalmTimeUnitName(self.unit)
 
         if self._is_empty(self.value):
             self.MissingRequiredField("value")
@@ -874,19 +972,19 @@ class TimeUnit(YAMLRoot):
 
 
 @dataclass(repr=False)
-class RateUnit(YAMLRoot):
+class CalmRateUnit(YAMLRoot):
     """
-    A rate (count per time unit), e.g. operations per second.
+    A unit representing a rate (e.g., operations per second).
     """
     _inherited_slots: ClassVar[list[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CALM["RateUnit"]
-    class_class_curie: ClassVar[str] = "calm:RateUnit"
-    class_name: ClassVar[str] = "RateUnit"
-    class_model_uri: ClassVar[URIRef] = CALM.RateUnit
+    class_class_uri: ClassVar[URIRef] = CALM["CalmRateUnit"]
+    class_class_curie: ClassVar[str] = "calm:CalmRateUnit"
+    class_name: ClassVar[str] = "CalmRateUnit"
+    class_model_uri: ClassVar[URIRef] = CALM.CalmRateUnit
 
     rate: float = None
-    per: Union[str, "RatePerUnit"] = None
+    per: Union[str, "CalmRateInterval"] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.rate):
@@ -896,504 +994,475 @@ class RateUnit(YAMLRoot):
 
         if self._is_empty(self.per):
             self.MissingRequiredField("per")
-        if not isinstance(self.per, RatePerUnit):
-            self.per = RatePerUnit(self.per)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class OptionList(YAMLRoot):
-    """
-    Wrapper around the list of ``Decision`` alternatives in an options relationship.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["OptionList"]
-    class_class_curie: ClassVar[str] = "calm:OptionList"
-    class_name: ClassVar[str] = "OptionList"
-    class_model_uri: ClassVar[URIRef] = CALM.OptionList
-
-    decisions: Optional[Union[Union[dict, Decision], list[Union[dict, Decision]]]] = empty_list()
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        self._normalize_inlined_as_list(slot_name="decisions", slot_type=Decision, key_name="description", keyed=False)
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class RelationshipType(YAMLRoot):
-    """
-    Tagged-union container for the variant body of a relationship. Exactly one of ``interacts``, ``connects``,
-    ``deployed_in``, ``composed_of``, ``options`` is populated; see ``RelationshipKind`` for the discriminator values.
-    """
-    _inherited_slots: ClassVar[list[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CALM["RelationshipType"]
-    class_class_curie: ClassVar[str] = "calm:RelationshipType"
-    class_name: ClassVar[str] = "RelationshipType"
-    class_model_uri: ClassVar[URIRef] = CALM.RelationshipType
-
-    interacts: Optional[Union[dict, InteractsRelationship]] = None
-    connects: Optional[Union[dict, ConnectsRelationship]] = None
-    deployed_in: Optional[Union[dict, DeployedInRelationship]] = None
-    composed_of: Optional[Union[dict, ComposedOfRelationship]] = None
-    options: Optional[Union[Union[dict, Decision], list[Union[dict, Decision]]]] = empty_list()
-
-    def __post_init__(self, *_: str, **kwargs: Any):
-        if self.interacts is not None and not isinstance(self.interacts, InteractsRelationship):
-            self.interacts = InteractsRelationship(**as_dict(self.interacts))
-
-        if self.connects is not None and not isinstance(self.connects, ConnectsRelationship):
-            self.connects = ConnectsRelationship(**as_dict(self.connects))
-
-        if self.deployed_in is not None and not isinstance(self.deployed_in, DeployedInRelationship):
-            self.deployed_in = DeployedInRelationship(**as_dict(self.deployed_in))
-
-        if self.composed_of is not None and not isinstance(self.composed_of, ComposedOfRelationship):
-            self.composed_of = ComposedOfRelationship(**as_dict(self.composed_of))
-
-        self._normalize_inlined_as_list(slot_name="options", slot_type=Decision, key_name="description", keyed=False)
+        if not isinstance(self.per, CalmRateInterval):
+            self.per = CalmRateInterval(self.per)
 
         super().__post_init__(**kwargs)
 
 
 # Enumerations
-class Protocol(EnumDefinitionImpl):
+class CalmProtocol(EnumDefinitionImpl):
     """
-    Wire-level protocol used by a relationship.
+    The protocol a relationship uses.
     """
     HTTP = PermissibleValue(
         text="HTTP",
-        description="The HTTP protocol.",
-        meaning=CALM["protocol/HTTP"])
+        description="Hypertext Transfer Protocol.")
     HTTPS = PermissibleValue(
         text="HTTPS",
-        description="The HTTPS protocol.",
-        meaning=CALM["protocol/HTTPS"])
+        description="HTTP over TLS.")
     FTP = PermissibleValue(
         text="FTP",
-        description="The FTP protocol.",
-        meaning=CALM["protocol/FTP"])
+        description="File Transfer Protocol.")
     SFTP = PermissibleValue(
         text="SFTP",
-        description="The SFTP protocol.",
-        meaning=CALM["protocol/SFTP"])
+        description="SSH File Transfer Protocol.")
     JDBC = PermissibleValue(
         text="JDBC",
-        description="The JDBC protocol.",
-        meaning=CALM["protocol/JDBC"])
+        description="Java Database Connectivity.")
     WebSocket = PermissibleValue(
         text="WebSocket",
-        description="The WebSocket protocol.",
-        meaning=CALM["protocol/WebSocket"])
+        description="The WebSocket protocol.")
     SocketIO = PermissibleValue(
         text="SocketIO",
-        description="The SocketIO protocol.",
-        meaning=CALM["protocol/SocketIO"])
+        description="The Socket.IO protocol.")
     LDAP = PermissibleValue(
         text="LDAP",
-        description="The LDAP protocol.",
-        meaning=CALM["protocol/LDAP"])
+        description="Lightweight Directory Access Protocol.")
     AMQP = PermissibleValue(
         text="AMQP",
-        description="The AMQP protocol.",
-        meaning=CALM["protocol/AMQP"])
+        description="Advanced Message Queuing Protocol.")
     TLS = PermissibleValue(
         text="TLS",
-        description="The TLS protocol.",
-        meaning=CALM["protocol/TLS"])
+        description="Transport Layer Security.")
     mTLS = PermissibleValue(
         text="mTLS",
-        description="The mTLS protocol.",
-        meaning=CALM["protocol/mTLS"])
+        description="TLS in which both ends present a certificate.")
     TCP = PermissibleValue(
         text="TCP",
-        description="The TCP protocol.",
-        meaning=CALM["protocol/TCP"])
+        description="Transmission Control Protocol.")
 
     _defn = EnumDefinition(
-        name="Protocol",
-        description="Wire-level protocol used by a relationship.",
+        name="CalmProtocol",
+        description="The protocol a relationship uses.",
     )
 
-class NodeType(EnumDefinitionImpl):
+class CalmNodeTypeDefinition(EnumDefinitionImpl):
     """
-    Category of architecture node. The CALM JSON-Schema allows arbitrary strings; this enum lists the canonical values
-    plus an escape hatch via ``any_of`` on the slot.
+    CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any
+    other string.
     """
     actor = PermissibleValue(
         text="actor",
-        description="A actor node.",
-        meaning=CALM["node-type/actor"])
+        description="A person or system outside the architecture that acts on it.")
     ecosystem = PermissibleValue(
         text="ecosystem",
-        description="A ecosystem node.",
-        meaning=CALM["node-type/ecosystem"])
+        description="A group of systems that work together.")
     system = PermissibleValue(
         text="system",
-        description="A system node.",
-        meaning=CALM["node-type/system"])
+        description="A system made of other nodes.")
     service = PermissibleValue(
         text="service",
-        description="A service node.",
-        meaning=CALM["node-type/service"])
+        description="A service that runs in the architecture.")
     database = PermissibleValue(
         text="database",
-        description="A database node.",
-        meaning=CALM["node-type/database"])
+        description="A store of data.")
     network = PermissibleValue(
         text="network",
-        description="A network node.",
-        meaning=CALM["node-type/network"])
+        description="A network that nodes are deployed in.")
     ldap = PermissibleValue(
         text="ldap",
-        description="A ldap node.",
-        meaning=CALM["node-type/ldap"])
+        description="A directory service reached over LDAP.")
     webclient = PermissibleValue(
         text="webclient",
-        description="A webclient node.",
-        meaning=CALM["node-type/webclient"])
-    data_asset = PermissibleValue(
-        text="data_asset",
-        description="A data-asset node.",
-        meaning=CALM["node-type/data-asset"])
+        description="A client that runs in a web browser.")
 
     _defn = EnumDefinition(
-        name="NodeType",
-        description="""Category of architecture node. The CALM JSON-Schema allows arbitrary strings; this enum lists the canonical values plus an escape hatch via ``any_of`` on the slot.""",
+        name="CalmNodeTypeDefinition",
+        description="""CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any other string.""",
     )
 
-class TimeUnitName(EnumDefinitionImpl):
+    @classmethod
+    def _addvals(cls):
+        setattr(cls, "data-asset",
+            PermissibleValue(
+                text="data-asset",
+                title="data asset",
+                description="A body of data the architecture holds or moves."))
+
+class CalmTransitionDirection(EnumDefinitionImpl):
     """
-    Named unit of time used by ``TimeUnit``.
+    The direction of a transition along its relationship.
+    """
+    _defn = EnumDefinition(
+        name="CalmTransitionDirection",
+        description="The direction of a transition along its relationship.",
+    )
+
+    @classmethod
+    def _addvals(cls):
+        setattr(cls, "source-to-destination",
+            PermissibleValue(
+                text="source-to-destination",
+                title="source to destination",
+                description="From the relationship's source to its destination."))
+        setattr(cls, "destination-to-source",
+            PermissibleValue(
+                text="destination-to-source",
+                title="destination to source",
+                description="From the relationship's destination back to its source."))
+
+class CalmDecoratorTargetType(EnumDefinitionImpl):
+    """
+    The kinds of CALM document a decorator can target.
+    """
+    architecture = PermissibleValue(
+        text="architecture",
+        description="An architecture document.")
+
+    _defn = EnumDefinition(
+        name="CalmDecoratorTargetType",
+        description="The kinds of CALM document a decorator can target.",
+    )
+
+class CalmTimeUnitName(EnumDefinitionImpl):
+    """
+    The units a time unit counts in.
     """
     nanoseconds = PermissibleValue(
         text="nanoseconds",
-        description="Time unit: nanoseconds.")
+        description="Billionths of a second.")
     microseconds = PermissibleValue(
         text="microseconds",
-        description="Time unit: microseconds.")
+        description="Millionths of a second.")
     milliseconds = PermissibleValue(
         text="milliseconds",
-        description="Time unit: milliseconds.")
+        description="Thousandths of a second.")
     seconds = PermissibleValue(
         text="seconds",
-        description="Time unit: seconds.")
+        description="Seconds.")
     minutes = PermissibleValue(
         text="minutes",
-        description="Time unit: minutes.")
+        description="Minutes.")
     hours = PermissibleValue(
         text="hours",
-        description="Time unit: hours.")
+        description="Hours.")
     days = PermissibleValue(
         text="days",
-        description="Time unit: days.")
+        description="Days.")
     weeks = PermissibleValue(
         text="weeks",
-        description="Time unit: weeks.")
+        description="Weeks.")
     months = PermissibleValue(
         text="months",
-        description="Time unit: months.")
+        description="Calendar months.")
     quarters = PermissibleValue(
         text="quarters",
-        description="Time unit: quarters.")
+        description="Quarters of a year.")
     years = PermissibleValue(
         text="years",
-        description="Time unit: years.")
+        description="Years.")
 
     _defn = EnumDefinition(
-        name="TimeUnitName",
-        description="Named unit of time used by ``TimeUnit``.",
+        name="CalmTimeUnitName",
+        description="The units a time unit counts in.",
     )
 
-class RatePerUnit(EnumDefinitionImpl):
+class CalmRateInterval(EnumDefinitionImpl):
     """
-    Time interval denominator used by ``RateUnit``.
+    The interval a rate is counted over.
     """
     nanosecond = PermissibleValue(
         text="nanosecond",
-        description="Rate denominator: per nanosecond.")
+        description="Per billionth of a second.")
     microsecond = PermissibleValue(
         text="microsecond",
-        description="Rate denominator: per microsecond.")
+        description="Per millionth of a second.")
     millisecond = PermissibleValue(
         text="millisecond",
-        description="Rate denominator: per millisecond.")
+        description="Per thousandth of a second.")
     second = PermissibleValue(
         text="second",
-        description="Rate denominator: per second.")
+        description="Per second.")
     minute = PermissibleValue(
         text="minute",
-        description="Rate denominator: per minute.")
+        description="Per minute.")
     hour = PermissibleValue(
         text="hour",
-        description="Rate denominator: per hour.")
+        description="Per hour.")
     day = PermissibleValue(
         text="day",
-        description="Rate denominator: per day.")
+        description="Per day.")
     week = PermissibleValue(
         text="week",
-        description="Rate denominator: per week.")
+        description="Per week.")
     month = PermissibleValue(
         text="month",
-        description="Rate denominator: per month.")
+        description="Per calendar month.")
     quarter = PermissibleValue(
         text="quarter",
-        description="Rate denominator: per quarter.")
+        description="Per quarter of a year.")
     year = PermissibleValue(
         text="year",
-        description="Rate denominator: per year.")
+        description="Per year.")
 
     _defn = EnumDefinition(
-        name="RatePerUnit",
-        description="Time interval denominator used by ``RateUnit``.",
-    )
-
-class TransitionDirection(EnumDefinitionImpl):
-    """
-    Direction of flow on a transition.
-    """
-    source_to_destination = PermissibleValue(
-        text="source_to_destination",
-        description="Flow direction: source-to-destination.")
-    destination_to_source = PermissibleValue(
-        text="destination_to_source",
-        description="Flow direction: destination-to-source.")
-
-    _defn = EnumDefinition(
-        name="TransitionDirection",
-        description="Direction of flow on a transition.",
-    )
-
-class RelationshipKind(EnumDefinitionImpl):
-    """
-    Discriminator for the variant of a ``relationship-type``: exactly one of the following keys is set on a
-    relationship's ``relationship-type``.
-    """
-    interacts = PermissibleValue(
-        text="interacts",
-        description="Actor-to-nodes interaction.")
-    connects = PermissibleValue(
-        text="connects",
-        description="Interface-to-interface connection.")
-    deployed_in = PermissibleValue(
-        text="deployed_in",
-        description="Containment: nodes deployed in a container.")
-    composed_of = PermissibleValue(
-        text="composed_of",
-        description="Composition: nodes composed by a container.")
-    options = PermissibleValue(
-        text="options",
-        description="A set of alternative decisions.")
-
-    _defn = EnumDefinition(
-        name="RelationshipKind",
-        description="""Discriminator for the variant of a ``relationship-type``: exactly one of the following keys is set on a relationship's ``relationship-type``.""",
+        name="CalmRateInterval",
+        description="The interval a rate is counted over.",
     )
 
 # Slots
 class slots:
     pass
 
-slots.nodes = Slot(uri=CALM.nodes, name="nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.nodes, domain=None, range=Optional[Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]]])
+slots.calmArchitecture__nodes = Slot(uri=CALM.nodes, name="calmArchitecture__nodes", curie=CALM.curie('nodes'),
+                   model_uri=CALM.calmArchitecture__nodes, domain=None, range=Optional[Union[Union[dict, CalmNode], list[Union[dict, CalmNode]]]])
 
-slots.relationships = Slot(uri=CALM.relationships, name="relationships", curie=CALM.curie('relationships'),
-                   model_uri=CALM.relationships, domain=None, range=Optional[Union[Union[str, RelationshipUniqueId], list[Union[str, RelationshipUniqueId]]]])
+slots.calmArchitecture__relationships = Slot(uri=CALM.relationships, name="calmArchitecture__relationships", curie=CALM.curie('relationships'),
+                   model_uri=CALM.calmArchitecture__relationships, domain=None, range=Optional[Union[Union[dict, CalmRelationship], list[Union[dict, CalmRelationship]]]])
 
-slots.metadata = Slot(uri=CALM.metadata, name="metadata", curie=CALM.curie('metadata'),
-                   model_uri=CALM.metadata, domain=None, range=Optional[str])
+slots.calmArchitecture__metadata = Slot(uri=CALM.metadata, name="calmArchitecture__metadata", curie=CALM.curie('metadata'),
+                   model_uri=CALM.calmArchitecture__metadata, domain=None, range=Optional[Union[dict, CalmMetadata]])
 
-slots.controls = Slot(uri=CALM.controls, name="controls", curie=CALM.curie('controls'),
-                   model_uri=CALM.controls, domain=None, range=Optional[Union[dict, Control]])
+slots.calmArchitecture__controls = Slot(uri=CALM.controls, name="calmArchitecture__controls", curie=CALM.curie('controls'),
+                   model_uri=CALM.calmArchitecture__controls, domain=None, range=Optional[Union[dict, CalmControls]])
 
-slots.flows = Slot(uri=CALM.flows, name="flows", curie=CALM.curie('flows'),
-                   model_uri=CALM.flows, domain=None, range=Optional[Union[Union[str, FlowUniqueId], list[Union[str, FlowUniqueId]]]])
+slots.calmArchitecture__flows = Slot(uri=CALM.flows, name="calmArchitecture__flows", curie=CALM.curie('flows'),
+                   model_uri=CALM.calmArchitecture__flows, domain=None, range=Optional[Union[Union[dict, CalmFlow], list[Union[dict, CalmFlow]]]])
 
-slots.adrs = Slot(uri=CALM.adrs, name="adrs", curie=CALM.curie('adrs'),
-                   model_uri=CALM.adrs, domain=None, range=Optional[Union[str, list[str]]])
+slots.calmArchitecture__adrs = Slot(uri=CALM.adrs, name="calmArchitecture__adrs", curie=CALM.curie('adrs'),
+                   model_uri=CALM.calmArchitecture__adrs, domain=None, range=Optional[Union[str, list[str]]])
 
-slots.unique_id = Slot(uri=SCHEMA.identifier, name="unique_id", curie=SCHEMA.curie('identifier'),
-                   model_uri=CALM.unique_id, domain=None, range=URIRef)
+slots.calmControl__description = Slot(uri=SCHEMA.description, name="calmControl__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmControl__description, domain=None, range=str)
 
-slots.node_type = Slot(uri=CALM.node_type, name="node_type", curie=CALM.curie('node_type'),
-                   model_uri=CALM.node_type, domain=None, range=Union[str, "NodeType"])
+slots.calmControl__requirements = Slot(uri=CALM.requirements, name="calmControl__requirements", curie=CALM.curie('requirements'),
+                   model_uri=CALM.calmControl__requirements, domain=None, range=Union[Union[dict, CalmControlDetail], list[Union[dict, CalmControlDetail]]])
 
-slots.name = Slot(uri=RDFS.label, name="name", curie=RDFS.curie('label'),
-                   model_uri=CALM.name, domain=None, range=str)
+slots.calmControlDetail__requirement_url = Slot(uri=CALM.requirement_url, name="calmControlDetail__requirement_url", curie=CALM.curie('requirement_url'),
+                   model_uri=CALM.calmControlDetail__requirement_url, domain=None, range=str)
 
-slots.description = Slot(uri=DCT.description, name="description", curie=DCT.curie('description'),
-                   model_uri=CALM.description, domain=None, range=Optional[str])
+slots.calmControlDetail__config_url = Slot(uri=CALM.config_url, name="calmControlDetail__config_url", curie=CALM.curie('config_url'),
+                   model_uri=CALM.calmControlDetail__config_url, domain=None, range=Optional[str])
 
-slots.details = Slot(uri=CALM.details, name="details", curie=CALM.curie('details'),
-                   model_uri=CALM.details, domain=None, range=Optional[str])
+slots.calmControlDetail__config = Slot(uri=CALM.config, name="calmControlDetail__config", curie=CALM.curie('config'),
+                   model_uri=CALM.calmControlDetail__config, domain=None, range=Optional[Union[dict, CalmControlConfig]])
 
-slots.interfaces = Slot(uri=CALM.interfaces, name="interfaces", curie=CALM.curie('interfaces'),
-                   model_uri=CALM.interfaces, domain=None, range=Optional[Union[Union[str, InterfaceDefinitionUniqueId], list[Union[str, InterfaceDefinitionUniqueId]]]])
+slots.calmInterfaceDefinition__unique_id = Slot(uri=CALM.unique_id, name="calmInterfaceDefinition__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmInterfaceDefinition__unique_id, domain=None, range=str)
 
-slots.relationship_type = Slot(uri=CALM.relationship_type, name="relationship_type", curie=CALM.curie('relationship_type'),
-                   model_uri=CALM.relationship_type, domain=None, range=Union[dict, RelationshipType])
+slots.calmInterfaceDefinition__definition_url = Slot(uri=CALM.definition_url, name="calmInterfaceDefinition__definition_url", curie=CALM.curie('definition_url'),
+                   model_uri=CALM.calmInterfaceDefinition__definition_url, domain=None, range=str)
 
-slots.protocol = Slot(uri=CALM.protocol, name="protocol", curie=CALM.curie('protocol'),
-                   model_uri=CALM.protocol, domain=None, range=Optional[Union[str, "Protocol"]])
+slots.calmInterfaceDefinition__config = Slot(uri=CALM.config, name="calmInterfaceDefinition__config", curie=CALM.curie('config'),
+                   model_uri=CALM.calmInterfaceDefinition__config, domain=None, range=Union[dict, CalmInterfaceConfig])
 
-slots.actor = Slot(uri=CALM.actor, name="actor", curie=CALM.curie('actor'),
-                   model_uri=CALM.actor, domain=None, range=str)
+slots.calmInterfaceType__unique_id = Slot(uri=CALM.unique_id, name="calmInterfaceType__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmInterfaceType__unique_id, domain=None, range=str)
 
-slots.source = Slot(uri=CALM.source, name="source", curie=CALM.curie('source'),
-                   model_uri=CALM.source, domain=None, range=Union[dict, NodeInterface])
+slots.calmNodeInterface__node = Slot(uri=CALM.node, name="calmNodeInterface__node", curie=CALM.curie('node'),
+                   model_uri=CALM.calmNodeInterface__node, domain=None, range=str)
 
-slots.destination = Slot(uri=CALM.destination, name="destination", curie=CALM.curie('destination'),
-                   model_uri=CALM.destination, domain=None, range=Union[dict, NodeInterface])
+slots.calmNodeInterface__interfaces = Slot(uri=CALM.interfaces, name="calmNodeInterface__interfaces", curie=CALM.curie('interfaces'),
+                   model_uri=CALM.calmNodeInterface__interfaces, domain=None, range=Optional[Union[str, list[str]]])
 
-slots.container = Slot(uri=CALM.container, name="container", curie=CALM.curie('container'),
-                   model_uri=CALM.container, domain=None, range=str)
+slots.calmNode__unique_id = Slot(uri=CALM.unique_id, name="calmNode__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmNode__unique_id, domain=None, range=str)
 
-slots.requirement_url = Slot(uri=SCHEMA.url, name="requirement_url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.requirement_url, domain=None, range=Optional[str])
+slots.calmNode__node_type = Slot(uri=CALM.node_type, name="calmNode__node_type", curie=CALM.curie('node_type'),
+                   model_uri=CALM.calmNode__node_type, domain=None, range=Union[str, "CalmNodeTypeDefinition"])
 
-slots.config_url = Slot(uri=SCHEMA.url, name="config_url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.config_url, domain=None, range=Optional[str])
+slots.calmNode__name = Slot(uri=SCHEMA.name, name="calmNode__name", curie=SCHEMA.curie('name'),
+                   model_uri=CALM.calmNode__name, domain=None, range=str)
 
-slots.config = Slot(uri=CALM.config, name="config", curie=CALM.curie('config'),
-                   model_uri=CALM.config, domain=None, range=Optional[str])
+slots.calmNode__description = Slot(uri=SCHEMA.description, name="calmNode__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmNode__description, domain=None, range=str)
 
-slots.control_id = Slot(uri=CALM.control_id, name="control_id", curie=CALM.curie('control_id'),
-                   model_uri=CALM.control_id, domain=None, range=URIRef)
+slots.calmNode__details = Slot(uri=CALM.details, name="calmNode__details", curie=CALM.curie('details'),
+                   model_uri=CALM.calmNode__details, domain=None, range=Optional[Union[dict, CalmNodeDetails]])
 
-slots.type = Slot(uri=CALM.type, name="type", curie=CALM.curie('type'),
-                   model_uri=CALM.type, domain=None, range=str)
+slots.calmNode__interfaces = Slot(uri=CALM.interfaces, name="calmNode__interfaces", curie=CALM.curie('interfaces'),
+                   model_uri=CALM.calmNode__interfaces, domain=None, range=Optional[Union[str, list[str]]])
 
-slots.target = Slot(uri=CALM.target, name="target", curie=CALM.curie('target'),
-                   model_uri=CALM.target, domain=None, range=Union[str, list[str]])
+slots.calmNode__controls = Slot(uri=CALM.controls, name="calmNode__controls", curie=CALM.curie('controls'),
+                   model_uri=CALM.calmNode__controls, domain=None, range=Optional[Union[dict, CalmControls]])
 
-slots.applies_to = Slot(uri=CALM.applies_to, name="applies_to", curie=CALM.curie('applies_to'),
-                   model_uri=CALM.applies_to, domain=None, range=Union[str, list[str]])
+slots.calmNode__metadata = Slot(uri=CALM.metadata, name="calmNode__metadata", curie=CALM.curie('metadata'),
+                   model_uri=CALM.calmNode__metadata, domain=None, range=Optional[Union[dict, CalmMetadata]])
 
-slots.data = Slot(uri=CALM.data, name="data", curie=CALM.curie('data'),
-                   model_uri=CALM.data, domain=None, range=str)
+slots.calmNodeDetails__detailed_architecture = Slot(uri=CALM.detailed_architecture, name="calmNodeDetails__detailed_architecture", curie=CALM.curie('detailed_architecture'),
+                   model_uri=CALM.calmNodeDetails__detailed_architecture, domain=None, range=Optional[str])
 
-slots.evidence = Slot(uri=CALM.evidence, name="evidence", curie=CALM.curie('evidence'),
-                   model_uri=CALM.evidence, domain=None, range=str)
+slots.calmNodeDetails__required_pattern = Slot(uri=CALM.required_pattern, name="calmNodeDetails__required_pattern", curie=CALM.curie('required_pattern'),
+                   model_uri=CALM.calmNodeDetails__required_pattern, domain=None, range=Optional[str])
 
-slots.relationship_unique_id = Slot(uri=CALM.relationship_unique_id, name="relationship_unique_id", curie=CALM.curie('relationship_unique_id'),
-                   model_uri=CALM.relationship_unique_id, domain=None, range=str)
+slots.calmRelationship__unique_id = Slot(uri=CALM.unique_id, name="calmRelationship__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmRelationship__unique_id, domain=None, range=str)
 
-slots.sequence_number = Slot(uri=CALM.sequence_number, name="sequence_number", curie=CALM.curie('sequence_number'),
-                   model_uri=CALM.sequence_number, domain=None, range=int)
+slots.calmRelationship__description = Slot(uri=SCHEMA.description, name="calmRelationship__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmRelationship__description, domain=None, range=Optional[str])
 
-slots.direction = Slot(uri=CALM.direction, name="direction", curie=CALM.curie('direction'),
-                   model_uri=CALM.direction, domain=None, range=Optional[Union[str, "TransitionDirection"]])
+slots.calmRelationship__relationship_type = Slot(uri=CALM.relationship_type, name="calmRelationship__relationship_type", curie=CALM.curie('relationship_type'),
+                   model_uri=CALM.calmRelationship__relationship_type, domain=None, range=Union[dict, CalmRelationshipType])
 
-slots.transitions = Slot(uri=CALM.transitions, name="transitions", curie=CALM.curie('transitions'),
-                   model_uri=CALM.transitions, domain=None, range=Union[Union[dict, Transition], list[Union[dict, Transition]]])
+slots.calmRelationship__protocol = Slot(uri=CALM.protocol, name="calmRelationship__protocol", curie=CALM.curie('protocol'),
+                   model_uri=CALM.calmRelationship__protocol, domain=None, range=Optional[Union[str, "CalmProtocol"]])
 
-slots.definition_url = Slot(uri=SCHEMA.url, name="definition_url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.definition_url, domain=None, range=str)
+slots.calmRelationship__metadata = Slot(uri=CALM.metadata, name="calmRelationship__metadata", curie=CALM.curie('metadata'),
+                   model_uri=CALM.calmRelationship__metadata, domain=None, range=Optional[Union[dict, CalmMetadata]])
 
-slots.node = Slot(uri=CALM.node, name="node", curie=CALM.curie('node'),
-                   model_uri=CALM.node, domain=None, range=str)
+slots.calmRelationship__controls = Slot(uri=CALM.controls, name="calmRelationship__controls", curie=CALM.curie('controls'),
+                   model_uri=CALM.calmRelationship__controls, domain=None, range=Optional[Union[dict, CalmControls]])
 
-slots.current_moment = Slot(uri=CALM.current_moment, name="current_moment", curie=CALM.curie('current_moment'),
-                   model_uri=CALM.current_moment, domain=None, range=Optional[str])
+slots.calmRelationshipType__interacts = Slot(uri=CALM.interacts, name="calmRelationshipType__interacts", curie=CALM.curie('interacts'),
+                   model_uri=CALM.calmRelationshipType__interacts, domain=None, range=Optional[Union[dict, CalmInteractsType]])
 
-slots.moments = Slot(uri=CALM.moments, name="moments", curie=CALM.curie('moments'),
-                   model_uri=CALM.moments, domain=None, range=Union[str, list[str]])
+slots.calmRelationshipType__connects = Slot(uri=CALM.connects, name="calmRelationshipType__connects", curie=CALM.curie('connects'),
+                   model_uri=CALM.calmRelationshipType__connects, domain=None, range=Optional[Union[dict, CalmConnectsType]])
 
-slots.valid_from = Slot(uri=PROV.startedAtTime, name="valid_from", curie=PROV.curie('startedAtTime'),
-                   model_uri=CALM.valid_from, domain=None, range=Optional[Union[str, XSDDate]])
+slots.calmRelationshipType__deployed_in = Slot(uri=CALM.deployed_in, name="calmRelationshipType__deployed_in", curie=CALM.curie('deployed_in'),
+                   model_uri=CALM.calmRelationshipType__deployed_in, domain=None, range=Optional[Union[dict, CalmDeployedInType]])
 
-slots.unit = Slot(uri=CALM.unit, name="unit", curie=CALM.curie('unit'),
-                   model_uri=CALM.unit, domain=None, range=Union[str, "TimeUnitName"])
+slots.calmRelationshipType__composed_of = Slot(uri=CALM.composed_of, name="calmRelationshipType__composed_of", curie=CALM.curie('composed_of'),
+                   model_uri=CALM.calmRelationshipType__composed_of, domain=None, range=Optional[Union[dict, CalmComposedOfType]])
 
-slots.value = Slot(uri=CALM.value, name="value", curie=CALM.curie('value'),
-                   model_uri=CALM.value, domain=None, range=float)
+slots.calmRelationshipType__options = Slot(uri=CALM.options, name="calmRelationshipType__options", curie=CALM.curie('options'),
+                   model_uri=CALM.calmRelationshipType__options, domain=None, range=Optional[Union[Union[dict, CalmDecision], list[Union[dict, CalmDecision]]]])
 
-slots.rate = Slot(uri=CALM.rate, name="rate", curie=CALM.curie('rate'),
-                   model_uri=CALM.rate, domain=None, range=float)
+slots.calmInteractsType__actor = Slot(uri=CALM.actor, name="calmInteractsType__actor", curie=CALM.curie('actor'),
+                   model_uri=CALM.calmInteractsType__actor, domain=None, range=str)
 
-slots.per = Slot(uri=CALM.per, name="per", curie=CALM.curie('per'),
-                   model_uri=CALM.per, domain=None, range=Union[str, "RatePerUnit"])
+slots.calmInteractsType__nodes = Slot(uri=CALM.nodes, name="calmInteractsType__nodes", curie=CALM.curie('nodes'),
+                   model_uri=CALM.calmInteractsType__nodes, domain=None, range=Union[str, list[str]])
 
-slots.url = Slot(uri=SCHEMA.url, name="url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.url, domain=None, range=Optional[str])
+slots.calmConnectsType__source = Slot(uri=CALM.source, name="calmConnectsType__source", curie=CALM.curie('source'),
+                   model_uri=CALM.calmConnectsType__source, domain=None, range=Union[dict, CalmNodeInterface])
 
-slots.control_config_url = Slot(uri=SCHEMA.url, name="control_config_url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.control_config_url, domain=None, range=Optional[str])
+slots.calmConnectsType__destination = Slot(uri=CALM.destination, name="calmConnectsType__destination", curie=CALM.curie('destination'),
+                   model_uri=CALM.calmConnectsType__destination, domain=None, range=Union[dict, CalmNodeInterface])
 
-slots.evidence_paths = Slot(uri=CALM.evidence_paths, name="evidence_paths", curie=CALM.curie('evidence_paths'),
-                   model_uri=CALM.evidence_paths, domain=None, range=Optional[Union[str, list[str]]])
+slots.calmDeployedInType__container = Slot(uri=CALM.container, name="calmDeployedInType__container", curie=CALM.curie('container'),
+                   model_uri=CALM.calmDeployedInType__container, domain=None, range=str)
 
-slots.decisions = Slot(uri=CALM.decisions, name="decisions", curie=CALM.curie('decisions'),
-                   model_uri=CALM.decisions, domain=None, range=Optional[Union[Union[dict, Decision], list[Union[dict, Decision]]]])
+slots.calmDeployedInType__nodes = Slot(uri=CALM.nodes, name="calmDeployedInType__nodes", curie=CALM.curie('nodes'),
+                   model_uri=CALM.calmDeployedInType__nodes, domain=None, range=Union[str, list[str]])
 
-slots.interacts = Slot(uri=CALM.interacts, name="interacts", curie=CALM.curie('interacts'),
-                   model_uri=CALM.interacts, domain=None, range=Optional[Union[dict, InteractsRelationship]])
+slots.calmComposedOfType__container = Slot(uri=CALM.container, name="calmComposedOfType__container", curie=CALM.curie('container'),
+                   model_uri=CALM.calmComposedOfType__container, domain=None, range=str)
 
-slots.connects = Slot(uri=CALM.connects, name="connects", curie=CALM.curie('connects'),
-                   model_uri=CALM.connects, domain=None, range=Optional[Union[dict, ConnectsRelationship]])
+slots.calmComposedOfType__nodes = Slot(uri=CALM.nodes, name="calmComposedOfType__nodes", curie=CALM.curie('nodes'),
+                   model_uri=CALM.calmComposedOfType__nodes, domain=None, range=Union[str, list[str]])
 
-slots.deployed_in = Slot(uri=CALM.deployed_in, name="deployed_in", curie=CALM.curie('deployed_in'),
-                   model_uri=CALM.deployed_in, domain=None, range=Optional[Union[dict, DeployedInRelationship]])
+slots.calmDecision__description = Slot(uri=SCHEMA.description, name="calmDecision__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmDecision__description, domain=None, range=str)
 
-slots.composed_of = Slot(uri=CALM.composed_of, name="composed_of", curie=CALM.curie('composed_of'),
-                   model_uri=CALM.composed_of, domain=None, range=Optional[Union[dict, ComposedOfRelationship]])
+slots.calmDecision__nodes = Slot(uri=CALM.nodes, name="calmDecision__nodes", curie=CALM.curie('nodes'),
+                   model_uri=CALM.calmDecision__nodes, domain=None, range=Union[str, list[str]])
 
-slots.options = Slot(uri=CALM.options, name="options", curie=CALM.curie('options'),
-                   model_uri=CALM.options, domain=None, range=Optional[Union[Union[dict, Decision], list[Union[dict, Decision]]]])
+slots.calmDecision__relationships = Slot(uri=CALM.relationships, name="calmDecision__relationships", curie=CALM.curie('relationships'),
+                   model_uri=CALM.calmDecision__relationships, domain=None, range=Union[str, list[str]])
 
-slots.Architecture_nodes = Slot(uri=CALM.nodes, name="Architecture_nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.Architecture_nodes, domain=Architecture, range=Optional[Union[dict[Union[str, NodeUniqueId], Union[dict, "Node"]], list[Union[dict, "Node"]]]])
+slots.calmDecision__controls = Slot(uri=CALM.controls, name="calmDecision__controls", curie=CALM.curie('controls'),
+                   model_uri=CALM.calmDecision__controls, domain=None, range=Optional[Union[str, list[str]]])
 
-slots.Architecture_relationships = Slot(uri=CALM.relationships, name="Architecture_relationships", curie=CALM.curie('relationships'),
-                   model_uri=CALM.Architecture_relationships, domain=Architecture, range=Optional[Union[dict[Union[str, RelationshipUniqueId], Union[dict, "Relationship"]], list[Union[dict, "Relationship"]]]])
+slots.calmFlow__unique_id = Slot(uri=CALM.unique_id, name="calmFlow__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmFlow__unique_id, domain=None, range=str)
 
-slots.Architecture_flows = Slot(uri=CALM.flows, name="Architecture_flows", curie=CALM.curie('flows'),
-                   model_uri=CALM.Architecture_flows, domain=Architecture, range=Optional[Union[dict[Union[str, FlowUniqueId], Union[dict, "Flow"]], list[Union[dict, "Flow"]]]])
+slots.calmFlow__name = Slot(uri=SCHEMA.name, name="calmFlow__name", curie=SCHEMA.curie('name'),
+                   model_uri=CALM.calmFlow__name, domain=None, range=str)
 
-slots.Node_interfaces = Slot(uri=CALM.interfaces, name="Node_interfaces", curie=CALM.curie('interfaces'),
-                   model_uri=CALM.Node_interfaces, domain=Node, range=Optional[Union[dict[Union[str, InterfaceDefinitionUniqueId], Union[dict, "InterfaceDefinition"]], list[Union[dict, "InterfaceDefinition"]]]])
+slots.calmFlow__description = Slot(uri=SCHEMA.description, name="calmFlow__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmFlow__description, domain=None, range=str)
 
-slots.Node_description = Slot(uri=DCT.description, name="Node_description", curie=DCT.curie('description'),
-                   model_uri=CALM.Node_description, domain=Node, range=str)
+slots.calmFlow__requirement_url = Slot(uri=CALM.requirement_url, name="calmFlow__requirement_url", curie=CALM.curie('requirement_url'),
+                   model_uri=CALM.calmFlow__requirement_url, domain=None, range=Optional[str])
 
-slots.InteractsRelationship_nodes = Slot(uri=CALM.nodes, name="InteractsRelationship_nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.InteractsRelationship_nodes, domain=InteractsRelationship, range=Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]])
+slots.calmFlow__transitions = Slot(uri=CALM.transitions, name="calmFlow__transitions", curie=CALM.curie('transitions'),
+                   model_uri=CALM.calmFlow__transitions, domain=None, range=Union[Union[dict, CalmTransition], list[Union[dict, CalmTransition]]])
 
-slots.DeployedInRelationship_nodes = Slot(uri=CALM.nodes, name="DeployedInRelationship_nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.DeployedInRelationship_nodes, domain=DeployedInRelationship, range=Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]])
+slots.calmFlow__controls = Slot(uri=CALM.controls, name="calmFlow__controls", curie=CALM.curie('controls'),
+                   model_uri=CALM.calmFlow__controls, domain=None, range=Optional[Union[dict, CalmControls]])
 
-slots.ComposedOfRelationship_nodes = Slot(uri=CALM.nodes, name="ComposedOfRelationship_nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.ComposedOfRelationship_nodes, domain=ComposedOfRelationship, range=Union[Union[str, NodeUniqueId], list[Union[str, NodeUniqueId]]])
+slots.calmFlow__metadata = Slot(uri=CALM.metadata, name="calmFlow__metadata", curie=CALM.curie('metadata'),
+                   model_uri=CALM.calmFlow__metadata, domain=None, range=Optional[Union[dict, CalmMetadata]])
 
-slots.Decision_nodes = Slot(uri=CALM.nodes, name="Decision_nodes", curie=CALM.curie('nodes'),
-                   model_uri=CALM.Decision_nodes, domain=Decision, range=Union[dict[Union[str, NodeUniqueId], Union[dict, Node]], list[Union[dict, Node]]])
+slots.calmTransition__relationship_unique_id = Slot(uri=CALM.relationship_unique_id, name="calmTransition__relationship_unique_id", curie=CALM.curie('relationship_unique_id'),
+                   model_uri=CALM.calmTransition__relationship_unique_id, domain=None, range=str)
 
-slots.Decision_relationships = Slot(uri=CALM.relationships, name="Decision_relationships", curie=CALM.curie('relationships'),
-                   model_uri=CALM.Decision_relationships, domain=Decision, range=Union[dict[Union[str, RelationshipUniqueId], Union[dict, Relationship]], list[Union[dict, Relationship]]])
+slots.calmTransition__sequence_number = Slot(uri=CALM.sequence_number, name="calmTransition__sequence_number", curie=CALM.curie('sequence_number'),
+                   model_uri=CALM.calmTransition__sequence_number, domain=None, range=int)
 
-slots.Decision_description = Slot(uri=DCT.description, name="Decision_description", curie=DCT.curie('description'),
-                   model_uri=CALM.Decision_description, domain=Decision, range=str)
+slots.calmTransition__description = Slot(uri=SCHEMA.description, name="calmTransition__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmTransition__description, domain=None, range=str)
 
-slots.ControlDetail_requirement_url = Slot(uri=SCHEMA.url, name="ControlDetail_requirement_url", curie=SCHEMA.curie('url'),
-                   model_uri=CALM.ControlDetail_requirement_url, domain=ControlDetail, range=str)
+slots.calmTransition__direction = Slot(uri=CALM.direction, name="calmTransition__direction", curie=CALM.curie('direction'),
+                   model_uri=CALM.calmTransition__direction, domain=None, range=Optional[Union[str, "CalmTransitionDirection"]])
 
-slots.ControlRequirement_description = Slot(uri=DCT.description, name="ControlRequirement_description", curie=DCT.curie('description'),
-                   model_uri=CALM.ControlRequirement_description, domain=ControlRequirement, range=str)
+slots.calmTimeline__current_moment = Slot(uri=CALM.current_moment, name="calmTimeline__current_moment", curie=CALM.curie('current_moment'),
+                   model_uri=CALM.calmTimeline__current_moment, domain=None, range=Optional[str])
 
-slots.Transition_description = Slot(uri=DCT.description, name="Transition_description", curie=DCT.curie('description'),
-                   model_uri=CALM.Transition_description, domain=Transition, range=str)
+slots.calmTimeline__moments = Slot(uri=CALM.moments, name="calmTimeline__moments", curie=CALM.curie('moments'),
+                   model_uri=CALM.calmTimeline__moments, domain=None, range=Union[Union[dict, CalmNodeMoment], list[Union[dict, CalmNodeMoment]]])
 
-slots.Flow_description = Slot(uri=DCT.description, name="Flow_description", curie=DCT.curie('description'),
-                   model_uri=CALM.Flow_description, domain=Flow, range=str)
+slots.calmTimeline__metadata = Slot(uri=CALM.metadata, name="calmTimeline__metadata", curie=CALM.curie('metadata'),
+                   model_uri=CALM.calmTimeline__metadata, domain=None, range=Optional[Union[dict, CalmMetadata]])
 
-slots.InterfaceDefinition_config = Slot(uri=CALM.config, name="InterfaceDefinition_config", curie=CALM.curie('config'),
-                   model_uri=CALM.InterfaceDefinition_config, domain=InterfaceDefinition, range=str)
+slots.calmNodeMoment__valid_from = Slot(uri=CALM.valid_from, name="calmNodeMoment__valid_from", curie=CALM.curie('valid_from'),
+                   model_uri=CALM.calmNodeMoment__valid_from, domain=None, range=Optional[Union[str, XSDDate]])
 
-slots.NodeInterface_interfaces = Slot(uri=CALM.interfaces, name="NodeInterface_interfaces", curie=CALM.curie('interfaces'),
-                   model_uri=CALM.NodeInterface_interfaces, domain=NodeInterface, range=Optional[Union[dict[Union[str, InterfaceDefinitionUniqueId], Union[dict, InterfaceDefinition]], list[Union[dict, InterfaceDefinition]]]])
+slots.calmNodeMoment__adrs = Slot(uri=CALM.adrs, name="calmNodeMoment__adrs", curie=CALM.curie('adrs'),
+                   model_uri=CALM.calmNodeMoment__adrs, domain=None, range=Optional[Union[str, list[str]]])
 
-slots.NodeMoment_details = Slot(uri=CALM.details, name="NodeMoment_details", curie=CALM.curie('details'),
-                   model_uri=CALM.NodeMoment_details, domain=NodeMoment, range=str)
+slots.calmDecorator__decorator_schema = Slot(uri=CALM.decorator_schema, name="calmDecorator__decorator_schema", curie=CALM.curie('decorator_schema'),
+                   model_uri=CALM.calmDecorator__decorator_schema, domain=None, range=Optional[str])
+
+slots.calmDecorator__unique_id = Slot(uri=CALM.unique_id, name="calmDecorator__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmDecorator__unique_id, domain=None, range=str)
+
+slots.calmDecorator__decorator_type = Slot(uri=CALM.type, name="calmDecorator__decorator_type", curie=CALM.curie('type'),
+                   model_uri=CALM.calmDecorator__decorator_type, domain=None, range=str)
+
+slots.calmDecorator__target_type = Slot(uri=CALM.target_type, name="calmDecorator__target_type", curie=CALM.curie('target_type'),
+                   model_uri=CALM.calmDecorator__target_type, domain=None, range=Optional[Union[Union[str, "CalmDecoratorTargetType"], list[Union[str, "CalmDecoratorTargetType"]]]])
+
+slots.calmDecorator__target = Slot(uri=CALM.target, name="calmDecorator__target", curie=CALM.curie('target'),
+                   model_uri=CALM.calmDecorator__target, domain=None, range=Union[str, list[str]])
+
+slots.calmDecorator__applies_to = Slot(uri=CALM.applies_to, name="calmDecorator__applies_to", curie=CALM.curie('applies_to'),
+                   model_uri=CALM.calmDecorator__applies_to, domain=None, range=Union[str, list[str]])
+
+slots.calmDecorator__data = Slot(uri=CALM.data, name="calmDecorator__data", curie=CALM.curie('data'),
+                   model_uri=CALM.calmDecorator__data, domain=None, range=Union[dict, CalmDecoratorData])
+
+slots.calmEvidenceDocument__evidence = Slot(uri=CALM.evidence, name="calmEvidenceDocument__evidence", curie=CALM.curie('evidence'),
+                   model_uri=CALM.calmEvidenceDocument__evidence, domain=None, range=Union[dict, CalmEvidence])
+
+slots.calmEvidence__unique_id = Slot(uri=CALM.unique_id, name="calmEvidence__unique_id", curie=CALM.curie('unique_id'),
+                   model_uri=CALM.calmEvidence__unique_id, domain=None, range=str)
+
+slots.calmEvidence__evidence_paths = Slot(uri=CALM.evidence_paths, name="calmEvidence__evidence_paths", curie=CALM.curie('evidence_paths'),
+                   model_uri=CALM.calmEvidence__evidence_paths, domain=None, range=Union[str, list[str]])
+
+slots.calmEvidence__control_config_url = Slot(uri=CALM.control_config_url, name="calmEvidence__control_config_url", curie=CALM.curie('control_config_url'),
+                   model_uri=CALM.calmEvidence__control_config_url, domain=None, range=str)
+
+slots.calmControlRequirement__control_id = Slot(uri=CALM.control_id, name="calmControlRequirement__control_id", curie=CALM.curie('control_id'),
+                   model_uri=CALM.calmControlRequirement__control_id, domain=None, range=str)
+
+slots.calmControlRequirement__name = Slot(uri=SCHEMA.name, name="calmControlRequirement__name", curie=SCHEMA.curie('name'),
+                   model_uri=CALM.calmControlRequirement__name, domain=None, range=str)
+
+slots.calmControlRequirement__description = Slot(uri=SCHEMA.description, name="calmControlRequirement__description", curie=SCHEMA.curie('description'),
+                   model_uri=CALM.calmControlRequirement__description, domain=None, range=str)
+
+slots.calmTimeUnit__unit = Slot(uri=CALM.unit, name="calmTimeUnit__unit", curie=CALM.curie('unit'),
+                   model_uri=CALM.calmTimeUnit__unit, domain=None, range=Union[str, "CalmTimeUnitName"])
+
+slots.calmTimeUnit__value = Slot(uri=CALM.value, name="calmTimeUnit__value", curie=CALM.curie('value'),
+                   model_uri=CALM.calmTimeUnit__value, domain=None, range=float)
+
+slots.calmRateUnit__rate = Slot(uri=CALM.rate, name="calmRateUnit__rate", curie=CALM.curie('rate'),
+                   model_uri=CALM.calmRateUnit__rate, domain=None, range=float)
+
+slots.calmRateUnit__per = Slot(uri=CALM.per, name="calmRateUnit__per", curie=CALM.curie('per'),
+                   model_uri=CALM.calmRateUnit__per, domain=None, range=Union[str, "CalmRateInterval"])

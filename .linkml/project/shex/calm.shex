@@ -1,0 +1,332 @@
+# metamodel_version: 1.12.0
+# version: 1.3
+BASE <https://w3id.org/lmodel/calm/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX linkml: <https://w3id.org/linkml/>
+PREFIX schema1: <http://schema.org/>
+
+
+linkml:String xsd:string
+
+linkml:Integer xsd:integer
+
+linkml:Boolean xsd:boolean
+
+linkml:Float xsd:float
+
+linkml:Double xsd:double
+
+linkml:Decimal xsd:decimal
+
+linkml:Time xsd:time
+
+linkml:Date xsd:date
+
+linkml:Datetime xsd:dateTime
+
+linkml:DateOrDatetime linkml:DateOrDatetime
+
+linkml:Uriorcurie IRI
+
+linkml:Curie xsd:string
+
+linkml:Uri IRI
+
+linkml:Ncname xsd:string
+
+linkml:Objectidentifier IRI
+
+linkml:Nodeidentifier NONLITERAL
+
+linkml:Jsonpointer xsd:string
+
+linkml:Jsonpath xsd:string
+
+linkml:Sparqlpath xsd:string
+
+<CalmCronExpression> xsd:string
+
+<CalmArchitecture> CLOSED {
+    (  $<CalmArchitecture_tes> (  <nodes> @<CalmNode> * ;
+          <relationships> @<CalmRelationship> * ;
+          <metadata> @<CalmMetadata> ? ;
+          <controls> @<CalmControls> ? ;
+          <flows> @<CalmFlow> * ;
+          <adrs> @linkml:String *
+       ) ;
+       rdf:type [ <CalmArchitecture> ] ?
+    )
+}
+
+<CalmComposedOfType> CLOSED {
+    (  $<CalmComposedOfType_tes> (  <container> @linkml:String ;
+          <nodes> @linkml:String +
+       ) ;
+       rdf:type [ <CalmComposedOfType> ] ?
+    )
+}
+
+<CalmConnectsType> CLOSED {
+    (  $<CalmConnectsType_tes> (  <source> @<CalmNodeInterface> ;
+          <destination> @<CalmNodeInterface>
+       ) ;
+       rdf:type [ <CalmConnectsType> ] ?
+    )
+}
+
+<CalmControl> CLOSED {
+    (  $<CalmControl_tes> (  schema1:description @linkml:String ;
+          <requirements> @<CalmControlDetail> +
+       ) ;
+       rdf:type [ <CalmControl> ] ?
+    )
+}
+
+<CalmControlConfig> CLOSED {
+    (  $<CalmControlConfig_tes> rdf:type . * ;
+       rdf:type [ <CalmControlConfig> ] ?
+    )
+}
+
+<CalmControlDetail> CLOSED {
+    (  $<CalmControlDetail_tes> (  <requirement_url> @linkml:String ;
+          <config_url> @linkml:String ? ;
+          <config> @<CalmControlConfig> ?
+       ) ;
+       rdf:type [ <CalmControlDetail> ] ?
+    )
+}
+
+<CalmControlRequirement> CLOSED {
+    (  $<CalmControlRequirement_tes> (  <control_id> @linkml:String ;
+          schema1:name @linkml:String ;
+          schema1:description @linkml:String
+       ) ;
+       rdf:type [ <CalmControlRequirement> ] ?
+    )
+}
+
+<CalmControls> CLOSED {
+    (  $<CalmControls_tes> rdf:type . * ;
+       rdf:type [ <CalmControls> ] ?
+    )
+}
+
+<CalmDecision> CLOSED {
+    (  $<CalmDecision_tes> (  schema1:description @linkml:String ;
+          <nodes> @linkml:String + ;
+          <relationships> @linkml:String + ;
+          <controls> @linkml:String *
+       ) ;
+       rdf:type [ <CalmDecision> ] ?
+    )
+}
+
+<CalmDecorator> CLOSED {
+    (  $<CalmDecorator_tes> (  <decorator_schema> @linkml:String ? ;
+          <unique_id> @linkml:String ;
+          <type> @linkml:String ;
+          <target_type> [ <https://w3id.org/lmodel/calm/CalmDecoratorTargetType#architecture> ] * ;
+          <target> @linkml:String + ;
+          <applies_to> @linkml:String + ;
+          <data> @<CalmDecoratorData>
+       ) ;
+       rdf:type [ <CalmDecorator> ] ?
+    )
+}
+
+<CalmDecoratorData> CLOSED {
+    (  $<CalmDecoratorData_tes> rdf:type . * ;
+       rdf:type [ <CalmDecoratorData> ] ?
+    )
+}
+
+<CalmDeployedInType> CLOSED {
+    (  $<CalmDeployedInType_tes> (  <container> @linkml:String ;
+          <nodes> @linkml:String +
+       ) ;
+       rdf:type [ <CalmDeployedInType> ] ?
+    )
+}
+
+<CalmEvidence> CLOSED {
+    (  $<CalmEvidence_tes> (  <unique_id> @linkml:String ;
+          <evidence_paths> @linkml:String + ;
+          <control_config_url> @linkml:String
+       ) ;
+       rdf:type [ <CalmEvidence> ] ?
+    )
+}
+
+<CalmEvidenceDocument> CLOSED {
+    (  $<CalmEvidenceDocument_tes> <evidence> @<CalmEvidence> ;
+       rdf:type [ <CalmEvidenceDocument> ] ?
+    )
+}
+
+<CalmFlow> CLOSED {
+    (  $<CalmFlow_tes> (  <unique_id> @linkml:String ;
+          schema1:name @linkml:String ;
+          schema1:description @linkml:String ;
+          <requirement_url> @linkml:String ? ;
+          <transitions> @<CalmTransition> + ;
+          <controls> @<CalmControls> ? ;
+          <metadata> @<CalmMetadata> ?
+       ) ;
+       rdf:type [ <CalmFlow> ] ?
+    )
+}
+
+<CalmInteractsType> CLOSED {
+    (  $<CalmInteractsType_tes> (  <actor> @linkml:String ;
+          <nodes> @linkml:String +
+       ) ;
+       rdf:type [ <CalmInteractsType> ] ?
+    )
+}
+
+<CalmInterfaceConfig> CLOSED {
+    (  $<CalmInterfaceConfig_tes> rdf:type . * ;
+       rdf:type [ <CalmInterfaceConfig> ] ?
+    )
+}
+
+<CalmInterfaceDefinition> CLOSED {
+    (  $<CalmInterfaceDefinition_tes> (  <unique_id> @linkml:String ;
+          <definition_url> @linkml:String ;
+          <config> @<CalmInterfaceConfig>
+       ) ;
+       rdf:type [ <CalmInterfaceDefinition> ] ?
+    )
+}
+
+<CalmInterfaceType> CLOSED {
+    (  $<CalmInterfaceType_tes> <unique_id> @linkml:String ;
+       rdf:type [ <CalmInterfaceType> ] ?
+    )
+}
+
+<CalmMetadata> CLOSED {
+    (  $<CalmMetadata_tes> rdf:type . * ;
+       rdf:type [ linkml:Any ] ?
+    )
+}
+
+<CalmNode>  (
+    CLOSED {
+       (  $<CalmNode_tes> (  <unique_id> @linkml:String ;
+             <node_type> @linkml:String ;
+             schema1:name @linkml:String ;
+             schema1:description @linkml:String ;
+             <details> @<CalmNodeDetails> ? ;
+             <interfaces> @linkml:String * ;
+             <controls> @<CalmControls> ? ;
+             <metadata> @<CalmMetadata> ?
+          ) ;
+          rdf:type [ <CalmNode> ] ?
+       )
+    } OR @<CalmNodeMoment>
+)
+
+<CalmNodeDetails> CLOSED {
+    (  $<CalmNodeDetails_tes> (  <detailed_architecture> @linkml:String ? ;
+          <required_pattern> @linkml:String ?
+       ) ;
+       rdf:type [ <CalmNodeDetails> ] ?
+    )
+}
+
+<CalmNodeInterface> CLOSED {
+    (  $<CalmNodeInterface_tes> (  <node> @linkml:String ;
+          <interfaces> @linkml:String *
+       ) ;
+       rdf:type [ <CalmNodeInterface> ] ?
+    )
+}
+
+<CalmNodeMoment> CLOSED {
+    (  $<CalmNodeMoment_tes> (  &<CalmNode_tes> ;
+          rdf:type [ <CalmNode> ] ? ;
+          <valid_from> @linkml:Date ? ;
+          <adrs> @linkml:String *
+       ) ;
+       rdf:type [ <CalmNodeMoment> ] ?
+    )
+}
+
+<CalmRateUnit> CLOSED {
+    (  $<CalmRateUnit_tes> (  <rate> @linkml:Float ;
+          <per> [ <https://w3id.org/lmodel/calm/CalmRateInterval#nanosecond>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#microsecond>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#millisecond> <https://w3id.org/lmodel/calm/CalmRateInterval#second>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#minute> <https://w3id.org/lmodel/calm/CalmRateInterval#hour>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#day> <https://w3id.org/lmodel/calm/CalmRateInterval#week>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#month> <https://w3id.org/lmodel/calm/CalmRateInterval#quarter>
+             <https://w3id.org/lmodel/calm/CalmRateInterval#year> ]
+       ) ;
+       rdf:type [ <CalmRateUnit> ] ?
+    )
+}
+
+<CalmRelationship> CLOSED {
+    (  $<CalmRelationship_tes> (  <unique_id> @linkml:String ;
+          schema1:description @linkml:String ? ;
+          <relationship_type> @<CalmRelationshipType> ;
+          <protocol> [ <https://w3id.org/lmodel/calm/CalmProtocol#HTTP> <https://w3id.org/lmodel/calm/CalmProtocol#HTTPS>
+             <https://w3id.org/lmodel/calm/CalmProtocol#FTP> <https://w3id.org/lmodel/calm/CalmProtocol#SFTP>
+             <https://w3id.org/lmodel/calm/CalmProtocol#JDBC> <https://w3id.org/lmodel/calm/CalmProtocol#WebSocket>
+             <https://w3id.org/lmodel/calm/CalmProtocol#SocketIO> <https://w3id.org/lmodel/calm/CalmProtocol#LDAP>
+             <https://w3id.org/lmodel/calm/CalmProtocol#AMQP> <https://w3id.org/lmodel/calm/CalmProtocol#TLS>
+             <https://w3id.org/lmodel/calm/CalmProtocol#mTLS> <https://w3id.org/lmodel/calm/CalmProtocol#TCP> ] ? ;
+          <metadata> @<CalmMetadata> ? ;
+          <controls> @<CalmControls> ?
+       ) ;
+       rdf:type [ <CalmRelationship> ] ?
+    )
+}
+
+<CalmRelationshipType> CLOSED {
+    (  $<CalmRelationshipType_tes> (  <interacts> @<CalmInteractsType> ? ;
+          <connects> @<CalmConnectsType> ? ;
+          <deployed_in> @<CalmDeployedInType> ? ;
+          <composed_of> @<CalmComposedOfType> ? ;
+          <options> @<CalmDecision> *
+       ) ;
+       rdf:type [ <CalmRelationshipType> ] ?
+    )
+}
+
+<CalmTimeline> CLOSED {
+    (  $<CalmTimeline_tes> (  <current_moment> @linkml:String ? ;
+          <moments> @<CalmNodeMoment> + ;
+          <metadata> @<CalmMetadata> ?
+       ) ;
+       rdf:type [ <CalmTimeline> ] ?
+    )
+}
+
+<CalmTimeUnit> CLOSED {
+    (  $<CalmTimeUnit_tes> (  <unit> [ <https://w3id.org/lmodel/calm/CalmTimeUnitName#nanoseconds>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#microseconds>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#milliseconds> <https://w3id.org/lmodel/calm/CalmTimeUnitName#seconds>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#minutes> <https://w3id.org/lmodel/calm/CalmTimeUnitName#hours>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#days> <https://w3id.org/lmodel/calm/CalmTimeUnitName#weeks>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#months> <https://w3id.org/lmodel/calm/CalmTimeUnitName#quarters>
+             <https://w3id.org/lmodel/calm/CalmTimeUnitName#years> ] ;
+          <value> @linkml:Float
+       ) ;
+       rdf:type [ <CalmTimeUnit> ] ?
+    )
+}
+
+<CalmTransition> CLOSED {
+    (  $<CalmTransition_tes> (  <relationship_unique_id> @linkml:String ;
+          <sequence_number> @linkml:Integer ;
+          schema1:description @linkml:String ;
+          <direction> [ <https://w3id.org/lmodel/calm/CalmTransitionDirection#source-to-destination>
+             <https://w3id.org/lmodel/calm/CalmTransitionDirection#destination-to-source> ] ?
+       ) ;
+       rdf:type [ <CalmTransition> ] ?
+    )
+}

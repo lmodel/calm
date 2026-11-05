@@ -1,0 +1,1512 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix calm_meta: <https://calm.finos.org/release/1.3/meta/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix calm: <https://w3id.org/lmodel/calm/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix linkml: <https://w3id.org/linkml/> .
+@prefix pav: <http://purl.org/pav/> .
+@prefix schema1: <http://schema.org/> .
+<https://w3id.org/lmodel/calm.owl.ttl> dcterms:license "Apache-2.0" ;
+	dcterms:source <https://github.com/finos/calm-schema/tree/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema> ;
+	dcterms:title "FINOS CALM" ;
+	pav:version "1.3" ;
+	schema1:keywords "CALM" , "FINOS" , "architecture as code" , "software architecture" ;
+	a owl:Ontology ;
+	rdfs:label "calm" ;
+	rdfs:seeAlso <https://calm.finos.org/> , <https://github.com/finos/calm-schema> , <https://lmodel.github.io/calm> ;
+	skos:definition "A LinkML model of CALM 1.3, the Common Architecture Language Model of FINOS's Architecture as Code project. Each module renders one file of the CALM Meta Schema and keeps CALM's keys, so a CALM document validates here unchanged, and CALM's JSON Schema files can be generated from the model." ;
+	skos:note "A key with a hyphen, such as unique-id, is the alias of a slot named with an underscore. scripts/calm_meta.py writes CALM's files with the aliases as keys, which plain gen-json-schema does only with --preserve-names." , "A reference to a node, relationship or moment is its unique-id, a string, as CALM gives it. No slot is an identifier: gen-python in linkml 1.12.1 names an identifier's type from its alias, and the hyphen in unique-id makes that name invalid Python." , "calm.json and calm-timeline.json declare CALM's vocabulary beside JSON Schema's own and hold no definition, so no module renders them; the build copies them from upstream/." ;
+	calm:upstream_commit "47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d" ;
+	calm:upstream_license "Apache-2.0" ;
+	calm:upstream_release_date "2026-10-24" ;
+	calm:upstream_tag "v1.3" .
+calm:CalmArchitecture a owl:Class ;
+	rdfs:label "CalmArchitecture" ;
+	rdfs:subClassOf _:c14n125 , _:c14n139 , _:c14n179 , _:c14n229 , _:c14n235 , _:c14n24 , _:c14n246 , _:c14n255 , _:c14n275 , _:c14n286 , _:c14n39 , _:c14n5 , _:c14n55 , _:c14n56 ;
+	skos:definition "A CALM architecture document: the nodes of a system, the relationships between them, its business flows, and the controls that apply to it." ;
+	skos:exactMatch calm_meta:core.json ;
+	skos:inScheme <https://w3id.org/lmodel/calm> ;
+	skos:note "An architecture is itself a JSON Schema document, so it may carry JSON Schema's keys, such as $schema, beside CALM's own." .
+calm:CalmComposedOfType a owl:Class ;
+	rdfs:label "CalmComposedOfType" ;
+	rdfs:subClassOf _:c14n1 , _:c14n155 , _:c14n210 , _:c14n276 , _:c14n299 ;
+	skos:definition "A relationship in which nodes make up a container node." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/composed-of-type ;
+	skos:inScheme calm:calm_core .
+calm:CalmConnectsType a owl:Class ;
+	rdfs:label "CalmConnectsType" ;
+	rdfs:subClassOf _:c14n106 , _:c14n133 , _:c14n18 , _:c14n188 , _:c14n217 , _:c14n35 ;
+	skos:definition "A relationship in which one node connects to another through their interfaces." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/connects-type ;
+	skos:inScheme calm:calm_core .
+calm:CalmControl a owl:Class ;
+	rdfs:label "CalmControl" ;
+	rdfs:subClassOf _:c14n112 , _:c14n135 , _:c14n172 , _:c14n47 , _:c14n88 ;
+	skos:definition "One control in a controls map, with the requirements that define it." ;
+	skos:inScheme calm:calm_control .
+calm:CalmControlConfig a owl:Class ;
+	rdfs:label "CalmControlConfig" ;
+	skos:definition "A configuration object, free in shape, that meets a control requirement." ;
+	skos:inScheme calm:calm_control .
+calm:CalmControlDetail a owl:Class ;
+	rdfs:label "CalmControlDetail" ;
+	rdfs:subClassOf _:c14n122 , _:c14n146 , _:c14n158 , _:c14n193 , _:c14n200 , _:c14n207 , _:c14n23 , _:c14n259 , _:c14n292 ;
+	owl:disjointUnionOf _:c14n300 ;
+	skos:definition "A control requirement this control applies, with its configuration given by address or inline, but not both." ;
+	skos:exactMatch calm_meta:control.json\#\/defs\/control-detail ;
+	skos:inScheme calm:calm_control .
+calm:CalmControlRequirement a owl:Class ;
+	rdfs:label "CalmControlRequirement" ;
+	rdfs:subClassOf _:c14n132 , _:c14n144 , _:c14n15 , _:c14n199 , _:c14n205 , _:c14n223 , _:c14n272 , _:c14n42 , _:c14n68 ;
+	skos:definition "A control requirement: what a control must achieve, which a control detail's requirement-url points to." ;
+	skos:exactMatch calm_meta:control-requirement.json ;
+	skos:inScheme calm:calm_control_requirement .
+calm:CalmControls a owl:Class ;
+	rdfs:label "CalmControls" ;
+	skos:definition "The controls that apply to an architecture element, each under a key of letters, digits and hyphens." ;
+	skos:exactMatch calm_meta:control.json\#\/defs\/controls ;
+	skos:inScheme calm:calm_control ;
+	skos:note "CALM states the key pattern with patternProperties, which LinkML cannot state, so any key is accepted here. CALM itself leaves a key outside the pattern unchecked." .
+calm:CalmCronExpression a rdfs:Datatype ;
+	owl:equivalentClass _:c14n37 .
+calm:CalmDecision a owl:Class ;
+	rdfs:label "CalmDecision" ;
+	rdfs:subClassOf _:c14n153 , _:c14n187 , _:c14n225 , _:c14n248 , _:c14n271 , _:c14n285 , _:c14n288 , _:c14n33 , _:c14n72 ;
+	skos:definition "One option of a choice, naming the nodes, relationships and controls it would add." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/decision ;
+	skos:inScheme calm:calm_core .
+calm:CalmDecorator a owl:Class ;
+	rdfs:label "CalmDecorator" ;
+	rdfs:subClassOf _:c14n101 , _:c14n121 , _:c14n159 , _:c14n160 , _:c14n163 , _:c14n174 , _:c14n178 , _:c14n189 , _:c14n194 , _:c14n2 , _:c14n251 , _:c14n258 , _:c14n3 , _:c14n30 , _:c14n59 , _:c14n6 , _:c14n60 , _:c14n81 ;
+	skos:definition "Supplementary information about elements of one or more architectures, kept apart from the architectures themselves." ;
+	skos:exactMatch calm_meta:decorators.json\#\/defs\/decorator ;
+	skos:inScheme calm:calm_decorators .
+calm:CalmDecoratorData a owl:Class ;
+	rdfs:label "CalmDecoratorData" ;
+	skos:definition "The decorator's data, an object free in shape." ;
+	skos:inScheme calm:calm_decorators ;
+	skos:note "CALM requires at least one key, which LinkML cannot state, so an empty object is accepted here." .
+calm:CalmDecoratorTargetType\#architecture a owl:Class ;
+	rdfs:label "architecture" ;
+	rdfs:subClassOf calm:CalmDecoratorTargetType ;
+	skos:definition "An architecture document." .
+calm:CalmDecoratorTargetType a owl:Class ;
+	rdfs:label "CalmDecoratorTargetType" ;
+	skos:definition "The kinds of CALM document a decorator can target." ;
+	skos:inScheme calm:calm_decorators ;
+	linkml:permissible_values calm:CalmDecoratorTargetType\#architecture .
+calm:CalmDeployedInType a owl:Class ;
+	rdfs:label "CalmDeployedInType" ;
+	rdfs:subClassOf _:c14n247 , _:c14n283 , _:c14n61 , _:c14n77 , _:c14n83 ;
+	skos:definition "A relationship in which nodes are deployed in a container node." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/deployed-in-type ;
+	skos:inScheme calm:calm_core .
+calm:CalmEvidence a owl:Class ;
+	rdfs:label "CalmEvidence" ;
+	rdfs:subClassOf _:c14n108 , _:c14n145 , _:c14n175 , _:c14n182 , _:c14n220 , _:c14n38 , _:c14n58 , _:c14n63 ;
+	skos:definition "Evidence that a control's configuration is met, by the paths where it is kept." ;
+	skos:inScheme calm:calm_evidence .
+calm:CalmEvidenceDocument a owl:Class ;
+	rdfs:label "CalmEvidenceDocument" ;
+	rdfs:subClassOf _:c14n156 , _:c14n165 , _:c14n265 ;
+	skos:definition "An evidence document, which holds one piece of evidence for a control." ;
+	skos:exactMatch calm_meta:evidence.json ;
+	skos:inScheme calm:calm_evidence .
+calm:CalmFlow a owl:Class ;
+	rdfs:label "CalmFlow" ;
+	rdfs:subClassOf _:c14n138 , _:c14n141 , _:c14n147 , _:c14n164 , _:c14n206 , _:c14n21 , _:c14n213 , _:c14n233 , _:c14n244 , _:c14n252 , _:c14n253 , _:c14n254 , _:c14n260 , _:c14n270 , _:c14n289 , _:c14n293 , _:c14n296 , _:c14n301 , _:c14n66 , _:c14n8 ;
+	skos:definition "A business flow, as an ordered list of transitions across the architecture's relationships." ;
+	skos:exactMatch calm_meta:flow.json\#\/defs\/flow ;
+	skos:inScheme calm:calm_flow .
+calm:CalmInteractsType a owl:Class ;
+	rdfs:label "CalmInteractsType" ;
+	rdfs:subClassOf _:c14n100 , _:c14n162 , _:c14n27 , _:c14n64 , _:c14n69 ;
+	skos:definition "A relationship in which an actor interacts with nodes." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/interacts-type ;
+	skos:inScheme calm:calm_core .
+calm:CalmInterfaceConfig a owl:Class ;
+	rdfs:label "CalmInterfaceConfig" ;
+	skos:definition "A configuration object, free in shape, that an interface definition's schema checks." ;
+	skos:inScheme calm:calm_interface .
+calm:CalmInterfaceDefinition a owl:Class ;
+	rdfs:label "CalmInterfaceDefinition" ;
+	rdfs:subClassOf _:c14n117 , _:c14n126 , _:c14n13 , _:c14n142 , _:c14n171 , _:c14n212 , _:c14n228 , _:c14n234 , _:c14n298 ;
+	skos:definition "A modular interface definition referencing an external schema" ;
+	skos:exactMatch calm_meta:interface.json\#\/defs\/interface-definition ;
+	skos:inScheme calm:calm_interface .
+calm:CalmInterfaceType a owl:Class ;
+	rdfs:label "CalmInterfaceType" ;
+	rdfs:subClassOf _:c14n16 , _:c14n268 , _:c14n98 ;
+	skos:definition "An interface given by its own keys, such as a host and port, rather than by an external schema." ;
+	skos:exactMatch calm_meta:interface.json\#\/defs\/interface-type ;
+	skos:inScheme calm:calm_interface .
+calm:CalmMetadata a owl:Class ;
+	rdfs:label "CalmMetadata" ;
+	skos:definition "Free-form metadata, as an object or a list of objects." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/metadata , linkml:Any ;
+	skos:inScheme calm:calm_core ;
+	skos:note "LinkML cannot state \"an object, or a list of objects\", so the class takes any value, and the build writes it as a schema that accepts any value." .
+calm:CalmNode a owl:Class ;
+	rdfs:label "CalmNode" ;
+	rdfs:subClassOf _:c14n10 , _:c14n104 , _:c14n109 , _:c14n116 , _:c14n118 , _:c14n127 , _:c14n129 , _:c14n131 , _:c14n157 , _:c14n161 , _:c14n177 , _:c14n181 , _:c14n186 , _:c14n19 , _:c14n218 , _:c14n273 , _:c14n282 , _:c14n54 , _:c14n79 , _:c14n85 , _:c14n93 , _:c14n97 , _:c14n99 ;
+	skos:definition "A component of the architecture, such as a system, service, database or actor, with its interfaces and controls." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/node ;
+	skos:inScheme calm:calm_core .
+calm:CalmNodeDetails a owl:Class ;
+	rdfs:label "CalmNodeDetails" ;
+	rdfs:subClassOf _:c14n152 , _:c14n168 , _:c14n185 , _:c14n192 , _:c14n267 , _:c14n75 ;
+	skos:definition "References from a node to a more detailed architecture and to the pattern it must follow." ;
+	skos:inScheme calm:calm_core .
+calm:CalmNodeInterface a owl:Class ;
+	rdfs:label "CalmNodeInterface" ;
+	rdfs:subClassOf _:c14n134 , _:c14n140 , _:c14n26 , _:c14n53 , _:c14n62 ;
+	skos:definition "One end of a connection, naming a node and, optionally, which of its interfaces." ;
+	skos:exactMatch calm_meta:interface.json\#\/defs\/node-interface ;
+	skos:inScheme calm:calm_interface .
+calm:CalmNodeMoment a owl:Class ;
+	rdfs:label "CalmNodeMoment" ;
+	rdfs:subClassOf calm:CalmNode , _:c14n202 , _:c14n236 , _:c14n243 , _:c14n46 , _:c14n71 , _:c14n73 ;
+	skos:definition "A moment of a timeline: a node of type moment, with no interfaces, whose details point to the architecture of that moment." ;
+	skos:exactMatch calm_meta:timeline.json\#\/defs\/node-moment ;
+	skos:inScheme calm:calm_timeline ;
+	skos:note "The three conditions on inherited slots are class rules, not slot_usage, because gen-shacl refuses equals_string on a slot that also has any_of." .
+calm:CalmNodeTypeDefinition\#actor a owl:Class ;
+	rdfs:label "actor" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A person or system outside the architecture that acts on it." .
+calm:CalmNodeTypeDefinition\#data-asset dcterms:title "data asset" ;
+	a owl:Class ;
+	rdfs:label "data-asset" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A body of data the architecture holds or moves." .
+calm:CalmNodeTypeDefinition\#database a owl:Class ;
+	rdfs:label "database" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A store of data." .
+calm:CalmNodeTypeDefinition\#ecosystem a owl:Class ;
+	rdfs:label "ecosystem" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A group of systems that work together." .
+calm:CalmNodeTypeDefinition\#ldap a owl:Class ;
+	rdfs:label "ldap" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A directory service reached over LDAP." .
+calm:CalmNodeTypeDefinition\#network a owl:Class ;
+	rdfs:label "network" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A network that nodes are deployed in." .
+calm:CalmNodeTypeDefinition\#service a owl:Class ;
+	rdfs:label "service" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A service that runs in the architecture." .
+calm:CalmNodeTypeDefinition\#system a owl:Class ;
+	rdfs:label "system" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A system made of other nodes." .
+calm:CalmNodeTypeDefinition\#webclient a owl:Class ;
+	rdfs:label "webclient" ;
+	rdfs:subClassOf calm:CalmNodeTypeDefinition ;
+	skos:definition "A client that runs in a web browser." .
+calm:CalmNodeTypeDefinition a owl:Class ;
+	rdfs:label "CalmNodeTypeDefinition" ;
+	owl:unionOf _:c14n92 ;
+	skos:definition "CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any other string." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/node-type-definition ;
+	skos:inScheme calm:calm_core ;
+	linkml:permissible_values calm:CalmNodeTypeDefinition\#actor , calm:CalmNodeTypeDefinition\#data-asset , calm:CalmNodeTypeDefinition\#database , calm:CalmNodeTypeDefinition\#ecosystem , calm:CalmNodeTypeDefinition\#ldap , calm:CalmNodeTypeDefinition\#network , calm:CalmNodeTypeDefinition\#service , calm:CalmNodeTypeDefinition\#system , calm:CalmNodeTypeDefinition\#webclient .
+calm:CalmProtocol\#AMQP a owl:Class ;
+	rdfs:label "AMQP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Advanced Message Queuing Protocol." .
+calm:CalmProtocol\#FTP a owl:Class ;
+	rdfs:label "FTP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "File Transfer Protocol." .
+calm:CalmProtocol\#HTTP a owl:Class ;
+	rdfs:label "HTTP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Hypertext Transfer Protocol." .
+calm:CalmProtocol\#HTTPS a owl:Class ;
+	rdfs:label "HTTPS" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "HTTP over TLS." .
+calm:CalmProtocol\#JDBC a owl:Class ;
+	rdfs:label "JDBC" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Java Database Connectivity." .
+calm:CalmProtocol\#LDAP a owl:Class ;
+	rdfs:label "LDAP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Lightweight Directory Access Protocol." .
+calm:CalmProtocol\#SFTP a owl:Class ;
+	rdfs:label "SFTP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "SSH File Transfer Protocol." .
+calm:CalmProtocol\#SocketIO a owl:Class ;
+	rdfs:label "SocketIO" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "The Socket.IO protocol." .
+calm:CalmProtocol\#TCP a owl:Class ;
+	rdfs:label "TCP" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Transmission Control Protocol." .
+calm:CalmProtocol\#TLS a owl:Class ;
+	rdfs:label "TLS" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "Transport Layer Security." .
+calm:CalmProtocol\#WebSocket a owl:Class ;
+	rdfs:label "WebSocket" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "The WebSocket protocol." .
+calm:CalmProtocol\#mTLS a owl:Class ;
+	rdfs:label "mTLS" ;
+	rdfs:subClassOf calm:CalmProtocol ;
+	skos:definition "TLS in which both ends present a certificate." .
+calm:CalmProtocol a owl:Class ;
+	rdfs:label "CalmProtocol" ;
+	owl:unionOf _:c14n154 ;
+	skos:definition "The protocol a relationship uses." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/protocol ;
+	skos:inScheme calm:calm_core ;
+	linkml:permissible_values calm:CalmProtocol\#AMQP , calm:CalmProtocol\#FTP , calm:CalmProtocol\#HTTP , calm:CalmProtocol\#HTTPS , calm:CalmProtocol\#JDBC , calm:CalmProtocol\#LDAP , calm:CalmProtocol\#SFTP , calm:CalmProtocol\#SocketIO , calm:CalmProtocol\#TCP , calm:CalmProtocol\#TLS , calm:CalmProtocol\#WebSocket , calm:CalmProtocol\#mTLS .
+calm:CalmRateInterval\#day a owl:Class ;
+	rdfs:label "day" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per day." .
+calm:CalmRateInterval\#hour a owl:Class ;
+	rdfs:label "hour" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per hour." .
+calm:CalmRateInterval\#microsecond a owl:Class ;
+	rdfs:label "microsecond" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per millionth of a second." .
+calm:CalmRateInterval\#millisecond a owl:Class ;
+	rdfs:label "millisecond" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per thousandth of a second." .
+calm:CalmRateInterval\#minute a owl:Class ;
+	rdfs:label "minute" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per minute." .
+calm:CalmRateInterval\#month a owl:Class ;
+	rdfs:label "month" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per calendar month." .
+calm:CalmRateInterval\#nanosecond a owl:Class ;
+	rdfs:label "nanosecond" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per billionth of a second." .
+calm:CalmRateInterval\#quarter a owl:Class ;
+	rdfs:label "quarter" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per quarter of a year." .
+calm:CalmRateInterval\#second a owl:Class ;
+	rdfs:label "second" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per second." .
+calm:CalmRateInterval\#week a owl:Class ;
+	rdfs:label "week" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per week." .
+calm:CalmRateInterval\#year a owl:Class ;
+	rdfs:label "year" ;
+	rdfs:subClassOf calm:CalmRateInterval ;
+	skos:definition "Per year." .
+calm:CalmRateInterval a owl:Class ;
+	rdfs:label "CalmRateInterval" ;
+	owl:unionOf _:c14n190 ;
+	skos:definition "The interval a rate is counted over." ;
+	skos:inScheme calm:calm_units ;
+	linkml:permissible_values calm:CalmRateInterval\#day , calm:CalmRateInterval\#hour , calm:CalmRateInterval\#microsecond , calm:CalmRateInterval\#millisecond , calm:CalmRateInterval\#minute , calm:CalmRateInterval\#month , calm:CalmRateInterval\#nanosecond , calm:CalmRateInterval\#quarter , calm:CalmRateInterval\#second , calm:CalmRateInterval\#week , calm:CalmRateInterval\#year .
+calm:CalmRateUnit a owl:Class ;
+	rdfs:label "CalmRateUnit" ;
+	rdfs:subClassOf _:c14n119 , _:c14n12 , _:c14n123 , _:c14n232 , _:c14n287 , _:c14n36 ;
+	skos:definition "A unit representing a rate (e.g., operations per second)." ;
+	skos:exactMatch calm_meta:units.json\#\/defs\/rate-unit ;
+	skos:inScheme calm:calm_units .
+calm:CalmRelationship a owl:Class ;
+	rdfs:label "CalmRelationship" ;
+	rdfs:subClassOf _:c14n107 , _:c14n130 , _:c14n14 , _:c14n149 , _:c14n196 , _:c14n198 , _:c14n211 , _:c14n219 , _:c14n237 , _:c14n249 , _:c14n263 , _:c14n291 , _:c14n4 , _:c14n45 , _:c14n50 , _:c14n57 , _:c14n87 , _:c14n90 ;
+	skos:definition "A link between nodes, of one of CALM's kinds, or a choice between options." ;
+	skos:exactMatch calm_meta:core.json\#\/defs\/relationship ;
+	skos:inScheme calm:calm_core .
+calm:CalmRelationshipType a owl:Class ;
+	rdfs:label "CalmRelationshipType" ;
+	rdfs:subClassOf _:c14n105 , _:c14n143 , _:c14n183 , _:c14n22 , _:c14n222 , _:c14n230 , _:c14n231 , _:c14n239 , _:c14n266 , _:c14n278 , _:c14n28 , _:c14n294 , _:c14n70 , _:c14n82 ;
+	owl:disjointUnionOf _:c14n40 ;
+	skos:definition "The kind of a relationship, given by exactly one of its keys: interacts, connects, deployed-in, composed-of or options." ;
+	skos:inScheme calm:calm_core .
+calm:CalmTimeUnit a owl:Class ;
+	rdfs:label "CalmTimeUnit" ;
+	rdfs:subClassOf _:c14n191 , _:c14n215 , _:c14n241 , _:c14n277 , _:c14n279 , _:c14n34 ;
+	skos:definition "A unit of time with a value and a unit type." ;
+	skos:exactMatch calm_meta:units.json\#\/defs\/time-unit ;
+	skos:inScheme calm:calm_units .
+calm:CalmTimeUnitName\#days a owl:Class ;
+	rdfs:label "days" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Days." .
+calm:CalmTimeUnitName\#hours a owl:Class ;
+	rdfs:label "hours" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Hours." .
+calm:CalmTimeUnitName\#microseconds a owl:Class ;
+	rdfs:label "microseconds" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Millionths of a second." .
+calm:CalmTimeUnitName\#milliseconds a owl:Class ;
+	rdfs:label "milliseconds" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Thousandths of a second." .
+calm:CalmTimeUnitName\#minutes a owl:Class ;
+	rdfs:label "minutes" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Minutes." .
+calm:CalmTimeUnitName\#months a owl:Class ;
+	rdfs:label "months" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Calendar months." .
+calm:CalmTimeUnitName\#nanoseconds a owl:Class ;
+	rdfs:label "nanoseconds" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Billionths of a second." .
+calm:CalmTimeUnitName\#quarters a owl:Class ;
+	rdfs:label "quarters" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Quarters of a year." .
+calm:CalmTimeUnitName\#seconds a owl:Class ;
+	rdfs:label "seconds" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Seconds." .
+calm:CalmTimeUnitName\#weeks a owl:Class ;
+	rdfs:label "weeks" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Weeks." .
+calm:CalmTimeUnitName\#years a owl:Class ;
+	rdfs:label "years" ;
+	rdfs:subClassOf calm:CalmTimeUnitName ;
+	skos:definition "Years." .
+calm:CalmTimeUnitName a owl:Class ;
+	rdfs:label "CalmTimeUnitName" ;
+	owl:unionOf _:c14n302 ;
+	skos:definition "The units a time unit counts in." ;
+	skos:inScheme calm:calm_units ;
+	linkml:permissible_values calm:CalmTimeUnitName\#days , calm:CalmTimeUnitName\#hours , calm:CalmTimeUnitName\#microseconds , calm:CalmTimeUnitName\#milliseconds , calm:CalmTimeUnitName\#minutes , calm:CalmTimeUnitName\#months , calm:CalmTimeUnitName\#nanoseconds , calm:CalmTimeUnitName\#quarters , calm:CalmTimeUnitName\#seconds , calm:CalmTimeUnitName\#weeks , calm:CalmTimeUnitName\#years .
+calm:CalmTimeline a owl:Class ;
+	rdfs:label "CalmTimeline" ;
+	rdfs:subClassOf _:c14n173 , _:c14n180 , _:c14n226 , _:c14n227 , _:c14n242 , _:c14n262 , _:c14n284 , _:c14n9 ;
+	skos:definition "A timeline document, listing the moments of an architecture and naming the current one." ;
+	skos:exactMatch calm_meta:timeline.json ;
+	skos:inScheme calm:calm_timeline .
+calm:CalmTransition a owl:Class ;
+	rdfs:label "CalmTransition" ;
+	rdfs:subClassOf _:c14n102 , _:c14n114 , _:c14n128 , _:c14n195 , _:c14n20 , _:c14n201 , _:c14n204 , _:c14n297 , _:c14n43 , _:c14n49 , _:c14n67 , _:c14n91 ;
+	skos:definition "One step of a flow, across one relationship of the architecture." ;
+	skos:exactMatch calm_meta:flow.json\#\/defs\/transition ;
+	skos:inScheme calm:calm_flow .
+calm:CalmTransitionDirection\#destination-to-source dcterms:title "destination to source" ;
+	a owl:Class ;
+	rdfs:label "destination-to-source" ;
+	rdfs:subClassOf calm:CalmTransitionDirection ;
+	skos:definition "From the relationship's destination back to its source." .
+calm:CalmTransitionDirection\#source-to-destination dcterms:title "source to destination" ;
+	a owl:Class ;
+	rdfs:label "source-to-destination" ;
+	rdfs:subClassOf calm:CalmTransitionDirection ;
+	skos:definition "From the relationship's source to its destination." .
+calm:CalmTransitionDirection a owl:Class ;
+	rdfs:label "CalmTransitionDirection" ;
+	owl:unionOf _:c14n115 ;
+	skos:definition "The direction of a transition along its relationship." ;
+	skos:inScheme calm:calm_flow ;
+	linkml:permissible_values calm:CalmTransitionDirection\#destination-to-source , calm:CalmTransitionDirection\#source-to-destination .
+calm:actor a owl:DatatypeProperty ;
+	rdfs:label "actor" ;
+	skos:definition "The unique-id of the node that acts." ;
+	skos:inScheme calm:calm_core .
+calm:adrs a owl:DatatypeProperty .
+calm:applies_to a owl:DatatypeProperty ;
+	rdfs:label "applies_to" ;
+	skos:definition "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements" ;
+	skos:inScheme calm:calm_decorators ;
+	skos:prefLabel "applies-to" .
+calm:composed_of a owl:ObjectProperty ;
+	rdfs:label "composed_of" ;
+	skos:definition "Nodes that make up a container node." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "composed-of" .
+calm:config a owl:ObjectProperty .
+calm:config_url a owl:DatatypeProperty ;
+	rdfs:label "config_url" ;
+	skos:definition "The configuration of how the control requirement schema is met" ;
+	skos:inScheme calm:calm_control ;
+	skos:prefLabel "config-url" .
+calm:connects a owl:ObjectProperty ;
+	rdfs:label "connects" ;
+	skos:definition "A connection from one node's interfaces to another's." ;
+	skos:inScheme calm:calm_core .
+calm:container a owl:DatatypeProperty .
+calm:control_config_url a owl:DatatypeProperty ;
+	rdfs:label "control_config_url" ;
+	skos:definition "URI for the control configuration this evidence relates to" ;
+	skos:inScheme calm:calm_evidence ;
+	skos:prefLabel "control-config-url" .
+calm:control_id a owl:DatatypeProperty ;
+	rdfs:label "control_id" ;
+	skos:definition "The unique identifier of this control, which has the potential to be used for linking evidence" ;
+	skos:inScheme calm:calm_control_requirement ;
+	skos:prefLabel "control-id" .
+calm:controls a owl:DatatypeProperty , owl:ObjectProperty .
+calm:current_moment a owl:DatatypeProperty ;
+	rdfs:label "current_moment" ;
+	skos:definition "The unique-id of the current architecture moment within the timeline." ;
+	skos:inScheme calm:calm_timeline ;
+	skos:prefLabel "current-moment" .
+calm:data a owl:ObjectProperty ;
+	rdfs:label "data" ;
+	skos:definition "Free-form JSON object containing the decorator's data" ;
+	skos:inScheme calm:calm_decorators .
+calm:decorator_schema a owl:DatatypeProperty ;
+	rdfs:label "decorator_schema" ;
+	skos:altLabel "$schema" ;
+	skos:definition "URI of the schema that this decorator conforms to, for example a decorator standard" ;
+	skos:inScheme calm:calm_decorators ;
+	skos:note "CALM's key is $schema, listed under aliases rather than as the alias, because gen-python makes an alias the attribute's name and $schema is no Python name. scripts/calm_meta.py writes the key as $schema." .
+calm:decorator_type a owl:DatatypeProperty ;
+	rdfs:label "decorator_type" ;
+	skos:definition "Type of decorator - a free-form string identifying the decorator category" ;
+	skos:inScheme calm:calm_decorators ;
+	skos:prefLabel "type" .
+calm:definition_url a owl:DatatypeProperty ;
+	rdfs:label "definition_url" ;
+	skos:definition "URI of the external schema this interface configuration conforms to" ;
+	skos:inScheme calm:calm_interface ;
+	skos:prefLabel "definition-url" .
+calm:deployed_in a owl:ObjectProperty ;
+	rdfs:label "deployed_in" ;
+	skos:definition "Nodes deployed in a container node." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "deployed-in" .
+calm:description a owl:DatatypeProperty ;
+	rdfs:label "description" ;
+	skos:definition "A description of a control and how it applies to a given architecture" , "A more detailed description of the control and information on what a developer needs to consider" , "Detailed description of the flow's purpose" , "Functional summary of what is happening in the transition" , "What choosing this option means." , "What the node is and does." , "What the relationship is for." ;
+	skos:inScheme calm:calm_control , calm:calm_control_requirement , calm:calm_core , calm:calm_flow .
+calm:destination a owl:ObjectProperty ;
+	rdfs:label "destination" ;
+	skos:definition "The end the connection reaches." ;
+	skos:inScheme calm:calm_core .
+calm:detailed_architecture a owl:DatatypeProperty ;
+	rdfs:label "detailed_architecture" ;
+	skos:definition "The address of an architecture document that describes this node in detail." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "detailed-architecture" .
+calm:details a owl:ObjectProperty ;
+	rdfs:label "details" ;
+	skos:definition "Where a more detailed architecture of this node is, and the pattern it must follow." ;
+	skos:inScheme calm:calm_core .
+calm:direction a owl:ObjectProperty ;
+	rdfs:label "direction" ;
+	skos:definition "Which way along the relationship the step goes." ;
+	skos:inScheme calm:calm_flow .
+calm:evidence a owl:ObjectProperty ;
+	rdfs:label "evidence" ;
+	skos:definition "The evidence this document holds." ;
+	skos:inScheme calm:calm_evidence .
+calm:evidence_paths a owl:DatatypeProperty ;
+	rdfs:label "evidence_paths" ;
+	skos:definition "Paths to the evidence relating to a specific control" ;
+	skos:inScheme calm:calm_evidence ;
+	skos:prefLabel "evidence-paths" .
+calm:flows a owl:ObjectProperty ;
+	rdfs:label "flows" ;
+	skos:definition "The business flows that run across the architecture." ;
+	skos:inScheme <https://w3id.org/lmodel/calm> .
+calm:interacts a owl:ObjectProperty ;
+	rdfs:label "interacts" ;
+	skos:definition "An actor that interacts with nodes." ;
+	skos:inScheme calm:calm_core .
+calm:interfaces a owl:DatatypeProperty .
+calm:metadata a owl:ObjectProperty .
+calm:moments a owl:ObjectProperty ;
+	rdfs:label "moments" ;
+	skos:definition "A list of significant architecture states or points in time, each represented as a 'moment'." ;
+	skos:inScheme calm:calm_timeline .
+calm:name a owl:DatatypeProperty ;
+	rdfs:label "name" ;
+	skos:definition "Descriptive name for the business flow" , "The name of the control requirement that provides contextual meaning within a given domain" , "The node's name." ;
+	skos:inScheme calm:calm_control_requirement , calm:calm_core , calm:calm_flow .
+calm:node a owl:DatatypeProperty ;
+	rdfs:label "node" ;
+	skos:definition "The unique-id of the node at this end." ;
+	skos:inScheme calm:calm_interface .
+calm:node_type a owl:DatatypeProperty ;
+	rdfs:label "node_type" ;
+	skos:definition "What kind of node this is, one of CALM's built-in types or any other name." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "node-type" .
+calm:nodes a owl:DatatypeProperty , owl:ObjectProperty .
+calm:options a owl:ObjectProperty ;
+	rdfs:label "options" ;
+	skos:definition "Decisions between options, each naming the nodes and relationships it would add." ;
+	skos:inScheme calm:calm_core .
+calm:per a owl:ObjectProperty ;
+	rdfs:label "per" ;
+	skos:definition "The time unit defining the rate interval." ;
+	skos:inScheme calm:calm_units .
+calm:protocol a owl:ObjectProperty ;
+	rdfs:label "protocol" ;
+	skos:definition "The protocol a connection uses." ;
+	skos:inScheme calm:calm_core .
+calm:rate a owl:DatatypeProperty ;
+	rdfs:label "rate" ;
+	skos:definition "The numeric value representing the rate." ;
+	skos:inScheme calm:calm_units .
+calm:relationship_type a owl:ObjectProperty ;
+	rdfs:label "relationship_type" ;
+	skos:definition "The kind of the relationship and the nodes it links." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "relationship-type" .
+calm:relationship_unique_id a owl:DatatypeProperty ;
+	rdfs:label "relationship_unique_id" ;
+	skos:definition "Unique identifier for the relationship in the architecture" ;
+	skos:inScheme calm:calm_flow ;
+	skos:prefLabel "relationship-unique-id" .
+calm:relationships a owl:DatatypeProperty , owl:ObjectProperty .
+calm:required_pattern a owl:DatatypeProperty ;
+	rdfs:label "required_pattern" ;
+	skos:definition "The address of a pattern that the detailed architecture must follow." ;
+	skos:inScheme calm:calm_core ;
+	skos:prefLabel "required-pattern" .
+calm:requirement_url a owl:DatatypeProperty .
+calm:requirements a owl:ObjectProperty ;
+	rdfs:label "requirements" ;
+	skos:definition "The requirements this control applies, each with its configuration." ;
+	skos:inScheme calm:calm_control .
+calm:sequence_number a owl:DatatypeProperty ;
+	rdfs:label "sequence_number" ;
+	skos:definition "Indicates the sequence of the relationship in the flow" ;
+	skos:inScheme calm:calm_flow ;
+	skos:prefLabel "sequence-number" .
+calm:source a owl:ObjectProperty ;
+	rdfs:label "source" ;
+	skos:definition "The end that opens the connection." ;
+	skos:inScheme calm:calm_core .
+calm:target a owl:DatatypeProperty ;
+	rdfs:label "target" ;
+	skos:definition "Array of file paths or URLs referencing the CALM architectures this decorator targets" ;
+	skos:inScheme calm:calm_decorators .
+calm:target_type a owl:ObjectProperty ;
+	rdfs:label "target_type" ;
+	skos:definition "Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements." ;
+	skos:inScheme calm:calm_decorators ;
+	skos:prefLabel "target-type" .
+calm:transitions a owl:ObjectProperty ;
+	rdfs:label "transitions" ;
+	skos:definition "The steps of the flow, each across one relationship." ;
+	skos:inScheme calm:calm_flow .
+calm:unique_id a owl:DatatypeProperty .
+calm:unit a owl:ObjectProperty ;
+	rdfs:label "unit" ;
+	skos:definition "The unit of time (e.g., seconds, minutes, hours)." ;
+	skos:inScheme calm:calm_units .
+calm:valid_from a owl:DatatypeProperty ;
+	rdfs:label "valid_from" ;
+	skos:definition "The date when this architecture moment came into effect." ;
+	skos:inScheme calm:calm_timeline ;
+	skos:prefLabel "valid-from" .
+calm:value a owl:DatatypeProperty ;
+	rdfs:label "value" ;
+	skos:definition "The numeric value representing the amount of time." ;
+	skos:inScheme calm:calm_units .
+_:c14n0 rdf:first calm:CalmNodeTypeDefinition\#data-asset ;
+	rdf:rest rdf:nil .
+_:c14n1 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:nodes .
+_:c14n10 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:controls .
+_:c14n100 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:nodes .
+_:c14n101 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:target .
+_:c14n102 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:sequence_number .
+_:c14n103 rdf:first _:c14n281 ;
+	rdf:rest _:c14n319 .
+_:c14n104 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:controls .
+_:c14n105 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:options .
+_:c14n106 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmNodeInterface ;
+	owl:onProperty calm:destination .
+_:c14n107 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:protocol .
+_:c14n108 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:control_config_url .
+_:c14n109 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:node_type .
+_:c14n11 rdf:first calm:CalmProtocol\#TCP ;
+	rdf:rest rdf:nil .
+_:c14n110 rdf:first calm:CalmInterfaceType ;
+	rdf:rest rdf:nil .
+_:c14n111 rdf:first calm:CalmTimeUnitName\#hours ;
+	rdf:rest _:c14n7 .
+_:c14n112 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControlDetail ;
+	owl:onProperty calm:requirements .
+_:c14n113 rdf:first calm:CalmTimeUnitName\#weeks ;
+	rdf:rest _:c14n261 .
+_:c14n114 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n115 rdf:first calm:CalmTransitionDirection\#source-to-destination ;
+	rdf:rest _:c14n280 .
+_:c14n116 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:node_type .
+_:c14n117 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:definition_url .
+_:c14n118 a owl:Restriction ;
+	owl:allValuesFrom _:c14n52 ;
+	owl:onProperty calm:interfaces .
+_:c14n119 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmRateInterval ;
+	owl:onProperty calm:per .
+_:c14n12 a owl:Restriction ;
+	owl:allValuesFrom _:c14n306 ;
+	owl:onProperty calm:rate .
+_:c14n120 rdf:first calm:CalmProtocol\#WebSocket ;
+	rdf:rest _:c14n203 .
+_:c14n121 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:decorator_schema .
+_:c14n122 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:config_url .
+_:c14n123 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:rate .
+_:c14n124 rdf:first calm:CalmNodeTypeDefinition\#database ;
+	rdf:rest _:c14n224 .
+_:c14n125 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:controls .
+_:c14n126 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n127 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmMetadata ;
+	owl:onProperty calm:metadata .
+_:c14n128 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n129 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n13 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmInterfaceConfig ;
+	owl:onProperty calm:config .
+_:c14n130 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:protocol .
+_:c14n131 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n132 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n133 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:source .
+_:c14n134 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:node .
+_:c14n135 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n136 rdf:first xsd:string ;
+	rdf:rest rdf:nil .
+_:c14n137 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:interfaces .
+_:c14n138 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:requirement_url .
+_:c14n139 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmMetadata ;
+	owl:onProperty calm:metadata .
+_:c14n14 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControls ;
+	owl:onProperty calm:controls .
+_:c14n140 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:interfaces .
+_:c14n141 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:requirement_url .
+_:c14n142 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:config .
+_:c14n143 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmDeployedInType ;
+	owl:onProperty calm:deployed_in .
+_:c14n144 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n145 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:evidence_paths .
+_:c14n146 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControlConfig ;
+	owl:onProperty calm:config .
+_:c14n147 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n148 xsd:pattern "^([0-5]?\\d)\\s([01]?\\d|2[0-3])\\s(3[01]|[12]\\d|0?[1-9])\\s(1[0-2]|0?[1-9])\\s([0-6])$" .
+_:c14n149 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:controls .
+_:c14n15 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n150 rdf:first calm:CalmTimeUnitName\#microseconds ;
+	rdf:rest _:c14n25 .
+_:c14n151 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:details .
+_:c14n152 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:detailed_architecture .
+_:c14n153 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:relationships .
+_:c14n154 rdf:first calm:CalmProtocol\#HTTP ;
+	rdf:rest _:c14n89 .
+_:c14n155 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:nodes .
+_:c14n156 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:evidence .
+_:c14n157 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n158 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:requirement_url .
+_:c14n159 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:applies_to .
+_:c14n16 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n160 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmDecoratorTargetType ;
+	owl:onProperty calm:target_type .
+_:c14n161 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n162 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:nodes .
+_:c14n163 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:decorator_type .
+_:c14n164 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmTransition ;
+	owl:onProperty calm:transitions .
+_:c14n165 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:evidence .
+_:c14n166 rdf:first calm:CalmTimeUnitName\#seconds ;
+	rdf:rest _:c14n170 .
+_:c14n167 a rdfs:Datatype ;
+	owl:unionOf _:c14n264 .
+_:c14n168 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:detailed_architecture .
+_:c14n169 rdf:first calm:CalmRateInterval\#quarter ;
+	rdf:rest _:c14n214 .
+_:c14n17 rdf:first calm:CalmNodeTypeDefinition\#system ;
+	rdf:rest _:c14n41 .
+_:c14n170 rdf:first calm:CalmTimeUnitName\#minutes ;
+	rdf:rest _:c14n111 .
+_:c14n171 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:config .
+_:c14n172 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n173 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:moments .
+_:c14n174 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:data .
+_:c14n175 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:control_config_url .
+_:c14n176 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:composed_of .
+_:c14n177 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:metadata .
+_:c14n178 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:target_type .
+_:c14n179 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:metadata .
+_:c14n18 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmNodeInterface ;
+	owl:onProperty calm:source .
+_:c14n180 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmMetadata ;
+	owl:onProperty calm:metadata .
+_:c14n181 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmNodeDetails ;
+	owl:onProperty calm:details .
+_:c14n182 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n183 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:interacts .
+_:c14n184 rdf:first calm:CalmRateInterval\#hour ;
+	rdf:rest _:c14n256 .
+_:c14n185 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:required_pattern .
+_:c14n186 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:metadata .
+_:c14n187 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:controls .
+_:c14n188 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:destination .
+_:c14n189 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:decorator_schema .
+_:c14n19 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:interfaces .
+_:c14n190 rdf:first calm:CalmRateInterval\#nanosecond ;
+	rdf:rest _:c14n95 .
+_:c14n191 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:value .
+_:c14n192 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:required_pattern .
+_:c14n193 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:config_url .
+_:c14n194 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n195 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:direction .
+_:c14n196 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmRelationshipType ;
+	owl:onProperty calm:relationship_type .
+_:c14n197 rdf:first calm:CalmTimeUnitName\#quarters ;
+	rdf:rest _:c14n32 .
+_:c14n198 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:relationship_type .
+_:c14n199 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:control_id .
+_:c14n2 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:applies_to .
+_:c14n20 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:relationship_unique_id .
+_:c14n200 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:requirement_url .
+_:c14n201 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmTransitionDirection ;
+	owl:onProperty calm:direction .
+_:c14n202 owl:intersectionOf _:c14n103 .
+_:c14n203 rdf:first calm:CalmProtocol\#SocketIO ;
+	rdf:rest _:c14n238 .
+_:c14n204 a owl:Restriction ;
+	owl:allValuesFrom xsd:integer ;
+	owl:onProperty calm:sequence_number .
+_:c14n205 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n206 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:metadata .
+_:c14n207 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:config .
+_:c14n208 rdf:first calm:CalmRateInterval\#week ;
+	rdf:rest _:c14n221 .
+_:c14n209 rdf:first xsd:string ;
+	rdf:rest _:c14n321 .
+_:c14n21 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmMetadata ;
+	owl:onProperty calm:metadata .
+_:c14n210 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:container .
+_:c14n211 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n212 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:definition_url .
+_:c14n213 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n214 rdf:first calm:CalmRateInterval\#year ;
+	rdf:rest rdf:nil .
+_:c14n215 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unit .
+_:c14n216 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:config_url .
+_:c14n217 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:source .
+_:c14n218 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:details .
+_:c14n219 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:metadata .
+_:c14n22 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:deployed_in .
+_:c14n220 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n221 rdf:first calm:CalmRateInterval\#month ;
+	rdf:rest _:c14n169 .
+_:c14n222 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:deployed_in .
+_:c14n223 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:control_id .
+_:c14n224 rdf:first calm:CalmNodeTypeDefinition\#network ;
+	rdf:rest _:c14n44 .
+_:c14n225 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:relationships .
+_:c14n226 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:current_moment .
+_:c14n227 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:metadata .
+_:c14n228 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n229 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:relationships .
+_:c14n23 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:config_url .
+_:c14n230 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:composed_of .
+_:c14n231 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:connects .
+_:c14n232 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:per .
+_:c14n233 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n234 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:definition_url .
+_:c14n235 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:adrs .
+_:c14n236 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:valid_from .
+_:c14n237 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n238 rdf:first calm:CalmProtocol\#LDAP ;
+	rdf:rest _:c14n84 .
+_:c14n239 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmComposedOfType ;
+	owl:onProperty calm:composed_of .
+_:c14n24 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:adrs .
+_:c14n240 rdf:first calm:CalmRateInterval\#minute ;
+	rdf:rest _:c14n184 .
+_:c14n241 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:value .
+_:c14n242 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:metadata .
+_:c14n243 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:adrs .
+_:c14n244 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n245 rdf:first calm:CalmNodeTypeDefinition\#webclient ;
+	rdf:rest _:c14n0 .
+_:c14n246 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmFlow ;
+	owl:onProperty calm:flows .
+_:c14n247 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:container .
+_:c14n248 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:nodes .
+_:c14n249 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:relationship_type .
+_:c14n25 rdf:first calm:CalmTimeUnitName\#milliseconds ;
+	rdf:rest _:c14n166 .
+_:c14n250 rdf:first calm:CalmProtocol\#mTLS ;
+	rdf:rest _:c14n11 .
+_:c14n251 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:decorator_type .
+_:c14n252 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n253 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:transitions .
+_:c14n254 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n255 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmNode ;
+	owl:onProperty calm:nodes .
+_:c14n256 rdf:first calm:CalmRateInterval\#day ;
+	rdf:rest _:c14n208 .
+_:c14n257 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:interacts .
+_:c14n258 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:decorator_schema .
+_:c14n259 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:config .
+_:c14n26 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:node .
+_:c14n260 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:controls .
+_:c14n261 rdf:first calm:CalmTimeUnitName\#months ;
+	rdf:rest _:c14n197 .
+_:c14n262 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:current_moment .
+_:c14n263 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:metadata .
+_:c14n264 rdf:first calm:CalmNodeTypeDefinition ;
+	rdf:rest _:c14n136 .
+_:c14n265 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmEvidence ;
+	owl:onProperty calm:evidence .
+_:c14n266 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmInteractsType ;
+	owl:onProperty calm:interacts .
+_:c14n267 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:required_pattern .
+_:c14n268 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n269 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:deployed_in .
+_:c14n27 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:actor .
+_:c14n270 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:requirement_url .
+_:c14n271 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n272 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:control_id .
+_:c14n273 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:details .
+_:c14n274 rdf:first calm:CalmRateInterval\#millisecond ;
+	rdf:rest _:c14n65 .
+_:c14n275 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:controls .
+_:c14n276 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:container .
+_:c14n277 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unit .
+_:c14n278 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:composed_of .
+_:c14n279 a owl:Restriction ;
+	owl:allValuesFrom _:c14n312 ;
+	owl:onProperty calm:value .
+_:c14n28 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:interacts .
+_:c14n280 rdf:first calm:CalmTransitionDirection\#destination-to-source ;
+	rdf:rest rdf:nil .
+_:c14n281 a owl:Restriction ;
+	owl:allValuesFrom _:c14n51 ;
+	owl:onProperty calm:node_type .
+_:c14n282 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n283 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:nodes .
+_:c14n284 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:current_moment .
+_:c14n285 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n286 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:flows .
+_:c14n287 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:rate .
+_:c14n288 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:controls .
+_:c14n289 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n29 rdf:first "moment" ;
+	rdf:rest rdf:nil .
+_:c14n290 rdf:first calm:CalmProtocol\#FTP ;
+	rdf:rest _:c14n48 .
+_:c14n291 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:description .
+_:c14n292 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:requirement_url .
+_:c14n293 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:controls .
+_:c14n294 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:connects .
+_:c14n295 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:config .
+_:c14n296 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n297 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:relationship_unique_id .
+_:c14n298 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n299 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:container .
+_:c14n3 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:decorator_type .
+_:c14n30 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n300 rdf:first _:c14n216 ;
+	rdf:rest _:c14n322 .
+_:c14n301 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControls ;
+	owl:onProperty calm:controls .
+_:c14n302 rdf:first calm:CalmTimeUnitName\#nanoseconds ;
+	rdf:rest _:c14n150 .
+_:c14n303 a rdfs:Datatype ;
+	owl:onDatatype xsd:integer ;
+	owl:withRestrictions _:c14n307 .
+_:c14n304 rdf:first _:c14n303 ;
+	rdf:rest rdf:nil .
+_:c14n305 rdf:first xsd:float ;
+	rdf:rest _:c14n304 .
+_:c14n306 a rdfs:Datatype ;
+	owl:intersectionOf _:c14n305 .
+_:c14n307 rdf:first _:c14n308 ;
+	rdf:rest rdf:nil .
+_:c14n308 xsd:minInclusive 0 .
+_:c14n309 a rdfs:Datatype ;
+	owl:onDatatype xsd:integer ;
+	owl:withRestrictions _:c14n313 .
+_:c14n31 a rdfs:Datatype ;
+	owl:onDatatype xsd:string ;
+	owl:withRestrictions _:c14n323 .
+_:c14n310 rdf:first _:c14n309 ;
+	rdf:rest rdf:nil .
+_:c14n311 rdf:first xsd:float ;
+	rdf:rest _:c14n310 .
+_:c14n312 a rdfs:Datatype ;
+	owl:intersectionOf _:c14n311 .
+_:c14n313 rdf:first _:c14n314 ;
+	rdf:rest rdf:nil .
+_:c14n314 xsd:minInclusive 0 .
+_:c14n315 rdf:first _:c14n257 ;
+	rdf:rest _:c14n316 .
+_:c14n316 rdf:first _:c14n76 ;
+	rdf:rest _:c14n317 .
+_:c14n317 rdf:first _:c14n74 ;
+	rdf:rest rdf:nil .
+_:c14n318 rdf:first _:c14n176 ;
+	rdf:rest _:c14n315 .
+_:c14n319 rdf:first _:c14n151 ;
+	rdf:rest _:c14n320 .
+_:c14n32 rdf:first calm:CalmTimeUnitName\#years ;
+	rdf:rest rdf:nil .
+_:c14n320 rdf:first _:c14n137 ;
+	rdf:rest rdf:nil .
+_:c14n321 rdf:first _:c14n31 ;
+	rdf:rest rdf:nil .
+_:c14n322 rdf:first _:c14n295 ;
+	rdf:rest rdf:nil .
+_:c14n323 rdf:first _:c14n148 ;
+	rdf:rest rdf:nil .
+_:c14n33 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:nodes .
+_:c14n34 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmTimeUnitName ;
+	owl:onProperty calm:unit .
+_:c14n35 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:destination .
+_:c14n36 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:per .
+_:c14n37 a rdfs:Datatype ;
+	owl:intersectionOf _:c14n78 .
+_:c14n38 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n39 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:nodes .
+_:c14n4 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n40 rdf:first _:c14n269 ;
+	rdf:rest _:c14n318 .
+_:c14n41 rdf:first calm:CalmNodeTypeDefinition\#service ;
+	rdf:rest _:c14n124 .
+_:c14n42 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n43 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:direction .
+_:c14n44 rdf:first calm:CalmNodeTypeDefinition\#ldap ;
+	rdf:rest _:c14n245 .
+_:c14n45 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:controls .
+_:c14n46 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:adrs .
+_:c14n47 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n48 rdf:first calm:CalmProtocol\#SFTP ;
+	rdf:rest _:c14n86 .
+_:c14n49 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:sequence_number .
+_:c14n5 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmRelationship ;
+	owl:onProperty calm:relationships .
+_:c14n50 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmMetadata ;
+	owl:onProperty calm:metadata .
+_:c14n51 a rdfs:Datatype ;
+	owl:oneOf _:c14n29 .
+_:c14n52 owl:unionOf _:c14n96 .
+_:c14n53 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:node .
+_:c14n54 a owl:Restriction ;
+	owl:allValuesFrom _:c14n167 ;
+	owl:onProperty calm:node_type .
+_:c14n55 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControls ;
+	owl:onProperty calm:controls .
+_:c14n56 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:metadata .
+_:c14n57 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmProtocol ;
+	owl:onProperty calm:protocol .
+_:c14n58 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:control_config_url .
+_:c14n59 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmDecoratorData ;
+	owl:onProperty calm:data .
+_:c14n6 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:target .
+_:c14n60 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:unique_id .
+_:c14n61 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:nodes .
+_:c14n62 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:interfaces .
+_:c14n63 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:evidence_paths .
+_:c14n64 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:actor .
+_:c14n65 rdf:first calm:CalmRateInterval\#second ;
+	rdf:rest _:c14n240 .
+_:c14n66 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:name .
+_:c14n67 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:relationship_unique_id .
+_:c14n68 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:name .
+_:c14n69 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:actor .
+_:c14n7 rdf:first calm:CalmTimeUnitName\#days ;
+	rdf:rest _:c14n113 .
+_:c14n70 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmConnectsType ;
+	owl:onProperty calm:connects .
+_:c14n71 a owl:Restriction ;
+	owl:allValuesFrom xsd:date ;
+	owl:onProperty calm:valid_from .
+_:c14n72 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n73 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:valid_from .
+_:c14n74 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:options .
+_:c14n75 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:detailed_architecture .
+_:c14n76 a owl:Restriction ;
+	owl:allValuesFrom owl:Thing ;
+	owl:onProperty calm:connects .
+_:c14n77 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:container .
+_:c14n78 rdf:first xsd:string ;
+	rdf:rest _:c14n209 .
+_:c14n79 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:name .
+_:c14n8 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:metadata .
+_:c14n80 rdf:first calm:CalmProtocol\#TLS ;
+	rdf:rest _:c14n250 .
+_:c14n81 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:data .
+_:c14n82 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmDecision ;
+	owl:onProperty calm:options .
+_:c14n83 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:container .
+_:c14n84 rdf:first calm:CalmProtocol\#AMQP ;
+	rdf:rest _:c14n80 .
+_:c14n85 a owl:Restriction ;
+	owl:allValuesFrom xsd:string ;
+	owl:onProperty calm:name .
+_:c14n86 rdf:first calm:CalmProtocol\#JDBC ;
+	rdf:rest _:c14n120 .
+_:c14n87 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n88 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:requirements .
+_:c14n89 rdf:first calm:CalmProtocol\#HTTPS ;
+	rdf:rest _:c14n290 .
+_:c14n9 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmNodeMoment ;
+	owl:onProperty calm:moments .
+_:c14n90 a owl:Restriction ;
+	owl:minCardinality 0 ;
+	owl:onProperty calm:description .
+_:c14n91 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:description .
+_:c14n92 rdf:first calm:CalmNodeTypeDefinition\#actor ;
+	rdf:rest _:c14n94 .
+_:c14n93 a owl:Restriction ;
+	owl:minCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n94 rdf:first calm:CalmNodeTypeDefinition\#ecosystem ;
+	rdf:rest _:c14n17 .
+_:c14n95 rdf:first calm:CalmRateInterval\#microsecond ;
+	rdf:rest _:c14n274 .
+_:c14n96 rdf:first calm:CalmInterfaceDefinition ;
+	rdf:rest _:c14n110 .
+_:c14n97 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n98 a owl:Restriction ;
+	owl:maxCardinality 1 ;
+	owl:onProperty calm:unique_id .
+_:c14n99 a owl:Restriction ;
+	owl:allValuesFrom calm:CalmControls ;
+	owl:onProperty calm:controls .
+

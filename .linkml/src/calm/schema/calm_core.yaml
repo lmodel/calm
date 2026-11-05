@@ -1,0 +1,330 @@
+---
+id: https://w3id.org/lmodel/calm/calm_core
+name: calm_core
+title: Common Architecture Language Model (CALM) Vocab
+description: >-
+  The nodes and relationships of a CALM architecture, the four kinds of relationship
+  and the decisions between options, and the protocols and metadata they carry.
+version: '1.3'
+source: https://github.com/finos/calm-schema/blob/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema/core.json
+license: Apache-2.0
+see_also:
+  - https://lmodel.github.io/calm
+  - https://calm.finos.org/release/1.3/meta/core.json
+comments:
+  - >-
+    Renders the definitions of core.json of CALM 1.3. The architecture itself, the
+    root of core.json, is CalmArchitecture in the umbrella module calm, so that no
+    module imports one that imports it back. The title, and every description CALM
+    gives an element, are CALM's own words; the others are this project's. CALM
+    gives the file no description.
+
+prefixes:
+  calm: https://w3id.org/lmodel/calm/
+  calm_meta: https://calm.finos.org/release/1.3/meta/
+  linkml: https://w3id.org/linkml/
+  schema: http://schema.org/
+default_prefix: calm
+default_range: string
+
+imports:
+  - linkml:types
+  - calm_control
+  - calm_interface
+
+classes:
+
+  CalmNode:
+    description: >-
+      A component of the architecture, such as a system, service, database or
+      actor, with its interfaces and controls.
+    exact_mappings:
+      - calm_meta:core.json#/defs/node
+    extra_slots:
+      allowed: true
+    attributes:
+      unique_id:
+        alias: unique-id
+        description: The node's identifier, unique within the architecture.
+        required: true
+      node_type:
+        alias: node-type
+        description: What kind of node this is, one of CALM's built-in types or any other name.
+        required: true
+        any_of:
+          - range: CalmNodeTypeDefinition
+          - range: string
+      name:
+        description: The node's name.
+        slot_uri: schema:name
+        required: true
+      description:
+        description: What the node is and does.
+        slot_uri: schema:description
+        required: true
+      details:
+        description: Where a more detailed architecture of this node is, and the pattern it must follow.
+        range: CalmNodeDetails
+        inlined: true
+      interfaces:
+        description: The interfaces the node exposes.
+        multivalued: true
+        inlined_as_list: true
+        any_of:
+          - range: CalmInterfaceDefinition
+            inlined: true
+          - range: CalmInterfaceType
+            inlined: true
+      controls:
+        description: The controls that apply to this node.
+        range: CalmControls
+        inlined: true
+      metadata:
+        description: Free-form metadata about this node.
+        range: CalmMetadata
+
+  CalmNodeDetails:
+    description: References from a node to a more detailed architecture and to the pattern it must follow.
+    attributes:
+      detailed_architecture:
+        alias: detailed-architecture
+        description: The address of an architecture document that describes this node in detail.
+      required_pattern:
+        alias: required-pattern
+        description: The address of a pattern that the detailed architecture must follow.
+
+  CalmRelationship:
+    description: A link between nodes, of one of CALM's kinds, or a choice between options.
+    exact_mappings:
+      - calm_meta:core.json#/defs/relationship
+    extra_slots:
+      allowed: true
+    attributes:
+      unique_id:
+        alias: unique-id
+        description: The relationship's identifier, unique within the architecture.
+        required: true
+      description:
+        description: What the relationship is for.
+        slot_uri: schema:description
+      relationship_type:
+        alias: relationship-type
+        description: The kind of the relationship and the nodes it links.
+        range: CalmRelationshipType
+        inlined: true
+        required: true
+      protocol:
+        description: The protocol a connection uses.
+        range: CalmProtocol
+      metadata:
+        description: Free-form metadata about this relationship.
+        range: CalmMetadata
+      controls:
+        description: The controls that apply to this relationship.
+        range: CalmControls
+        inlined: true
+
+  CalmRelationshipType:
+    description: >-
+      The kind of a relationship, given by exactly one of its keys: interacts,
+      connects, deployed-in, composed-of or options.
+    extra_slots:
+      allowed: true
+    exactly_one_of:
+      - slot_conditions:
+          deployed_in:
+            value_presence: PRESENT
+      - slot_conditions:
+          composed_of:
+            value_presence: PRESENT
+      - slot_conditions:
+          interacts:
+            value_presence: PRESENT
+      - slot_conditions:
+          connects:
+            value_presence: PRESENT
+      - slot_conditions:
+          options:
+            value_presence: PRESENT
+    attributes:
+      interacts:
+        description: An actor that interacts with nodes.
+        range: CalmInteractsType
+        inlined: true
+      connects:
+        description: A connection from one node's interfaces to another's.
+        range: CalmConnectsType
+        inlined: true
+      deployed_in:
+        alias: deployed-in
+        description: Nodes deployed in a container node.
+        range: CalmDeployedInType
+        inlined: true
+      composed_of:
+        alias: composed-of
+        description: Nodes that make up a container node.
+        range: CalmComposedOfType
+        inlined: true
+      options:
+        description: Decisions between options, each naming the nodes and relationships it would add.
+        range: CalmDecision
+        multivalued: true
+        inlined_as_list: true
+
+  CalmInteractsType:
+    description: A relationship in which an actor interacts with nodes.
+    exact_mappings:
+      - calm_meta:core.json#/defs/interacts-type
+    extra_slots:
+      allowed: true
+    attributes:
+      actor:
+        description: The unique-id of the node that acts.
+        required: true
+      nodes:
+        description: The unique-ids of the nodes it interacts with.
+        multivalued: true
+        minimum_cardinality: 1
+        required: true
+
+  CalmConnectsType:
+    description: A relationship in which one node connects to another through their interfaces.
+    exact_mappings:
+      - calm_meta:core.json#/defs/connects-type
+    extra_slots:
+      allowed: true
+    attributes:
+      source:
+        description: The end that opens the connection.
+        range: CalmNodeInterface
+        inlined: true
+        required: true
+      destination:
+        description: The end the connection reaches.
+        range: CalmNodeInterface
+        inlined: true
+        required: true
+
+  CalmDeployedInType:
+    description: A relationship in which nodes are deployed in a container node.
+    exact_mappings:
+      - calm_meta:core.json#/defs/deployed-in-type
+    extra_slots:
+      allowed: true
+    attributes:
+      container:
+        description: The unique-id of the node the others are deployed in.
+        required: true
+      nodes:
+        description: The unique-ids of the deployed nodes.
+        multivalued: true
+        minimum_cardinality: 1
+        required: true
+
+  CalmComposedOfType:
+    description: A relationship in which nodes make up a container node.
+    exact_mappings:
+      - calm_meta:core.json#/defs/composed-of-type
+    extra_slots:
+      allowed: true
+    attributes:
+      container:
+        description: The unique-id of the node the others make up.
+        required: true
+      nodes:
+        description: The unique-ids of the nodes it is made of.
+        multivalued: true
+        minimum_cardinality: 1
+        required: true
+
+  CalmDecision:
+    description: One option of a choice, naming the nodes, relationships and controls it would add.
+    exact_mappings:
+      - calm_meta:core.json#/defs/decision
+    extra_slots:
+      allowed: true
+    attributes:
+      description:
+        description: What choosing this option means.
+        slot_uri: schema:description
+        required: true
+      nodes:
+        description: The unique-ids of the nodes this option adds.
+        multivalued: true
+        required: true
+      relationships:
+        description: The unique-ids of the relationships this option adds.
+        multivalued: true
+        required: true
+      controls:
+        description: The keys of the controls this option adds.
+        multivalued: true
+
+  CalmMetadata:
+    description: Free-form metadata, as an object or a list of objects.
+    comments:
+      - >-
+        LinkML cannot state "an object, or a list of objects", so the class takes
+        any value, and the build writes it as a schema that accepts any value.
+    class_uri: linkml:Any
+    exact_mappings:
+      - calm_meta:core.json#/defs/metadata
+
+enums:
+
+  CalmProtocol:
+    description: The protocol a relationship uses.
+    exact_mappings:
+      - calm_meta:core.json#/defs/protocol
+    permissible_values:
+      HTTP:
+        description: Hypertext Transfer Protocol.
+      HTTPS:
+        description: HTTP over TLS.
+      FTP:
+        description: File Transfer Protocol.
+      SFTP:
+        description: SSH File Transfer Protocol.
+      JDBC:
+        description: Java Database Connectivity.
+      WebSocket:
+        description: The WebSocket protocol.
+      SocketIO:
+        description: The Socket.IO protocol.
+      LDAP:
+        description: Lightweight Directory Access Protocol.
+      AMQP:
+        description: Advanced Message Queuing Protocol.
+      TLS:
+        description: Transport Layer Security.
+      mTLS:
+        description: TLS in which both ends present a certificate.
+      TCP:
+        description: Transmission Control Protocol.
+
+  CalmNodeTypeDefinition:
+    description: >-
+      CALM's built-in node types. A node may also name a type of its own, so the
+      build publishes this list open to any other string.
+    exact_mappings:
+      - calm_meta:core.json#/defs/node-type-definition
+    permissible_values:
+      actor:
+        description: A person or system outside the architecture that acts on it.
+      ecosystem:
+        description: A group of systems that work together.
+      system:
+        description: A system made of other nodes.
+      service:
+        description: A service that runs in the architecture.
+      database:
+        description: A store of data.
+      network:
+        description: A network that nodes are deployed in.
+      ldap:
+        description: A directory service reached over LDAP.
+      webclient:
+        description: A client that runs in a web browser.
+      data-asset:
+        title: data asset
+        description: A body of data the architecture holds or moves.

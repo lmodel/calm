@@ -1,0 +1,281 @@
+# metamodel_version: 1.12.0
+# version: 1.3
+enum CalmDecoratorTargetType
+  {
+    architecture
+  }
+
+enum CalmNodeTypeDefinition
+  {
+    actor
+    ecosystem
+    system
+    service
+    database
+    network
+    ldap
+    webclient
+    data__HYPHEN_MINUS__asset
+  }
+
+enum CalmProtocol
+  {
+    HTTP
+    HTTPS
+    FTP
+    SFTP
+    JDBC
+    WebSocket
+    SocketIO
+    LDAP
+    AMQP
+    TLS
+    mTLS
+    TCP
+  }
+
+enum CalmRateInterval
+  {
+    nanosecond
+    microsecond
+    millisecond
+    second
+    minute
+    hour
+    day
+    week
+    month
+    quarter
+    year
+  }
+
+enum CalmTimeUnitName
+  {
+    nanoseconds
+    microseconds
+    milliseconds
+    seconds
+    minutes
+    hours
+    days
+    weeks
+    months
+    quarters
+    years
+  }
+
+enum CalmTransitionDirection
+  {
+    source__HYPHEN_MINUS__to__HYPHEN_MINUS__destination
+    destination__HYPHEN_MINUS__to__HYPHEN_MINUS__source
+  }
+
+type CalmArchitecture
+  {
+    nodes: [CalmNode]
+    relationships: [CalmRelationship]
+    metadata: CalmMetadata
+    controls: CalmControls
+    flows: [CalmFlow]
+    adrs: [String]
+  }
+
+type CalmComposedOfType
+  {
+    container: String!
+    nodes: [String]!
+  }
+
+type CalmConnectsType
+  {
+    source: CalmNodeInterface!
+    destination: CalmNodeInterface!
+  }
+
+type CalmControl
+  {
+    description: String!
+    requirements: [CalmControlDetail]!
+  }
+
+type CalmControlConfig
+  {
+  }
+
+type CalmControlDetail
+  {
+    requirement-url: String!
+    config-url: String
+    config: CalmControlConfig
+  }
+
+type CalmControlRequirement
+  {
+    control-id: String!
+    name: String!
+    description: String!
+  }
+
+type CalmControls
+  {
+  }
+
+type CalmDecision
+  {
+    description: String!
+    nodes: [String]!
+    relationships: [String]!
+    controls: [String]
+  }
+
+type CalmDecorator
+  {
+    decoratorSchema: String
+    unique-id: String!
+    type: String!
+    target-type: [CalmDecoratorTargetType]
+    target: [String]!
+    applies-to: [String]!
+    data: CalmDecoratorData!
+  }
+
+type CalmDecoratorData
+  {
+  }
+
+type CalmDeployedInType
+  {
+    container: String!
+    nodes: [String]!
+  }
+
+type CalmEvidence
+  {
+    unique-id: String!
+    evidence-paths: [String]!
+    control-config-url: String!
+  }
+
+type CalmEvidenceDocument
+  {
+    evidence: CalmEvidence!
+  }
+
+type CalmFlow
+  {
+    unique-id: String!
+    name: String!
+    description: String!
+    requirement-url: String
+    transitions: [CalmTransition]!
+    controls: CalmControls
+    metadata: CalmMetadata
+  }
+
+type CalmInteractsType
+  {
+    actor: String!
+    nodes: [String]!
+  }
+
+type CalmInterfaceConfig
+  {
+  }
+
+type CalmInterfaceDefinition
+  {
+    unique-id: String!
+    definition-url: String!
+    config: CalmInterfaceConfig!
+  }
+
+type CalmInterfaceType
+  {
+    unique-id: String!
+  }
+
+scalar CalmMetadata
+
+type CalmNode
+  {
+    unique-id: String!
+    node-type: String!
+    name: String!
+    description: String!
+    details: CalmNodeDetails
+    interfaces: [String]
+    controls: CalmControls
+    metadata: CalmMetadata
+  }
+
+type CalmNodeDetails
+  {
+    detailed-architecture: String
+    required-pattern: String
+  }
+
+type CalmNodeInterface
+  {
+    node: String!
+    interfaces: [String]
+  }
+
+type CalmNodeMoment
+  {
+    unique-id: String!
+    node-type: String!
+    name: String!
+    description: String!
+    details: CalmNodeDetails
+    interfaces: [String]
+    controls: CalmControls
+    metadata: CalmMetadata
+    valid-from: String
+    adrs: [String]
+  }
+
+type CalmRateUnit
+  {
+    rate: Float!
+    per: CalmRateInterval!
+  }
+
+type CalmRelationship
+  {
+    unique-id: String!
+    description: String
+    relationship-type: CalmRelationshipType!
+    protocol: CalmProtocol
+    metadata: CalmMetadata
+    controls: CalmControls
+  }
+
+type CalmRelationshipType
+  {
+    interacts: CalmInteractsType
+    connects: CalmConnectsType
+    deployed-in: CalmDeployedInType
+    composed-of: CalmComposedOfType
+    options: [CalmDecision]
+  }
+
+type CalmTimeline
+  {
+    current-moment: String
+    moments: [CalmNodeMoment]!
+    metadata: CalmMetadata
+  }
+
+type CalmTimeUnit
+  {
+    unit: CalmTimeUnitName!
+    value: Float!
+  }
+
+type CalmTransition
+  {
+    relationship-unique-id: String!
+    sequence-number: Int!
+    description: String!
+    direction: CalmTransitionDirection
+  }
