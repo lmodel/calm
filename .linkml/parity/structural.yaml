@@ -1,0 +1,32 @@
+# The definitions whose shape differs between CALM's published files and the
+# files the model gives, once tests/calm_parity.py has removed what does not change a
+# verdict. tests/test_parity.py fails when a definition differs that is not listed
+# here, or a listed one no longer differs. Each kind is one of:
+#   equivalent-form: both give the same verdicts where CALM uses the definition;
+#   model-gap: LinkML cannot state CALM's rule, and parity/probes.yaml shows the cost;
+#   upstream-fault: CALM's file is wrong here.
+differences:
+  core.json:
+    kind: upstream-fault
+    reason: >-
+      CALM nests additionalProperties: false inside properties, where it declares
+      a property of that name that no document may carry.
+  core.json#/defs/metadata:
+    kind: model-gap
+    reason: CALM's oneOf of a list of objects and an object; the model takes any value.
+  decorators.json#/defs/decorator:
+    kind: model-gap
+    reason: CALM's minProperties on data, which LinkML cannot state.
+  timeline.json:
+    kind: equivalent-form
+    reason: >-
+      CALM checks each moment against node and node-moment together; the model's
+      node-moment inherits node, so the moments refer to it alone.
+  timeline.json#/defs/node-moment:
+    kind: equivalent-form
+    reason: >-
+      CALM's definition holds only what a moment adds to a node; the model's holds
+      the whole node, so it is stricter only where CALM never uses it alone.
+  units.json:
+    kind: upstream-fault
+    reason: CALM closes a root that defines nothing.
