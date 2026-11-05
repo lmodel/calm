@@ -22,3 +22,8 @@ check-calm:
 [group('model development')]
 check-upstream:
   uv run python scripts/check_upstream_release.py
+
+# Write tests/upstream_tree.tsv from FINOS's tree at a commit, after a merge of it
+[group('model development')]
+pin-finos-tree commit:
+  uv run python scripts/pin_finos_tree.py {{commit}}
