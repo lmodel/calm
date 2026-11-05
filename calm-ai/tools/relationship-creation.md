@@ -10,7 +10,7 @@ Relationships connect nodes in your architecture and define how they interact or
 
 ## Official JSON Schema Definition
 
-The complete relationship schema from the FINOS CALM v1.2 specification:
+The complete relationship schema from the FINOS CALM v1.3 specification:
 
 ```json
 {
@@ -180,7 +180,7 @@ them as they convey rich information about how the overall architecture actually
 Descriptions should be concise but clarify the _intent_ of the relationship.  The preferred style is to omit the source and
 destination node names, but be very clear as to the directionality.  Examples:
 - "Reads customer information from and writes to" (e.g. a service querying a database)
-- "Sends traansactions to" (e.g. one service sending to another via a message queue)
+- "Sends transactions to" (e.g. one service sending to another via a message queue)
 - "Reviews trade summaries using" (e.g. a human interacting with a UI)
 
 ### Available Protocol Values

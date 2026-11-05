@@ -1,6 +1,6 @@
-import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, convertSpectralDiagnosticToValidationOutputs, stripRefs, exitBasedOffOfValidationOutcome, extractChoicesFromArchitecture } from './validate';
+import { validate, sortSpectralIssueBySeverity, convertJsonSchemaIssuesToValidationOutputs, convertSpectralDiagnosticToValidationOutputs, stripRefs, extractChoicesFromArchitecture } from './validate';
 import { ISpectralDiagnostic } from '@stoplight/spectral-core';
-import { ValidationOutcome, ValidationOutput } from './validation.output';
+import { ValidationOutput } from './validation.output';
 import { ErrorObject } from 'ajv';
 import { SchemaDirectory } from '../../schema-directory';
 
@@ -55,42 +55,6 @@ vi.mock('./json-schema-validator', () => {
 const debugDisabled = false;
 
 describe('validation support functions', () => {
-    describe('exitBasedOffOfValidationOutcome', () => {
-        let mockExit: ReturnType<typeof vi.spyOn>;
-
-        beforeEach(() => {
-            mockExit = vi.spyOn(process, 'exit')
-                .mockImplementation(function (code?) {
-                    if (code != 0) {
-                        throw new Error();
-                    }
-                    return undefined as never;
-                });
-        });
-
-        it('exit based off of validation outcomes - non-zero outcome if error', () => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = vi.spyOn(process, 'exit').mockImplementation(function (code?) { return undefined as never; });
-            const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], true, false);
-            exitBasedOffOfValidationOutcome(expectedValidationOutcome, false);
-            expect(mockExit).toHaveBeenCalledWith(1);
-        });
-
-        it('exit based off of validation outcomes - zero outcome if warning but failOnWarnings set to false', () => {
-            const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], false, true);
-            exitBasedOffOfValidationOutcome(expectedValidationOutcome, false);
-            expect(mockExit).toHaveBeenCalledWith(0);
-        });
-
-        it('exit based off of validation outcomes - non-zero outcome if warning but failOnWarnings set to true', () => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            mockExit = vi.spyOn(process, 'exit').mockImplementation(function (code?) { return undefined as never; });
-            const expectedValidationOutcome: ValidationOutcome = new ValidationOutcome([], [], false, true);
-            exitBasedOffOfValidationOutcome(expectedValidationOutcome, true);
-            expect(mockExit).toHaveBeenCalledWith(1);
-        });
-    });
-
     describe('sortSpectralIssueBySeverity', () => {
 
         it('should sort the spectral issues based on the severity', () => {
@@ -408,6 +372,25 @@ describe('validation support functions', () => {
             };
             const choices = extractChoicesFromArchitecture(architecture);
             expect(choices).toHaveLength(2);
+        });
+
+        it('records no choice for a decision with no answer', async () => {
+            // An anyOf decision may be answered with nothing, and calm generate writes that as [].
+            const architecture = {
+                relationships: [
+                    { 'unique-id': 'rel-1', 'relationship-type': { options: [] } },
+                    {
+                        'unique-id': 'rel-2',
+                        'relationship-type': {
+                            options: [
+                                { 'description': 'Option A', 'nodes': ['node-4'], 'relationships': [] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices.map(choice => choice.description)).toEqual(['Option A']);
         });
     });
 });

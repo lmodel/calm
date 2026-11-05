@@ -3,6 +3,7 @@ import path, { join } from 'path';
 import { TemplateProcessor } from './template-processor';
 import { CalmNodeSchema, CalmInterfaceTypeSchema } from '@finos/calm-models/types';
 import { expectDirectoryMatch } from '../test/file-comparison';
+import { calmSchemaDir } from '../test/test-utils';
 const FIXTURES_DIR = path.resolve(__dirname, '../../test_fixtures/template');
 const WORKSHOP_DIR = path.resolve(
     __dirname,
@@ -133,6 +134,26 @@ describe('TemplateProcessor E2E', () => {
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
 
         expect(actualContent).toEqual(expectedContent); // Compare file contents
+    });
+
+    it('should process a bundle with templates and partials in subdirectories', async () => {
+        const processor = new TemplateProcessor(
+            path.join(DATA_DIR, 'document-system.json'),
+            path.join(FIXTURES_DIR, 'bundles/nested'),
+            OUTPUT_DIR,
+            new Map<string, string>()
+        );
+        await processor.processTemplate();
+
+        const actualFile = path.join(OUTPUT_DIR, 'reports', 'actual-nested.txt');
+        const expectedFile = path.join(EXPECTED_OUTPUT_DIR, 'nested.txt');
+
+        expect(fs.existsSync(actualFile)).toBe(true);
+
+        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
+
+        expect(actualContent).toEqual(expectedContent);
     });
 
     it('should process a bundle with repeated output', async () => {
@@ -311,11 +332,8 @@ describe('TemplateProcessor E2E', () => {
 
         const mapping = new Map<string, string>([
             [
-                'https://calm.finos.org/release/1.0-rc2/meta/control-requirement.json',
-                join(
-                    WORKSHOP_DIR,
-                    '../release/1.0-rc2/meta/control-requirement.json'
-                ),
+                'https://calm.finos.org/release/1.3/meta/control-requirement.json',
+                join(calmSchemaDir('1.3'), 'control-requirement.json'),
             ],
             [
                 'https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json',

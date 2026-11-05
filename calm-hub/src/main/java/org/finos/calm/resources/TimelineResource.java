@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -31,7 +32,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Resource for managing explicit timelines in a given namespace.
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class TimelineResource {
 
     private final TimelineStore store;
@@ -129,7 +131,7 @@ public class TimelineResource {
     public Response getTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version
     ) {
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
@@ -236,8 +238,32 @@ public class TimelineResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/timelines/{timelineId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a timeline",
+            description = "Deletes a timeline and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteTimeline(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("timelineId") int timelineId
+    ) {
+        try {
+            store.deleteTimeline(namespace, timelineId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting timeline", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (TimelineNotFoundException e) {
+            logger.error("Invalid timeline [{}] when deleting timeline", timelineId, e);
+            return invalidTimelineResponse(timelineId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response timelineWithLocationResponse(Timeline timeline) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + timeline.getNamespace() + "/timelines/" + timeline.getId() + "/versions/" + timeline.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + timeline.getNamespace() + "/timelines/" + timeline.getId() + "/versions/" + timeline.getDotVersion())).build();
     }
 
     private Response invalidTimelineResponse(int timelineId) {

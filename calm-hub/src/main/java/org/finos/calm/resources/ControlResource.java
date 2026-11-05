@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -27,7 +29,9 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * REST resource for managing controls within domains.
  */
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
+@Authenticated
 public class ControlResource {
 
     private final ControlStore store;
@@ -49,7 +53,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getControlsForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain) {
         try {
             return Response.ok(new ValueWrapper<>(store.getControlsForDomain(domain))).build();
@@ -70,12 +74,12 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlForDomain(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             ControlDetail controlDetail = store.createControlRequirement(createControlRequirement, domain);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlDetail.getId())).entity(controlDetail).build();
         } catch (DomainNotFoundException domainNotFoundException) {
             logger.error("Invalid domain [{}] when creating control", domain, domainNotFoundException);
             return invalidDomainResponse(domain);
@@ -92,7 +96,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
@@ -116,11 +120,11 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
-            @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE)
             String version) {
         try {
             return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();
@@ -147,7 +151,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createRequirementForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
@@ -156,7 +160,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
         try {
             store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating requirement version", domain, e);
             return invalidDomainResponse(domain);
@@ -177,16 +181,16 @@ public class ControlResource {
     @Path("{domain}/controls/{controlId}/configurations")
     @Operation(
             summary = "Retrieve configurations for a control",
-            description = "Returns the list of configuration IDs for a given control"
+            description = "Returns the list of configurations (id, name, title) for a given control"
     )
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationsForControl(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationsForControl(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configurations", domain, e);
             return invalidDomainResponse(domain);
@@ -207,13 +211,13 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createControlConfiguration(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             int configurationId = store.createControlConfiguration(createControlConfiguration, domain, controlId);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration", domain, e);
             return invalidDomainResponse(domain);
@@ -233,7 +237,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationVersions(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId) {
@@ -261,7 +265,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     public Response getConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
@@ -296,7 +300,7 @@ public class ControlResource {
     @PermissionsAllowed(CalmHubScopes.DOMAIN_WRITE)
     public Response createConfigurationForVersion(
             @PathParam("domain")
-            @Pattern(regexp = DOMAIN_NAME_REGEX, message = DOMAIN_NAME_MESSAGE)
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("configId") int configId,
@@ -306,7 +310,7 @@ public class ControlResource {
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
         try {
             store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
-            return Response.created(URI.create("/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
+            return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when creating configuration version", domain, e);
             return invalidDomainResponse(domain);
@@ -325,6 +329,63 @@ public class ControlResource {
         }
     }
 
+    @DELETE
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{domain}/controls/{controlId}")
+    @Operation(
+            summary = "Delete a control requirement",
+            description = "Deletes a control requirement and all of its versions. Refuses if the control still has configurations. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteControlRequirement(
+            @PathParam("domain")
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlId") int controlId) {
+        try {
+            store.deleteControlRequirement(domain, controlId);
+        } catch (DomainNotFoundException e) {
+            logger.error("Invalid domain [{}] when deleting control", domain, e);
+            return invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return invalidControlResponse(controlId);
+        } catch (ControlHasConfigurationsException e) {
+            logger.error("Control [{}] has {} configuration(s) and cannot be deleted", controlId, e.getConfigurationCount(), e);
+            return controlHasConfigurationsResponse(e.getControlId(), e.getConfigurationCount());
+        }
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{domain}/controls/{controlId}/configurations/{configId}")
+    @Operation(
+            summary = "Delete a control configuration",
+            description = "Deletes a control configuration and all of its versions. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteControlConfiguration(
+            @PathParam("domain")
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlId") int controlId,
+            @PathParam("configId") int configId) {
+        try {
+            store.deleteControlConfiguration(domain, controlId, configId);
+        } catch (DomainNotFoundException e) {
+            logger.error("Invalid domain [{}] when deleting configuration", domain, e);
+            return invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return invalidControlResponse(controlId);
+        } catch (ControlConfigurationNotFoundException e) {
+            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
+            return invalidConfigurationResponse(configId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response invalidDomainResponse(String domain) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Invalid domain provided: " + STRICT_SANITIZATION_POLICY.sanitize(domain))
@@ -340,6 +401,12 @@ public class ControlResource {
     private Response invalidConfigurationResponse(int configId) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Configuration not found: " + configId)
+                .build();
+    }
+
+    private Response controlHasConfigurationsResponse(int controlId, int configurationCount) {
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Control " + controlId + " has " + configurationCount + " configuration(s) and cannot be deleted")
                 .build();
     }
 

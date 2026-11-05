@@ -5,14 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.standards.NamespaceStandardSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +30,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.*;
@@ -40,15 +44,18 @@ public class TestStandardResourceShould {
     @InjectMock
     StandardStore mockStandardStore;
 
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private NamespaceStandardSummary nistStandardSummary;
-    private NamespaceStandardSummary finosStandardSummary;
+    private NamespaceResourceSummary nistStandardSummary;
+    private NamespaceResourceSummary finosStandardSummary;
 
     @BeforeEach
     void beforeEach() {
-        nistStandardSummary = new NamespaceStandardSummary("nist", "NIST Standard",1);
-        finosStandardSummary = new NamespaceStandardSummary("finos", "FINOS Standard", 2);
+        nistStandardSummary = new NamespaceResourceSummary("nist", "NIST Standard", 1, 3);
+        finosStandardSummary = new NamespaceResourceSummary("finos", "FINOS Standard", 2, 1);
     }
 
     @Test
@@ -57,7 +64,7 @@ public class TestStandardResourceShould {
 
         given()
             .when()
-            .get("/calm/namespaces/invalid/standards")
+            .get("/api/calm/namespaces/invalid/standards")
             .then()
             .statusCode(404);
 
@@ -68,7 +75,7 @@ public class TestStandardResourceShould {
     void return_a_400_when_an_invalid_namespace_is_provided_on_get_standards() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/standards")
+                .get("/api/calm/namespaces/$$$$$/standards")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -76,26 +83,28 @@ public class TestStandardResourceShould {
 
     @Test
     void return_list_of_standards_response_when_valid_namespace_provided_on_get_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        List<NamespaceStandardSummary> expectedStandardSummary = List.of(this.nistStandardSummary, this.finosStandardSummary);
+        List<NamespaceResourceSummary> expectedStandardSummary = List.of(this.nistStandardSummary, this.finosStandardSummary);
 
         when(mockStandardStore.getStandardsForNamespace("valid")).thenReturn(expectedStandardSummary);
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/standards")
+                .get("/api/calm/namespaces/valid/standards")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("nist"))
                 .body("values[0].description", equalTo("NIST Standard"))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("finos"))
-                .body("values[1].description", equalTo("FINOS Standard"));
+                .body("values[1].description", equalTo("FINOS Standard"))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockStandardStore).getStandardsForNamespace("valid");
     }
 
     @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateStandardRequest createStandardRequest = new CreateStandardRequest();
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
@@ -105,11 +114,11 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/invalid/standards")
+                .post("/api/calm/namespaces/invalid/standards")
                 .then()
                 .statusCode(404);
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -123,7 +132,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/$$$$$/standards")
+                .post("/api/calm/namespaces/$$$$$/standards")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -136,25 +145,25 @@ public class TestStandardResourceShould {
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
         createStandardRequest.setStandardJson("{ \"test\": \"json\" }");
-        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid")).thenReturn(storedNist);
+        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid", "1.0.0")).thenReturn(storedNist);
 
         given()
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createStandardRequest))
                 .when()
-                .post("/calm/namespaces/valid/standards")
+                .post("/api/calm/namespaces/valid/standards")
                 .then()
                 .statusCode(201)
-                .header("Location",  containsString(("/calm/namespaces/valid/standards/5/versions/1.0.0")));
+                .header("Location",  containsString(("/api/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid", "1.0.0");
     }
 
     @Test
     void return_400_when_invalid_namespace_provided_when_getting_versions_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/standards/5/versions")
+                .get("/api/calm/namespaces/$$$$$/standards/5/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -181,14 +190,14 @@ public class TestStandardResourceShould {
         if(expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                 .when()
-                .get("/calm/namespaces/" + namespace + "/standards/5/versions")
+                .get("/api/calm/namespaces/" + namespace + "/standards/5/versions")
                 .then()
                 .statusCode(expectedStatusCode)
                 .body(containsString(expectedBody));
@@ -201,7 +210,7 @@ public class TestStandardResourceShould {
     void return_400_when_invalid_namespace_provided_when_getting_version_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$/standards/5/versions/1.0.0")
+                .get("/api/calm/namespaces/$$$$/standards/5/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -211,10 +220,20 @@ public class TestStandardResourceShould {
     void return_400_when_invalid_version_provided_when_getting_version_of_standard() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/standards/5/versions/invalid_version")
+                .get("/api/calm/namespaces/finos/standards/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_of_standard() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/standards/5/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetStandardTests() {
@@ -244,14 +263,14 @@ public class TestStandardResourceShould {
         if(expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{}"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -268,7 +287,7 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createStandardRequest)
                 .when()
-                .post("/calm/namespaces/$$$$/standards/5/versions/1.0.1")
+                .post("/api/calm/namespaces/$$$$/standards/5/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -285,10 +304,44 @@ public class TestStandardResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createStandardRequest)
                 .when()
-                .post("/calm/namespaces/finos/standards/5/versions/invalid-version")
+                .post("/api/calm/namespaces/finos/standards/5/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_standard() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createStandardRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void not_reject_a_snapshot_version_on_get_standard() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockStandardStore.getStandardForVersion(eq("finos"), eq(5), eq("1.0.0-SNAPSHOT")))
+                .thenThrow(new StandardVersionNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(404);
     }
 
     static Stream<Arguments> provideParametersForCreateStandardTests() {
@@ -296,6 +349,8 @@ public class TestStandardResourceShould {
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
                 Arguments.of("valid", new StandardNotFoundException(), 404),
                 Arguments.of("valid", new StandardVersionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }
@@ -323,21 +378,79 @@ public class TestStandardResourceShould {
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed standard in resource
-                    .header("Location", containsString("/calm/namespaces/valid/standards/5/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/valid/standards/5/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(createStandardRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/standards/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
 
         verify(mockStandardStore, times(1)).createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1");
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_standard() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/standards/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteStandardTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new StandardNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteStandardTests")
+    void respond_correctly_to_delete_standard(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockStandardStore).deleteStandard(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/standards/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockStandardStore, times(1)).deleteStandard(namespace, 12);
+    }
+
+    @Test
+    void delete_standard_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/standards/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.STANDARD, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_standard() throws Exception {
+        doThrow(new StandardNotFoundException()).when(mockStandardStore).deleteStandard("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/standards/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

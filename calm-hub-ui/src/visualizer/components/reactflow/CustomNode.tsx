@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import {
     Shield,
@@ -14,14 +14,80 @@ import {
     Globe2,
     FileText,
     ZoomIn,
+    ExternalLink,
     Info,
 } from 'lucide-react';
-import { extractId, extractNodeType } from './utils/calmHelpers.js';
+import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitecture } from './utils/calmHelpers.js';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
+import { useDiagramActions } from '../../context/DiagramActionsContext.js';
+import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { usableColor } from './utils/usableColor.js';
+import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { FindingText } from './FindingText.js';
+import { EvaluationBadge } from './EvaluationBadge.js';
+import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { decisionSummary } from './utils/decisionSummary.js';
+import { DecisionCallout } from './DecisionCallout.js';
 
-export function CustomNode({ data }: NodeProps) {
+/**
+ * Shared style for the hover-panel action buttons ("Show Details", "Explore
+ * Architecture", "Open Architecture"): one filled `primary` and one bordered
+ * `outline` variant. Inline styles (not classes) are the file's idiom — the
+ * visualiser themes through JS tokens.
+ */
+function PanelButton({
+  variant,
+  onClick,
+  children,
+}: {
+  variant: 'primary' | 'outline';
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const isPrimary = variant === 'primary';
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        fontWeight: 500,
+        borderRadius: '6px',
+        background: isPrimary ? THEME.colors.accent : 'transparent',
+        color: isPrimary ? '#ffffff' : THEME.colors.accent,
+        border: isPrimary ? 'none' : `1px solid ${THEME.colors.accent}`,
+        cursor: 'pointer',
+        transition: 'opacity 0.2s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.opacity = isPrimary ? '0.9' : '0.8';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = '1';
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface CustomNodeProps extends NodeProps {
+  /** Injected for tests; defaults to the app-wide store. */
+  presentationStore?: PresentationModeStore;
+}
+
+function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { onNavigateToDetailedArch } = useDiagramActions();
 
   // Get callbacks from data
   const onShowDetails = data.onShowDetails;
@@ -30,6 +96,23 @@ export function CustomNode({ data }: NodeProps) {
   const description = data.description || 'No description available';
   const nodeType = extractNodeType(data) || 'Unknown';
   const detailedArchitecture = data.details?.['detailed-architecture'];
+  const archResolution = resolveDetailedArchitecture(detailedArchitecture);
+  // 'invalid' (a same-host URL with a broken hub path) navigates in-app too: the
+  // router lands it on the not-found view, which beats a new tab onto the
+  // backend's raw 404.
+  const isSameOriginArch = isNavigableArch(archResolution);
+  const isExternalArch = archResolution.type === 'external';
+  // A truthy ref that resolves to neither an in-app path nor an openable URL
+  // (e.g. a bare filename). There is no drill-down action for it, so the header
+  // indicator is suppressed and the hover panel surfaces the raw value instead.
+  const isUnknownArch = !!detailedArchitecture && archResolution.type === 'unknown';
+  const archPath = isSameOriginArch ? archResolution.path : undefined;
+
+    // Extract standard-node-style colors from metadata (if present)
+    // Only a non-empty string is a usable CSS colour; anything else is ignored.
+    const rawBlockStyle = data.metadata?.['standard-node-style'] as { background?: unknown; text?: unknown } | undefined;
+    const blockBackground = usableColor(rawBlockStyle?.background);
+    const blockText = usableColor(rawBlockStyle?.text);
 
     // Extract AIGF data (if present in node metadata)
     const aigf = data.metadata?.aigf;
@@ -44,6 +127,18 @@ export function CustomNode({ data }: NodeProps) {
     const nodeControls: Record<string, ControlItem> = data.controls || {};
     const controlEntries = Object.entries(nodeControls);
     const controlCount = controlEntries.length;
+
+    // Presentation mode: a wider node and larger text, legible on a projector.
+    const { presenting } = usePresentationMode(presentationStore);
+    const size = presenting
+        ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
+        : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
+    const evaluation = useElementEvaluation(data['unique-id']);
+    const evaluationNotMet = evaluation?.status === 'not-met';
+    const { showDecisions, subjectLabels } = useDecisionOverlay();
+    const summary = showDecisions && evaluation
+        ? decisionSummary(evaluation, { elementId: data['unique-id'], subjectLabel: (id) => subjectLabels.get(id) })
+        : undefined;
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -93,24 +188,28 @@ export function CustomNode({ data }: NodeProps) {
 
   return (
     <div
+      data-testid="custom-node"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         // Fixed width so hover expansion doesn't affect ReactFlow layout/parent bounds
-        width: '220px',
+        width: size.width,
         position: 'relative',
       }}
     >
       {/* Base node - always visible, fixed size */}
       <div
         style={{
-          background: THEME.colors.card,
-          border: `2px solid ${borderColor}`,
+          background: blockBackground ?? THEME.colors.card,
+          // The AIGF risk colour outranks the block style so a risky node stays flagged
+          border: evaluationNotMet
+            ? `3px solid ${THEME.colors.error}`
+            : `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
-          padding: '16px',
+          padding: size.padding,
           width: '100%',
-          color: THEME.colors.foreground,
-          fontSize: '14px',
+          color: blockText ?? THEME.colors.foreground,
+          fontSize: size.text,
           fontWeight: 500,
           boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
           transition: 'box-shadow 0.3s ease-in-out',
@@ -120,33 +219,35 @@ export function CustomNode({ data }: NodeProps) {
       <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ fontWeight: 600, marginBottom: '4px', flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <NodeIcon style={{ width: '16px', height: '16px', flexShrink: 0, color: nodeTypeStyle.color }} />
+      {/* Presentation mode puts the badges below the label: the larger text leaves no space next to it. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: presenting ? 'wrap' : undefined }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px', flex: presenting ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <NodeIcon style={{ width: size.icon, height: size.icon, flexShrink: 0, color: nodeTypeStyle.color }} />
           <span>{data.label}</span>
-          {detailedArchitecture && (
+          {detailedArchitecture && !isUnknownArch && (
             <div title="Has detailed architecture">
-              <ZoomIn style={{ width: '14px', height: '14px', flexShrink: 0, color: THEME.colors.accent }} />
+              <ZoomIn style={{ width: size.zoomIcon, height: size.zoomIcon, flexShrink: 0, color: THEME.colors.accentText }} />
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0) && (
+        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
             {riskCount > 0 && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${borderColor}20`,
                   color: borderColor,
                 }}
               >
-                <AlertCircle style={{ width: '12px', height: '12px' }} />
+                <AlertCircle style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{riskCount}</span>
               </div>
             )}
@@ -156,15 +257,15 @@ export function CustomNode({ data }: NodeProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${THEME.colors.success}20`,
                   color: THEME.colors.success,
                 }}
               >
-                <Shield style={{ width: '12px', height: '12px' }} />
+                <Shield style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{mitigationCount}</span>
               </div>
             )}
@@ -174,15 +275,15 @@ export function CustomNode({ data }: NodeProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${THEME.colors.accent}20`,
-                  color: THEME.colors.accent,
+                  color: THEME.colors.accentText,
                 }}
               >
-                <Shield style={{ width: '12px', height: '12px' }} />
+                <Shield style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{controlCount}</span>
               </div>
             )}
@@ -190,6 +291,8 @@ export function CustomNode({ data }: NodeProps) {
         )}
       </div>
       </div>
+
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} />}
 
       {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (
@@ -210,7 +313,7 @@ export function CustomNode({ data }: NodeProps) {
         >
           <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px' }}>
             <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Type:</div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.accent }}>{nodeType}</div>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.accentText }}>{nodeType}</div>
           </div>
           {riskLevel && (
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
@@ -279,7 +382,7 @@ export function CustomNode({ data }: NodeProps) {
                       }}
                       title="Click to jump to control definition"
                     >
-                      <div style={{ fontWeight: 500, color: THEME.colors.accent }}>{controlId}</div>
+                      <div style={{ fontWeight: 500, color: THEME.colors.accentText }}>{controlId}</div>
                       {control.description && (
                         <div style={{ color: THEME.colors.muted, marginLeft: '8px' }}>{control.description}</div>
                       )}
@@ -289,47 +392,84 @@ export function CustomNode({ data }: NodeProps) {
               </div>
             </div>
           )}
+          {evaluation && (
+            <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
+              <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Latest control evaluations:</div>
+              {evaluation.latest.map((d) => {
+                const notMet = d.data.status === 'not-met';
+                const controlId = d.data.control['control-id'];
+                const finding = notMet ? d.data.findings?.[0] : undefined;
+                return (
+                  <div key={d.uniqueId} style={{ fontSize: '12px', marginBottom: '6px' }}>
+                    <div>
+                      <span aria-hidden="true" style={{ fontWeight: 600, color: notMet ? THEME.colors.errorText : THEME.colors.successText }}>
+                        {notMet ? '✗' : '✓'}
+                      </span>{' '}
+                      {controlId && <span style={{ fontWeight: 600, color: THEME.colors.foreground }}>{controlId}</span>}
+                      {controlId && ' '}
+                      <span style={controlId ? { color: THEME.colors.muted } : { fontWeight: 600, color: THEME.colors.foreground }}>
+                        {d.data.control['unique-id']}
+                      </span>
+                    </div>
+                    {finding && (
+                      <div data-testid="evaluation-finding" style={{ color: THEME.colors.foreground, marginLeft: '14px' }}>
+                        <FindingText finding={finding} elementId={data['unique-id']} />
+                      </div>
+                    )}
+                    {d.data.actors?.approver && (
+                      <div style={{ color: THEME.colors.muted, marginLeft: '14px' }}>approved by {d.data.actors.approver}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
             <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Description:</div>
             <div style={{ fontSize: '12px', color: THEME.colors.foreground, lineHeight: 1.5 }}>{description}</div>
           </div>
-          {onShowDetails && (
+          {isUnknownArch && (
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowDetails(data);
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  borderRadius: '6px',
-                  background: THEME.colors.accent,
-                  color: '#ffffff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                }}
-              >
-                <Info style={{ width: '14px', height: '14px' }} />
-                Show Details
-              </button>
+              <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Detailed Architecture:</div>
+              <div style={{ fontSize: '12px', fontFamily: 'monospace', color: THEME.colors.foreground, wordBreak: 'break-all' }}>
+                {detailedArchitecture}
+              </div>
+            </div>
+          )}
+          {(onShowDetails || isExternalArch || (isSameOriginArch && onNavigateToDetailedArch)) && (
+            <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {onShowDetails && (
+                <PanelButton variant="primary" onClick={() => onShowDetails(data)}>
+                  <Info style={{ width: '14px', height: '14px' }} />
+                  Show Details
+                </PanelButton>
+              )}
+              {isSameOriginArch && onNavigateToDetailedArch && (
+                <PanelButton variant="outline" onClick={() => onNavigateToDetailedArch(archPath!)}>
+                  <ZoomIn style={{ width: '14px', height: '14px' }} />
+                  Explore Architecture
+                </PanelButton>
+              )}
+              {isExternalArch && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <PanelButton
+                    variant="outline"
+                    onClick={() => window.open(detailedArchitecture, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink style={{ width: '14px', height: '14px' }} />
+                    Open Architecture
+                  </PanelButton>
+                  <div style={{ fontSize: '11px', color: THEME.colors.muted, textAlign: 'center' }}>
+                    External resource — may require authentication
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
     </div>
   );
-};
+}
+
+export const CustomNode = memo(CustomNodeComponent);

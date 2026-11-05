@@ -3,7 +3,6 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
@@ -13,6 +12,7 @@ import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
+import org.finos.calm.store.util.MongoUpsertPush;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +46,8 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
-        
+        namespaceStore.requireNamespace(namespace);
+
         Document namespaceDocument = fetchNamespaceDocument(namespace);
         if (namespaceDocument == null || namespaceDocument.isEmpty()) {
             LOG.debug("No decorators found for namespace '{}'", namespace);
@@ -68,7 +68,7 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDocument = fetchNamespaceDocument(namespace);
         if (namespaceDocument == null || namespaceDocument.isEmpty()) {
@@ -90,7 +90,7 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     @Override
     public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDocument = fetchNamespaceDocument(namespace);
         if (namespaceDocument == null || namespaceDocument.isEmpty()) {
@@ -112,17 +112,16 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     @Override
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document parsedDecorator = Document.parse(decoratorJson);
         int id = counterStore.getNextDecoratorSequenceValue();
         Document decoratorDocument = new Document("decoratorId", id)
                 .append("decorator", parsedDecorator);
 
-        decoratorCollection.updateOne(
+        MongoUpsertPush.pushWithDuplicateRetry(decoratorCollection,
                 Filters.eq("namespace", namespace),
-                Updates.push("decorators", decoratorDocument),
-                new UpdateOptions().upsert(true));
+                "decorators", decoratorDocument);
 
         LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
         return id;
@@ -130,7 +129,7 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     @Override
     public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document parsedDecorator = Document.parse(decoratorJson);
 
@@ -146,14 +145,20 @@ public class MongoDecoratorStore implements DecoratorStore {
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
-    /**
-     * Validates that the namespace exists, throwing an exception if it doesn't
-     */
-    private void validateNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
-            throw new NamespaceNotFoundException();
+    @Override
+    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        long modified = decoratorCollection.updateOne(
+                Filters.eq("namespace", namespace),
+                Updates.pull("decorators", Filters.eq(DECORATOR_ID_FIELD, id))
+        ).getModifiedCount();
+
+        if (modified == 0) {
+            throw new DecoratorNotFoundException();
         }
+
+        LOG.debug("Deleted decorator with ID {} in namespace '{}'", id, namespace);
     }
 
     /**

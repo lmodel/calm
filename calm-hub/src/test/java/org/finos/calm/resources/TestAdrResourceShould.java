@@ -56,7 +56,7 @@ public class TestAdrResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/adrs")
+                .get("/api/calm/namespaces/invalid/adrs")
                 .then()
                 .statusCode(404);
 
@@ -72,7 +72,7 @@ public class TestAdrResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/adrs")
+                .get("/api/calm/namespaces/finos/adrs")
                 .then()
                 .statusCode(200)
                 .body("values[0].title", equalTo("First ADR"))
@@ -89,7 +89,7 @@ public class TestAdrResourceShould {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404, nullValue()),
                 Arguments.of("invalid", new AdrParseException(), 500, nullValue()),
-                Arguments.of("valid", null, 201, containsString("/calm/namespaces/valid/adrs/12/revisions/1"))
+                Arguments.of("valid", null, 201, containsString("/api/calm/namespaces/valid/adrs/12/revisions/1"))
         );
     }
 
@@ -109,7 +109,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adr)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs")
+                .post("/api/calm/namespaces/" + namespace +"/adrs")
                 .then()
                 .statusCode(expectedStatusCode)
                 .header("Location", locationHeader);
@@ -136,13 +136,16 @@ public class TestAdrResourceShould {
                 Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
                 Arguments.of("valid", new AdrParseException(), 500),
                 Arguments.of("valid", new AdrPersistenceException(), 500),
+                Arguments.of("valid", new AdrRevisionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForUpdateAdrTests")
-    void respond_correctly_to_update_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
+    void respond_correctly_to_update_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
         String adrJson = "{ \"title\": \"My ADR\" }";
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrForNamespace(any(AdrMeta.class))).thenThrow(exceptionToThrow);
@@ -167,7 +170,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adrJson)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs/1")
+                .post("/api/calm/namespaces/" + namespace +"/adrs/1")
                 .then()
                 .statusCode(expectedStatusCode);
 
@@ -206,14 +209,14 @@ public class TestAdrResourceShould {
             String expectedBody = "{\"values\":[1,2]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -260,7 +263,7 @@ public class TestAdrResourceShould {
         if (expectedStatusCode == 200) {
             AdrMeta actualAdrMeta = given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
                     .then()
                     .statusCode(expectedStatusCode)
                     .extract()
@@ -271,7 +274,7 @@ public class TestAdrResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12/revisions/1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -298,7 +301,7 @@ public class TestAdrResourceShould {
         if (expectedStatusCode == 200) {
             AdrMeta actualAdrMeta = given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12")
                     .then()
                     .statusCode(expectedStatusCode)
                     .extract()
@@ -308,7 +311,7 @@ public class TestAdrResourceShould {
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/adrs/12")
+                    .get("/api/calm/namespaces/" + namespace + "/adrs/12")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -325,13 +328,16 @@ public class TestAdrResourceShould {
                 Arguments.of("valid", new AdrRevisionNotFoundException(), 404),
                 Arguments.of("valid", new AdrParseException(), 500),
                 Arguments.of("valid", new AdrPersistenceException(), 500),
+                Arguments.of("valid", new AdrRevisionExistsException(), 409),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForUpdateAdrStatusTests")
-    void respond_correctly_on_update_adr_status(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException {
+    void respond_correctly_on_update_adr_status(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
         String adrJson = "{ \"title\": \"My ADR\" }";
         if (exceptionToThrow != null) {
             when(mockAdrStore.updateAdrStatus(any(AdrMeta.class), any(Status.class))).thenThrow(exceptionToThrow);
@@ -356,7 +362,7 @@ public class TestAdrResourceShould {
                 .header("Content-Type", "application/json")
                 .body(adrJson)
                 .when()
-                .post("/calm/namespaces/" + namespace +"/adrs/1/status/proposed")
+                .post("/api/calm/namespaces/" + namespace +"/adrs/1/status/proposed")
                 .then()
                 .statusCode(expectedStatusCode);
 
@@ -387,4 +393,42 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).getAdr(expectedAdrToRetrieveMeta);
     }
 
+    static Stream<Arguments> provideParametersForDeleteAdrTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new AdrNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteAdrTests")
+    void respond_correctly_to_delete_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockAdrStore).deleteAdr(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/adrs/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockAdrStore, times(1)).deleteAdr(namespace, 12);
+    }
+
+    @Test
+    void reject_a_snapshot_version_because_adrs_use_integer_revisions() {
+        // ADR runs on VersionScheme.NUMERIC, which stores revisions verbatim. A snapshot
+        // reaching it would be an unparseable revision, which NumericVersionOrder sorts
+        // first -- the exact ADR revision 100 failure. The {revision} path param is a plain
+        // int (see AdrResource#getAdrRevision), not a @Pattern-validated String, so a
+        // -SNAPSHOT suffix fails path-param conversion and never reaches AdrStore at all --
+        // RESTEasy reports that as 404, not 400.
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/adrs/12/revisions/1-SNAPSHOT")
+                .then()
+                .statusCode(404);
+    }
 }

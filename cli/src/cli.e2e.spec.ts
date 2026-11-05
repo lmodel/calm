@@ -1,78 +1,122 @@
 import { execSync } from 'child_process';
+import http from 'http';
+import type { AddressInfo } from 'net';
 import path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
-import { execa } from 'execa';
 import { parseStringPromise } from 'xml2js';
-import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
+import { expectDirectoryMatch, expectFilesMatch } from '../../shared/src/test/file-comparison';
+import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
+import { patchJson } from './test_helpers/json-file';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
+import { CALM_META_SCHEMA_BASE_URL } from './command-helpers/calm-schema-release';
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
+let cli: CliInstall;
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
-const GETTING_STARTED_DIR = path.resolve(
-    __dirname,
-    '../../calm/getting-started'
-);
 const GETTING_STARTED_TEST_FIXTURES_DIR = path.resolve(
     __dirname,
     '../test_fixtures/getting-started'
 );
 
-function run(file: string, args: string[]) {
-    const cp = execa(file, args, { cwd: tempDir });
-    cp.stdout?.pipe(process.stdout);
-    cp.stderr?.pipe(process.stderr);
-    return cp;
+function mustMatch(text: string, pattern: RegExp, what: string): RegExpMatchArray {
+    const match = text.match(pattern);
+    if (!match) throw new Error(`${what} not found. Update this test if the tutorial changed.`);
+    return match;
 }
 
-function calm(): string {
-    return path.join(tempDir, 'node_modules/.bin/calm');
+function lastTutorialBlock(text: string, pattern: RegExp, what: string): RegExpMatchArray {
+    const matches = [...text.matchAll(pattern)];
+    const match = matches[matches.length - 1];
+    if (!match) throw new Error(`${what} not found. Update this test if the tutorial changed.`);
+    return match;
 }
+
+function tutorialElement<T extends Array<{ 'unique-id': string }>>(elements: T, id: string, what: string): T[number] {
+    const element = elements.find(element => element['unique-id'] === id);
+    if (!element) throw new Error(`${what}: '${id}' not found. Update this test if the tutorial changed.`);
+    return element;
+}
+
+function tutorialControl(prompt: string, what: string) {
+    const requirements = [...prompt.matchAll(/requirement-url: "([^"\n]+)"\s+config(?: \(inline\))?(-url)?: (.*)/g)];
+    if (!requirements.length) throw new Error(`${what} requirements not found. Update this test if the tutorial changed.`);
+    return {
+        description: mustMatch(prompt, /description: "([^"\n]+)"/, `${what} description`)[1],
+        requirements: requirements.map(([, url, external, config]) => ({
+            'requirement-url': url,
+            [external ? 'config-url' : 'config']: JSON.parse(config),
+        })),
+    };
+}
+
+const tutorials = path.resolve(__dirname, '../../docs/docs/tutorials');
+function tutorialArchitecture() {
+    const beginner = fs.readFileSync(path.join(tutorials, 'beginner/07-complete-architecture.md'), 'utf8');
+    return JSON.parse(lastTutorialBlock(beginner, /```json\n([\s\S]*?)\n```/g,
+        'Tutorial 07 final architecture JSON block')[1]);
+}
+
+function tutorialCommand(tutorial: string, what: string) {
+    return lastTutorialBlock(tutorial, /```bash\ncalm (validate[^\n]+)\n```/g,
+        `${what} final validation command`)[1].split(' ');
+}
+
+const validTutorialOutput = {
+    hasErrors: false,
+    hasWarnings: false,
+    jsonSchemaValidationOutputs: [],
+    spectralSchemaValidationOutputs: [],
+};
+
+describe('Tutorial extraction guards', () => {
+    test('keeps first lookup and final block lookup distinct', () => {
+        const text = 'block:first block:last';
+        expect(mustMatch(text, /block:(\w+)/, 'Tutorial 08 description')[1]).toBe('first');
+        expect(lastTutorialBlock(text, /block:(\w+)/g, 'Tutorial 07 final architecture')[1]).toBe('last');
+    });
+
+    test('names missing tutorial fields, blocks, commands, and reference nodes', () => {
+        expect(() => mustMatch('', /description: "([^"]+)"/, 'Tutorial 08 security description'))
+            .toThrow('Tutorial 08 security description not found. Update this test if the tutorial changed.');
+        expect(() => lastTutorialBlock('', /```json\n([\s\S]*?)\n```/g, 'Tutorial 07 final architecture JSON block'))
+            .toThrow('Tutorial 07 final architecture JSON block not found. Update this test if the tutorial changed.');
+        expect(() => tutorialCommand('', 'Tutorial 09'))
+            .toThrow('Tutorial 09 final validation command not found. Update this test if the tutorial changed.');
+        expect(() => tutorialElement([], 'payment-service', 'Tutorial 08 reference node'))
+            .toThrow('Tutorial 08 reference node: \'payment-service\' not found. Update this test if the tutorial changed.');
+        expect(() => tutorialControl('description: "Audit"', 'Tutorial 09 audit control'))
+            .toThrow('Tutorial 09 audit control requirements not found. Update this test if the tutorial changed.');
+    });
+});
 
 describe('CLI Integration Tests', () => {
     vi.setConfig({ testTimeout: 30 * millisPerSecond });
 
     beforeAll(() => {
-        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), integrationTestPrefix));
-
-        const tgzName = execSync('npm pack', { cwd: repoRoot })
-            .toString()
-            .trim();
-
-        const sourceTarball = path.join(repoRoot, tgzName);
-        const targetTarball = path.join(tempDir, tgzName);
-        fs.copyFileSync(sourceTarball, targetTarball);
-        fs.unlinkSync(sourceTarball);
-
-        execSync('npm init -y', { cwd: tempDir, stdio: 'inherit' });
-        execSync(`npm install ${targetTarball}`, {
-            cwd: tempDir,
-            stdio: 'inherit',
-        });
+        cli = installPackedCli(repoRoot, integrationTestPrefix);
+        tempDir = cli.tempDir;
     }, millisPerSecond * 30);
 
     afterAll(() => {
-        if (tempDir) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
-        }
+        cli?.cleanup();
     });
 
     test('calm --version works', async () => {
-        const { stdout } = await run(calm(), ['--version']);
+        const { stdout } = await cli.run(['--version']);
         expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
     test('shows help if no arguments provided', async () => {
-        await expect(run(calm(), [])).rejects.toHaveProperty(
+        await expect(cli.run([])).rejects.toHaveProperty(
             'stderr',
             expect.stringContaining('Usage:')
         );
     });
 
     test('calm -h shows help', async () => {
-        const { stdout } = await run(calm(), ['-h']);
+        const { stdout } = await cli.run(['-h']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -80,7 +124,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm --help shows help', async () => {
-        const { stdout } = await run(calm(), ['--help']);
+        const { stdout } = await cli.run(['--help']);
         expect(stdout).toContain(
             'A set of tools for interacting with the Common Architecture Language Model'
         );
@@ -88,7 +132,7 @@ describe('CLI Integration Tests', () => {
     });
 
     test('calm init-ai --help shows help', async () => {
-        const { stdout } = await run(calm(), ['init-ai', '--help']);
+        const { stdout } = await cli.run(['init-ai', '--help']);
         expect(stdout).toContain('Augment a git repository with AI assistance for CALM');
         expect(stdout).toContain('Options:');
     });
@@ -102,7 +146,7 @@ describe('CLI Integration Tests', () => {
             execSync('git init', { cwd: testDir, stdio: 'inherit' });
 
             // Run calm init-ai with the specified provider
-            await run(calm(), ['init-ai', '-p', provider, '--directory', testDir]);
+            await cli.run(['init-ai', '-p', provider, '--directory', testDir]);
 
             // Define expected paths based on provider
             const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
@@ -110,8 +154,15 @@ describe('CLI Integration Tests', () => {
                     topLevelDir: '.github/agents',
                     mainPromptFile: '.github/agents/CALM.agent.md',
                     skillPromptsDir: '.github/agents/calm-prompts',
-                    frontmatterContains: ['description:', 'tools:'],
-                    frontmatterNotContains: ['model:'],
+                    frontmatterContains: [
+                        'description:',
+                        'tools:',
+                        'search/codebase',
+                        'edit/editFiles',
+                        'web/fetch',
+                        'execute/runInTerminal',
+                    ],
+                    frontmatterNotContains: ['tools: [\'codebase\'', 'model:'],
                 },
                 kiro: {
                     topLevelDir: '.kiro',
@@ -194,7 +245,7 @@ describe('CLI Integration Tests', () => {
 
         // Attempt to run calm init-ai with an invalid provider
         await expect(
-            run(calm(), ['init-ai', '-p', 'invalidprovider', '--directory', testDir])
+            cli.run(['init-ai', '-p', 'invalidprovider', '--directory', testDir])
         ).rejects.toMatchObject({
             stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude, codex.')
         });
@@ -212,9 +263,7 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
-        const { stdout } = await run(
-            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath]
-        );
+        const { stdout } = await cli.run(['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath]);
         const expected = JSON.parse(
             fs.readFileSync(
                 path.join(__dirname, '../test_fixtures/validate_output.json'),
@@ -227,6 +276,149 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expected);
     });
 
+    test('validates the controls tutorial with the documented command', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/08-controls.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        const tutorialDir = path.join(tempDir, 'controls-tutorial');
+        fs.mkdirSync(path.join(tutorialDir, 'architectures'), { recursive: true });
+
+        const [, filename, content] = mustMatch(tutorial, /```json title="(controls\/tls-config\.json)"\n([\s\S]*?)\n```/,
+            'Tutorial 08 TLS configuration JSON block');
+        const target = path.join(tutorialDir, filename);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+
+        // Read the prompt values, so this also exercises the examples readers copy.
+        const prompts = [...tutorial.matchAll(/```text\n([\s\S]*?)\n```/g)];
+        expect(prompts, 'Tutorial 08 control prompt blocks').toHaveLength(4);
+        const controls = prompts.map(([, prompt], index) => tutorialControl(prompt, `Tutorial 08 control ${index + 1}`));
+        expect(controls.map(control => control.requirements.length)).toEqual([2, 2, 1, 2]);
+        architecture.controls = { security: controls[0], performance: controls[1] };
+        tutorialElement(architecture.nodes, 'payment-service', 'Tutorial 08 reference node').controls = {
+            compliance: controls[2],
+        };
+        tutorialElement(architecture.nodes, 'api-gateway', 'Tutorial 08 reference node').controls = {
+            performance: controls[3],
+        };
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 08');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(stdout)).toMatchObject({
+            hasErrors: false,
+            hasWarnings: false,
+            jsonSchemaValidationOutputs: [],
+            spectralSchemaValidationOutputs: [],
+        });
+
+        const comparison = JSON.parse(lastTutorialBlock(tutorial, /```json\n([\s\S]*?)\n```/g,
+            'Tutorial 08 inline/external comparison JSON block')[1]);
+        expect(comparison.requirements).toEqual(architecture.controls.security.requirements);
+
+        const requirement = architecture.controls.security.requirements[0];
+        const controlId = requirement.config['control-id'];
+        delete requirement.config['control-id'];
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'control-id\''),
+        });
+
+        // Restore the inline config before checking the external config independently.
+        requirement.config['control-id'] = controlId;
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const configPath = path.join(tutorialDir, architecture.controls.security.requirements[1]['config-url']);
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        delete config.name;
+        fs.writeFileSync(configPath, JSON.stringify(config));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'name\''),
+        });
+    });
+
+    test('validates tutorial 09 flow controls and rejects malformed configuration', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/09-business-flows.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        const flowExample = mustMatch(tutorial, /```json\n([\s\S]*?)\n```/,
+            'Tutorial 09 flow structure JSON block');
+        architecture.flows = JSON.parse(flowExample[1]).flows;
+        const flow = tutorialElement(architecture.flows, 'order-processing-flow', 'Tutorial 09 reference flow');
+        for (const transition of flow.transitions) {
+            tutorialElement(architecture.relationships, transition['relationship-unique-id'], 'Tutorial 09 reference relationship');
+        }
+        const prompt = mustMatch(tutorial, /```text\n(Add a controls section[\s\S]*?)\n```/,
+            'Tutorial 09 flow control prompt')[1];
+        flow.controls = { audit: tutorialControl(prompt, 'Tutorial 09 audit control') };
+        expect(flow.controls.audit.requirements).toHaveLength(1);
+        const tutorialDir = path.join(tempDir, 'flows-tutorial');
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.mkdirSync(path.dirname(architecturePath), { recursive: true });
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 09');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(String(stdout))).toMatchObject(validTutorialOutput);
+
+        delete flow.controls.audit.requirements[0].config.description;
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'description\''),
+        });
+    });
+
+    test('validates tutorial 14 architecture and node controls and rejects malformed configurations', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/14-ai-advisor.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        // Supply the cluster from step 4; the AI-generated topology is outside this controls regression.
+        architecture.nodes.push({
+            'unique-id': 'order-database-cluster',
+            'node-type': 'system',
+            name: 'Order database cluster',
+            description: 'Primary and replica order databases',
+        });
+        architecture.relationships.push({
+            'unique-id': 'order-database-composition',
+            description: 'Order database cluster composition',
+            'relationship-type': {
+                'composed-of': { container: 'order-database-cluster', nodes: ['order-database'] },
+            },
+        });
+        const prompts = [...tutorial.matchAll(/```text\n(Add (?:an architecture-level|a "failover"|a "circuit-breaker")[\s\S]*?)\n```/g)];
+        expect(prompts, 'Tutorial 14 resilience control prompt blocks').toHaveLength(3);
+        const controls = prompts.map(([, prompt], index) => tutorialControl(prompt, `Tutorial 14 control ${index + 1}`));
+        expect(controls.map(control => control.requirements.length)).toEqual([1, 1, 1]);
+        architecture.controls = { 'high-availability': controls[0] };
+        tutorialElement(architecture.nodes, 'order-database-cluster', 'Tutorial 14 reference node').controls = {
+            failover: controls[1],
+        };
+        tutorialElement(architecture.nodes, 'order-service', 'Tutorial 14 reference node').controls = {
+            'circuit-breaker': controls[2],
+        };
+        const comparison = JSON.parse(lastTutorialBlock(tutorial, /```json\n([\s\S]*?)\n```/g,
+            'Tutorial 14 resilience controls JSON block')[1]);
+        expect(comparison.controls).toEqual(architecture.controls);
+        const tutorialDir = path.join(tempDir, 'advisor-tutorial');
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.mkdirSync(path.dirname(architecturePath), { recursive: true });
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 14');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(String(stdout))).toMatchObject(validTutorialOutput);
+
+        for (const control of controls) {
+            const config = control.requirements[0].config;
+            const controlId = config['control-id'];
+            delete config['control-id'];
+            fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+            await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+                exitCode: 1,
+                stdout: expect.stringContaining('must have required property \'control-id\''),
+            });
+            config['control-id'] = controlId;
+        }
+    });
+
     test('validate command outputs JSON to file', async () => {
         const apiGatewayPath = path.join(
             __dirname,
@@ -237,9 +429,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
-        await run(
-            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-o', targetOutputFile]
-        );
+        await cli.run(['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-o', targetOutputFile]);
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const expectedJson = JSON.parse(
             fs.readFileSync(targetOutputFile, 'utf8')
@@ -264,9 +454,7 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
-        const { stdout } = await run(
-            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit']
-        );
+        const { stdout } = await cli.run(['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit']);
         const actual = await parseStringPromise(stdout);
         const expected = await parseStringPromise(
             fs.readFileSync(
@@ -290,9 +478,7 @@ describe('CLI Integration Tests', () => {
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
         const targetOutputFile = path.join(tempDir, 'validate-output.xml');
-        await run(
-            calm(), ['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit', '-o', targetOutputFile]
-        );
+        await cli.run(['validate', '-p', apiGatewayPath, '-a', apiGatewayArchPath, '-f', 'junit', '-o', targetOutputFile]);
         expect(fs.existsSync(targetOutputFile)).toBe(true);
         const actual = await parseStringPromise(
             fs.readFileSync(targetOutputFile, 'utf8')
@@ -318,17 +504,54 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway-architecture.json'
         );
-        const { stdout } = await run(
-            calm(), ['validate', '-p', p, '-a', a, '-f', 'pretty']
-        );
+        const { stdout } = await cli.run(['validate', '-p', p, '-a', a, '-f', 'pretty']);
         expect(stdout).toContain('WARN');
         expect(stdout).toContain('architecture-has-no-placeholder-properties-numerical');
         expect(stdout).toContain('/nodes/api-producer/interfaces/producer-ingress/port');
         expect(stdout).toContain('Numerical placeholder (-1) detected in architecture.');
     });
 
+    describe('with a direct URL auth module that cannot load', () => {
+        const env = () => ({
+            CALM_DIRECT_URL_AUTH_MODULE: path.join(tempDir, 'missing-direct-url-auth.js'),
+            CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS: 'protected.example.com',
+        });
+
+        test('validate does not load it when no document is on an authenticated host', async () => {
+            const p = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway.json');
+            const a = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
+
+            const { stdout } = await cli.run(['validate', '-p', p, '-a', a], { env: env() });
+
+            expect(JSON.parse(stdout)).toHaveProperty('hasErrors', false);
+        });
+
+        test('validate fails a document on an authenticated host, and says why', async () => {
+            const architecture = path.join(tempDir, 'direct-url-auth-protected.arch.json');
+            fs.writeFileSync(architecture, JSON.stringify({
+                $schema: 'https://protected.example.com/patterns/protected.pattern.json',
+                nodes: [],
+                relationships: [],
+            }));
+
+            const error = await cli.run(['validate', '-a', architecture], { env: env() }).catch(e => e);
+
+            expect(error.exitCode).toBe(1);
+            expect(`${error.stdout}${error.stderr}`).toContain('direct URL auth module file not found');
+        });
+
+        test('generate does not load it when no document is on an authenticated host', async () => {
+            const pattern = path.join(GETTING_STARTED_TEST_FIXTURES_DIR, 'conference-signup.pattern.json');
+            const output = path.join(tempDir, 'direct-url-auth-generate.arch.json');
+
+            await cli.run(['generate', '-p', pattern, '-o', output], { env: env() });
+
+            expect(fs.existsSync(output)).toBe(true);
+        });
+    });
+
     test('validate command fails when neither architecture nor pattern is provided', async () => {
-        await expect(run(calm(), ['validate'])).rejects.toMatchObject({
+        await expect(cli.run(['validate'])).rejects.toMatchObject({
             stderr: expect.stringContaining(
                 'error: one of the required options \'-p, --pattern <file>\', \'-a, --architecture <file>\' or \'--timeline <file>\' was not specified'
             )
@@ -339,7 +562,7 @@ describe('CLI Integration Tests', () => {
         const apiGatewayArchPath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
         const targetOutputFile = path.join(tempDir, 'validate-output.json');
 
-        await run(calm(), ['validate', '-a', apiGatewayArchPath, '-o', targetOutputFile]);
+        await cli.run(['validate', '-a', apiGatewayArchPath, '-o', targetOutputFile]);
         const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
 
         const parsedOutput = JSON.parse(outputFile);
@@ -352,11 +575,27 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command loads the 2026-03 draft from the bundled schemas', async () => {
+        const architecture = path.join(tempDir, 'draft-2026-03.arch.json');
+        fs.writeFileSync(architecture, JSON.stringify({
+            $schema: 'https://calm.finos.org/draft/2026-03/meta/calm.json',
+            nodes: [],
+            relationships: [],
+        }));
+
+        // calm.finos.org is not an allowed host, so the CLI cannot fetch the draft.
+        const { stdout } = await cli.run(['validate', '-a', architecture], {
+            env: { CALM_ALLOWED_REMOTE_HOSTS: 'remote-loading-disabled.invalid' },
+        });
+
+        expect(JSON.parse(stdout)).toHaveProperty('hasErrors', false);
+    });
+
     test('validate command validates a timeline only', async () => {
         const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
         const targetOutputFile = path.join(tempDir, 'validate-timeline-output2.json');
 
-        await expect(run(calm(), ['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+        await expect(cli.run(['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
             .rejects.toHaveProperty('exitCode', 1);
         const outputFile = fs.readFileSync(targetOutputFile, 'utf-8');
 
@@ -370,11 +609,23 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command reports timeline issues at their line in the timeline file', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-positions.json');
+
+        await expect(cli.run(['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
+        const parsedOutput = JSON.parse(fs.readFileSync(targetOutputFile, 'utf-8'));
+
+        expect(parsedOutput.jsonSchemaValidationOutputs[0]).toMatchObject({ path: '/moments/api-gateway-v2/valid-from', line_start: 19 });
+        expect(parsedOutput.spectralSchemaValidationOutputs[0]).toMatchObject({ path: '/current-moment', line_start: 3 });
+    });
+
     test('validate command rejects a timeline with no schema', async () => {
         const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/timeline/timeline-no-schema.json');
         const targetOutputFile = path.join(tempDir, 'validate-timeline-output3.json');
 
-        await expect(run(calm(), ['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+        await expect(cli.run(['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
             .rejects.toHaveProperty('exitCode', 1);
     });
 
@@ -386,9 +637,7 @@ describe('CLI Integration Tests', () => {
             const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
             const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
 
-            const { stdout } = await run(
-                calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]
-            );
+            const { stdout } = await cli.run(['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
             const result = JSON.parse(stdout);
             expect(result.hasErrors).toBe(false);
         });
@@ -397,9 +646,7 @@ describe('CLI Integration Tests', () => {
             const patternPath = path.join(urlMappingFixtures, 'patterns/pattern-without-id.json');
             const archPath = path.join(urlMappingFixtures, 'architectures/compliant.json');
 
-            const { stdout } = await run(
-                calm(), ['validate', '-p', patternPath, '-a', archPath]
-            );
+            const { stdout } = await cli.run(['validate', '-p', patternPath, '-a', archPath]);
             const result = JSON.parse(stdout);
             expect(result.hasErrors).toBe(false);
         });
@@ -409,7 +656,7 @@ describe('CLI Integration Tests', () => {
             const archPath = path.join(urlMappingFixtures, 'architectures/non-compliant.json');
 
             try {
-                await run(calm(), ['validate', '-p', patternPath, '-a', archPath]);
+                await cli.run(['validate', '-p', patternPath, '-a', archPath]);
                 expect.fail('Expected validation to fail');
             } catch (error: unknown) {
                 const result = JSON.parse((error as { stdout: string }).stdout);
@@ -424,7 +671,7 @@ describe('CLI Integration Tests', () => {
             const mappingPath = path.join(urlMappingFixtures, 'url-mapping.json');
 
             try {
-                await run(calm(), ['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
+                await cli.run(['validate', '-p', patternPath, '-a', archPath, '-u', mappingPath]);
                 expect.fail('Expected validation to fail');
             } catch (error: unknown) {
                 const result = JSON.parse((error as { stdout: string }).stdout);
@@ -439,9 +686,9 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway.json'
         );
-        const s = path.join(__dirname, '../../calm/release');
+        const s = path.join(__dirname, '../dist/calm/release');
         const out = path.join(tempDir, 'generate-output.json');
-        await run(calm(), ['generate', '-p', p, '-o', out, '-s', s]);
+        await cli.run(['generate', '-p', p, '-o', out, '-s', s]);
         const actual = JSON.parse(fs.readFileSync(out, 'utf8'));
         const expected = JSON.parse(
             fs.readFileSync(
@@ -473,16 +720,13 @@ describe('CLI Integration Tests', () => {
         const outputDir = path.join(tempDir, 'output');
         const outputFile = path.join(outputDir, 'cli-e2e-output.html');
 
-        await run(
-            calm(),
-            [
-                'template',
-                '--architecture', testModelPath,
-                '--bundle', templateBundlePath,
-                '--output', outputDir,
-                '--url-to-local-file-mapping', localDirectory
-            ]
-        );
+        await cli.run([
+            'template',
+            '--architecture', testModelPath,
+            '--bundle', templateBundlePath,
+            '--output', outputDir,
+            '--url-to-local-file-mapping', localDirectory
+        ]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const actualContent = fs.readFileSync(outputFile, 'utf8').trim();
@@ -503,9 +747,7 @@ describe('CLI Integration Tests', () => {
             fs.rmSync(outputDir, { recursive: true });
         }
 
-        await run(
-            calm(), ['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]
-        );
+        await cli.run(['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const actual = fs.readFileSync(outputFile, 'utf8').trim();
@@ -526,9 +768,7 @@ describe('CLI Integration Tests', () => {
             fs.rmSync(actualOutputDir, { recursive: true });
         }
 
-        await run(
-            calm(), ['template', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]
-        );
+        await cli.run(['template', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir]);
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
 
@@ -548,9 +788,7 @@ describe('CLI Integration Tests', () => {
             'model/url-to-file-directory.json'
         );
         const outputDir = path.join(tempDir, 'output/documentation');
-        await run(
-            calm(), ['docify', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
-        );
+        await cli.run(['docify', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]);
         [
             'docs/index.md',
             'docs/flows/flow-document-upload.md',
@@ -577,9 +815,7 @@ describe('CLI Integration Tests', () => {
             fs.rmSync(outputDir, { recursive: true });
         }
 
-        await run(
-            calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
-        );
+        await cli.run(['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const actual = fs.readFileSync(outputFile, 'utf8').trim();
@@ -601,42 +837,11 @@ describe('CLI Integration Tests', () => {
             fs.rmSync(actualOutputDir, { recursive: true });
         }
 
-        await run(
-            calm(), ['docify', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]
-        );
+        await cli.run(['docify', '--architecture', testModelPath, '--template-dir', templateDirPath, '--output', actualOutputDir, '--url-to-local-file-mapping', localDirectory]);
 
         await expectDirectoryMatch(expectedOutputDir, actualOutputDir);
 
         fs.rmSync(actualOutputDir, { recursive: true });
-    });
-
-    test('docify --ants generates a Vite + Three.js project', async () => {
-        const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
-        const testModelPath = path.join(fixtureDir, 'model/document-system.json');
-        const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
-        const outputDir = path.join(tempDir, 'output/ant-farm');
-
-        await run(
-            calm(), ['docify', '--ants', '--architecture', testModelPath, '--output', outputDir, '--url-to-local-file-mapping', localDirectory]
-        );
-
-        // Should generate the three expected files
-        expect(fs.existsSync(path.join(outputDir, 'package.json'))).toBeTruthy();
-        expect(fs.existsSync(path.join(outputDir, 'index.html'))).toBeTruthy();
-        expect(fs.existsSync(path.join(outputDir, 'main.js'))).toBeTruthy();
-
-        // package.json should have three as a dependency
-        const pkg = JSON.parse(fs.readFileSync(path.join(outputDir, 'package.json'), 'utf8'));
-        expect(pkg.dependencies.three).toBeDefined();
-
-        // main.js should contain embedded CALM data (node names from the fixture)
-        const mainJs = fs.readFileSync(path.join(outputDir, 'main.js'), 'utf8');
-        expect(mainJs).toContain('THREE');
-        expect(mainJs).toContain('nodes');
-
-        // index.html should have the ant farm title
-        const indexHtml = fs.readFileSync(path.join(outputDir, 'index.html'), 'utf8');
-        expect(indexHtml).toContain('CALM Ant Farm');
     });
 
     // Docify widget rendering verifies every template keeps working with the
@@ -665,20 +870,17 @@ describe('CLI Integration Tests', () => {
                     fs.rmSync(outputFile);
                 }
 
-                await run(
-                    calm(),
-                    [
-                        'docify',
-                        '--architecture',
-                        testModelPath,
-                        '--template',
-                        templatePath,
-                        '--output',
-                        outputFile,
-                        '--url-to-local-file-mapping',
-                        STATIC_GETTING_STARTED_MAPPING_PATH,
-                    ]
-                );
+                await cli.run([
+                    'docify',
+                    '--architecture',
+                    testModelPath,
+                    '--template',
+                    templatePath,
+                    '--output',
+                    outputFile,
+                    '--url-to-local-file-mapping',
+                    STATIC_GETTING_STARTED_MAPPING_PATH,
+                ]);
 
                 expect(fs.existsSync(outputFile)).toBe(true);
                 const actual = fs.readFileSync(outputFile, 'utf8').trim();
@@ -706,8 +908,7 @@ describe('CLI Integration Tests', () => {
 
 
     test('Getting Started Verification - CLI Steps', async () => {
-        // This flow mirrors the public Getting Started guide to ensure the
-        // documentation actually works when the CLI resolves URLs locally.
+        // Runs generate and docify end to end, with URLs resolved to local fixtures.
         const actualOutputDir = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'actual-output');
 
         if (fs.existsSync(actualOutputDir)) {
@@ -717,14 +918,14 @@ describe('CLI Integration Tests', () => {
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
-            GETTING_STARTED_DIR,
+            GETTING_STARTED_TEST_FIXTURES_DIR,
             'conference-signup.pattern.json'
         );
         const outputArchitecture = path.resolve(
             actualOutputDir,
             'conference-signup.arch.json'
         );
-        await run(calm(), ['generate', '-p', inputPattern, '-o', outputArchitecture]);
+        await cli.run(['generate', '-p', inputPattern, '-o', outputArchitecture]);
 
         const expectedOutputArchitecture = path.resolve(
             GETTING_STARTED_TEST_FIXTURES_DIR,
@@ -734,18 +935,15 @@ describe('CLI Integration Tests', () => {
 
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(actualOutputDir, 'website');
-        await run(
-            calm(),
-            [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsite,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
-        );
+        await cli.run([
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsite,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]);
 
         const expectedOutputDocifyWebsite = path.resolve(
             GETTING_STARTED_TEST_FIXTURES_DIR,
@@ -760,7 +958,7 @@ describe('CLI Integration Tests', () => {
         patchJson(outputArchitecture, (arch) => {
             arch['flows'] = [
                 {
-                    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
+                    $schema: 'https://calm.finos.org/release/1.3/meta/flow.json',
                     $id: flowUrl,
                     'unique-id': 'flow-conference-signup',
                     name: 'Conference Signup Flow',
@@ -796,18 +994,15 @@ describe('CLI Integration Tests', () => {
             actualOutputDir,
             'website-with-flow'
         );
-        await run(
-            calm(),
-            [
-                'docify',
-                '--architecture',
-                outputArchitecture,
-                '--output',
-                outputWebsiteWithFlow,
-                '--url-to-local-file-mapping',
-                STATIC_GETTING_STARTED_MAPPING_PATH,
-            ]
-        );
+        await cli.run([
+            'docify',
+            '--architecture',
+            outputArchitecture,
+            '--output',
+            outputWebsiteWithFlow,
+            '--url-to-local-file-mapping',
+            STATIC_GETTING_STARTED_MAPPING_PATH,
+        ]);
 
         const expectedOutputDocifyWebsiteWithFLow = path.resolve(
             GETTING_STARTED_TEST_FIXTURES_DIR,
@@ -823,17 +1018,14 @@ describe('CLI Integration Tests', () => {
 
     test('diff --timeline reports adjacent moment changes in summary format', async () => {
         const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
-        const { stdout } = await run(calm(), ['diff', '--timeline', timelinePath, '-f', 'summary']);
+        const { stdout } = await cli.run(['diff', '--timeline', timelinePath, '-f', 'summary']);
         expect(stdout).toContain('moment-v1 -> moment-v2');
         expect(stdout).toContain('service-c');
     });
 
     test('diff --timeline with --from/--to diffs a specific moment pair as JSON', async () => {
         const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
-        const { stdout } = await run(
-            calm(),
-            ['diff', '--timeline', timelinePath, '--from', 'moment-v1', '--to', 'moment-v2', '-f', 'json']
-        );
+        const { stdout } = await cli.run(['diff', '--timeline', timelinePath, '--from', 'moment-v1', '--to', 'moment-v2', '-f', 'json']);
         const parsed = JSON.parse(stdout);
         expect(parsed).toHaveLength(1);
         expect(parsed[0]).toMatchObject({ from: 'moment-v1', to: 'moment-v2' });
@@ -843,14 +1035,14 @@ describe('CLI Integration Tests', () => {
     test('diff --timeline --exit-code exits non-zero when moments differ', async () => {
         const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
         await expect(
-            run(calm(), ['diff', '--timeline', timelinePath, '--exit-code'])
+            cli.run(['diff', '--timeline', timelinePath, '--exit-code'])
         ).rejects.toHaveProperty('exitCode', 1);
     });
 
     test('diff rejects --timeline combined with -a/-b', async () => {
         const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
         await expect(
-            run(calm(), ['diff', '--timeline', timelinePath, '-a', 'a.json'])
+            cli.run(['diff', '--timeline', timelinePath, '-a', 'a.json'])
         ).rejects.toMatchObject({
             stderr: expect.stringContaining('--timeline cannot be combined with')
         });
@@ -859,7 +1051,7 @@ describe('CLI Integration Tests', () => {
     test('diff rejects --from without --to', async () => {
         const timelinePath = path.join(__dirname, '../test_fixtures/timeline-diff/timeline.json');
         await expect(
-            run(calm(), ['diff', '--timeline', timelinePath, '--from', 'moment-v1'])
+            cli.run(['diff', '--timeline', timelinePath, '--from', 'moment-v1'])
         ).rejects.toMatchObject({
             stderr: expect.stringContaining('--from and --to must be supplied together')
         });
@@ -870,18 +1062,18 @@ describe('CLI Integration Tests', () => {
         const archV2 = path.join(__dirname, '../test_fixtures/timeline-diff/arch-v2.json');
         const outputFile = path.join(tempDir, 'generated-timeline.json');
 
-        await run(calm(), ['timeline', '-a', archV1, '-a', archV2, '-o', outputFile]);
+        await cli.run(['timeline', '-a', archV1, '-a', archV2, '-o', outputFile]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const generated = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        expect(generated.$schema).toBe('https://calm.finos.org/release/1.2/meta/calm-timeline.json');
+        expect(generated.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/calm-timeline.json`);
         expect(generated.moments.map((m: { 'unique-id': string }) => m['unique-id'])).toEqual(['arch-v1', 'arch-v2']);
         expect(generated['current-moment']).toBe('arch-v2');
 
         // The generated timeline must be reloadable: validate should parse it and
         // resolve its (relative) detailed-architecture references without crashing.
         const validateOutput = path.join(tempDir, 'generated-timeline-validation.json');
-        await run(calm(), ['validate', '--timeline', outputFile, '-o', validateOutput]).catch(() => undefined);
+        await cli.run(['validate', '--timeline', outputFile, '-o', validateOutput]).catch(() => undefined);
         expect(fs.existsSync(validateOutput)).toBe(true);
         const validation = JSON.parse(fs.readFileSync(validateOutput, 'utf8'));
         // A loadable timeline yields a structured validation outcome (not a loader crash).
@@ -890,26 +1082,84 @@ describe('CLI Integration Tests', () => {
 
     test('timeline command prints to stdout when no output file is given', async () => {
         const archV1 = path.join(__dirname, '../test_fixtures/timeline-diff/arch-v1.json');
-        const { stdout } = await run(calm(), ['timeline', '-a', archV1]);
+        const { stdout } = await cli.run(['timeline', '-a', archV1]);
         const generated = JSON.parse(stdout);
         expect(generated.moments).toHaveLength(1);
         expect(generated.moments[0]['node-type']).toBe('moment');
     });
 
-    function writeJson(filePath: string, obj: object) {
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
-    }
+    describe('workspace snapshot and release', () => {
+        // Stub CalmHub: snapshot and release only read the published versions of a mapping.
+        let publishedVersions: string[] = [];
+        let hub: http.Server;
+        let hubUrl: string;
+        let wsDir: string;
+        let docFile: string;
 
-    function readJson(filePath: string): Record<string, unknown> {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
+        const docId = (version: string) =>
+            `${hubUrl}/calm/namespaces/e2e/architectures/svc-arch/versions/${version}`;
+        const readDocId = () => JSON.parse(fs.readFileSync(docFile, 'utf8'))['$id'];
+        const run = (args: string[]) => cli.run([...args, '--calm-hub-url', hubUrl], { cwd: wsDir });
 
-    function patchJson(filePath: string, patchFn: (o: Record<string, unknown>) => void) {
-        const obj = readJson(filePath);
-        patchFn(obj);
-        writeJson(filePath, obj);
-    }
+        beforeAll(async () => {
+            hub = http.createServer((req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                if (req.url === '/calm/namespaces/e2e/architectures/svc-arch/versions') {
+                    res.end(JSON.stringify({ values: publishedVersions }));
+                } else {
+                    res.statusCode = 404;
+                    res.end('{}');
+                }
+            });
+            await new Promise<void>(resolve => hub.listen(0, '127.0.0.1', resolve));
+            hubUrl = `http://127.0.0.1:${(hub.address() as AddressInfo).port}`;
+
+            wsDir = path.join(tempDir, 'workspace-snapshot-test');
+            fs.mkdirSync(wsDir, { recursive: true });
+            docFile = path.join(wsDir, 'svc-arch.architecture.json');
+            fs.writeFileSync(docFile, JSON.stringify({
+                $schema: 'https://calm.finos.org/release/1.0/meta/calm.json',
+                $id: docId('1.0.0'),
+                title: 'svc-arch',
+                nodes: [],
+                relationships: [],
+            }, null, 2));
+
+            await cli.run(['workspace', 'init', 'e2e-ws'], { cwd: wsDir });
+            await cli.run(['workspace', 'add', docFile, '--id', 'svc-arch', '--type', 'architecture', '--namespace', 'e2e'], { cwd: wsDir });
+        });
+
+        afterAll(async () => {
+            await new Promise(resolve => hub.close(resolve));
+        });
+
+        test('snapshot bumps a published document to a -SNAPSHOT version', async () => {
+            publishedVersions = ['1.0.0'];
+            await run(['workspace', 'snapshot', 'svc-arch', '--minor']);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('snapshot fails when the document is already a snapshot', async () => {
+            await expect(run(['workspace', 'snapshot', 'svc-arch', '--minor'])).rejects.toHaveProperty('exitCode', 1);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('release fails when the release version is already published', async () => {
+            publishedVersions = ['1.0.0', '1.1.0'];
+            await expect(run(['workspace', 'release', 'svc-arch'])).rejects.toHaveProperty('exitCode', 1);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('release strips the -SNAPSHOT suffix', async () => {
+            publishedVersions = ['1.0.0', '1.1.0-SNAPSHOT'];
+            await run(['workspace', 'release', 'svc-arch']);
+            expect(readDocId()).toBe(docId('1.1.0'));
+        });
+
+        test('release fails when the document is not a snapshot', async () => {
+            await expect(run(['workspace', 'release', 'svc-arch'])).rejects.toHaveProperty('exitCode', 1);
+        });
+    });
 
     // Utility to recursively remove specific line/character fields from JSON
     function removeLineNumbers(obj: unknown): void {

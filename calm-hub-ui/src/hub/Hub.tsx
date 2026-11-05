@@ -1,112 +1,530 @@
-import { useCallback, useMemo, useState } from 'react';
-import { IoChevronForwardOutline } from 'react-icons/io5';
-import { TreeNavigation } from './components/tree-navigation/TreeNavigation.js';
-import { Data, Adr } from '../model/calm.js';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { IoCompassOutline } from 'react-icons/io5';
+import { ExploreRail } from './components/explore-rail/ExploreRail.js';
+import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
+import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
+import { NamespacePage } from './components/namespace-page/NamespacePage.js';
+import { DomainPage } from './components/domain-page/DomainPage.js';
+import { IntroScreen } from './components/intro-screen/IntroScreen.js';
+import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
+import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
+import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { useIsMobile } from '../hooks/useMediaQuery.js';
+import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
 import { ControlData } from '../model/control.js';
 import { InterfaceData } from '../model/interface.js';
+import { NamespaceCounts, DomainControlCount } from '../model/counts.js';
+import { CountsService } from '../service/counts-service.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
-import { ControlDetailSection } from './components/control-detail-section/ControlDetailSection.js';
+import { ControlPanel } from './components/control-detail-section/ControlPanel.js';
 import { InterfaceDetailSection } from './components/interface-detail-section/InterfaceDetailSection.js';
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
+import { NodeSheet } from '../visualizer/components/sidebar/NodeSheet.js';
+import { DiagramActionsContext } from '../visualizer/context/DiagramActionsContext.js';
+import { ResourceNotFound } from './components/resource-not-found/ResourceNotFound.js';
+import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { SelectedItem } from '../visualizer/contracts/contracts.js';
+import type { CalmNodeSchema } from '@finos/calm-models/types';
+import { authStore } from '../service/utils/auth-store.js';
 import './Hub.css';
 
+// Breadcrumbs live in history state so Back restores the parent's trail for free,
+// at the documented cost that a hard refresh or shared deep link starts with an
+// empty trail. History state is untyped and can be stale (older sessions) or set
+// by other code, so validate the shape instead of trusting a cast.
+function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
+    const crumbs = (state as { breadcrumbs?: unknown } | null)?.breadcrumbs;
+    if (!Array.isArray(crumbs)) return [];
+    return crumbs.filter(
+        (c): c is BreadcrumbItem =>
+            typeof c === 'object' &&
+            c !== null &&
+            typeof (c as BreadcrumbItem).namespace === 'string' &&
+            ((c as BreadcrumbItem).type === 'architectures' || (c as BreadcrumbItem).type === 'patterns') &&
+            typeof (c as BreadcrumbItem).id === 'string' &&
+            typeof (c as BreadcrumbItem).version === 'string'
+    );
+}
+
 export default function Hub() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const currentDisplayNameRef = useRef<string | undefined>(undefined);
     const [data, setData] = useState<Data | undefined>();
     const [adrData, setAdrData] = useState<Adr | undefined>();
     const [controlData, setControlData] = useState<ControlData | undefined>();
     const [interfaceData, setInterfaceData] = useState<InterfaceData | undefined>();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    // A detail-route load rejected (missing resource, dangling reference). Cleared
+    // on every navigation; renders ResourceNotFound instead of an empty pane.
+    const [resourceLoadFailed, setResourceLoadFailed] = useState(false);
+    const [namespaceCounts, setNamespaceCounts] = useState<NamespaceCounts[]>([]);
+    const [namespaceCountsLoaded, setNamespaceCountsLoaded] = useState(false);
+    // Distinct from "loaded": a failed counts fetch means counts are unknown, not
+    // zero, so consumers must render them as unknown rather than a misleading 0.
+    const [namespaceCountsFailed, setNamespaceCountsFailed] = useState(false);
+    const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
+    const [domainCountsLoaded, setDomainCountsLoaded] = useState(false);
+    // Mirrors namespaceCountsFailed above — a failed fetch means "unknown", not "zero".
+    const [domainCountsFailed, setDomainCountsFailed] = useState(false);
+    const isMobile = useIsMobile();
 
-    function handleDataLoad(data: Data) {
-        setData(data);
+    // Route-first content selection (redesign problem #4): the same <Hub/> element
+    // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
+    // route, so the URL — not residual state — decides what renders.
+    const namespaceMatch = useMatch('/namespace/:ns');
+    const domainMatch = useMatch('/domain/:domain');
+    const detailMatch = useMatch('/:namespace/:type/:id/:version');
+    const searchMatch = useMatch('/search');
+    const brokenRefMatch = useMatch('/broken-reference');
+    const activeNamespace = namespaceMatch?.params.ns;
+    const activeDomain = domainMatch?.params.domain;
+    const isDetailRoute = detailMatch !== null;
+    const isSearchRoute = searchMatch !== null;
+    const isBrokenRefRoute = brokenRefMatch !== null;
+    // The malformed ref that landed us on /broken-reference, carried in history
+    // state (like breadcrumbs, and equally untyped — validate, don't cast).
+    const brokenRefState = (location.state as { brokenRef?: unknown } | null)?.brokenRef;
+    const brokenRef = typeof brokenRefState === 'string' ? brokenRefState : undefined;
+
+    const countsService = useMemo(() => new CountsService(), []);
+
+    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
+    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
+    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
+    useEffect(() => {
+        countsService
+            .fetchNamespaceCounts()
+            .then(setNamespaceCounts)
+            // On failure counts are unknown, not zero: flag it so the tabs render
+            // resting (no badge) rather than a misleading dimmed 0 while the
+            // independent item grid still fills below.
+            .catch(() => {
+                setNamespaceCounts([]);
+                setNamespaceCountsFailed(true);
+            })
+            // Mark loaded on success or failure so consumers can tell "counts
+            // unknown (loading)" from "known zero" — an absent namespace after a
+            // successful fetch is genuinely zero, not still loading.
+            .finally(() => setNamespaceCountsLoaded(true));
+        countsService
+            .fetchDomainCounts()
+            .then(setDomainCounts)
+            .catch(() => {
+                setDomainCounts([]);
+                setDomainCountsFailed(true);
+            })
+            .finally(() => setDomainCountsLoaded(true));
+    }, [countsService]);
+
+    // The mobile drill-down overlay defaults open and would otherwise cover the
+    // results on /search. Close it on route entry (during render, so a direct
+    // mobile /search load doesn't flash the overlay); the Explore bar can reopen it.
+    const [wasSearchRoute, setWasSearchRoute] = useState(false);
+    if (isSearchRoute !== wasSearchRoute) {
+        setWasSearchRoute(isSearchRoute);
+        if (isSearchRoute) setIsMobileNavOpen(false);
+    }
+
+    useEffect(() => {
+        return authStore.subscribe((status) => {
+            if (status === 401 || status === 403) {
+                setData(undefined);
+                setAdrData(undefined);
+                setControlData(undefined);
+                setInterfaceData(undefined);
+                setSelectedItem(null);
+            }
+        });
+    }, []);
+
+    // Every navigation clears any loaded resource so the incoming route decides what
+    // renders. Every resource load now comes from the route, so a stale control or
+    // interface would otherwise flash before the new fetch resolves (detailContent
+    // evaluates controlData first). The clear happens during render, so a stale panel
+    // never paints. A change to the query only, such as a diagram tab, keeps the
+    // resource (useResourceNavigationKey).
+    const resourceKey = useResourceNavigationKey(location, resourceLoadFailed);
+    const [clearedForKey, setClearedForKey] = useState(resourceKey);
+    if (resourceKey !== clearedForKey) {
+        setClearedForKey(resourceKey);
+        setData(undefined);
+        setAdrData(undefined);
+        setControlData(undefined);
+        setInterfaceData(undefined);
+        setResourceLoadFailed(false);
+    }
+
+    // Any navigation, a tab change included, closes the node details panel, except the one that
+    // handleItemSelect makes to take `node` out of the URL.
+    const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
+    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
+    if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
+        setSelectionLocation({ key: location.key, search: location.search });
+        setNodeRemovedFromUrl(null);
+        if (nodeRemovedFromUrl !== location.search) setSelectedItem(null);
+    }
+
+    // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
+    // the clear above, so a link to another node replaces the cleared selection.
+    const linkedNodeId = new URLSearchParams(location.search).get('node');
+    const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
+    if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
+        setLinkSource({ data, linkedNodeId, key: location.key });
+        const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
+        const node = linkedNodeId && Array.isArray(nodes)
+            ? (nodes as CalmNodeSchema[]).find((n) => n['unique-id'] === linkedNodeId)
+            : undefined;
+        if (node) setSelectedItem({ data: node });
+    }
+
+    const handleDataLoad = useCallback((loaded: Data) => {
+        setData(loaded);
         setAdrData(undefined);
         setControlData(undefined);
         setInterfaceData(undefined);
         setSelectedItem(null);
-    }
+        setIsMobileNavOpen(false);
+        currentDisplayNameRef.current = undefined;
+    }, []);
 
-    function handleAdrLoad(adr: Adr) {
+    const handleAdrLoad = useCallback((adr: Adr) => {
         setAdrData(adr);
         setData(undefined);
         setControlData(undefined);
         setInterfaceData(undefined);
         setSelectedItem(null);
-    }
+        setIsMobileNavOpen(false);
+    }, []);
 
-    function handleControlLoad(control: ControlData) {
+    const handleControlLoad = useCallback((control: ControlData) => {
         setControlData(control);
         setData(undefined);
         setAdrData(undefined);
         setInterfaceData(undefined);
         setSelectedItem(null);
-    }
+        setIsMobileNavOpen(false);
+    }, []);
 
-    function handleInterfaceLoad(iface: InterfaceData) {
+    const handleInterfaceLoad = useCallback((iface: InterfaceData) => {
         setInterfaceData(iface);
         setData(undefined);
         setAdrData(undefined);
         setControlData(undefined);
         setSelectedItem(null);
-    }
-
-    const handleItemSelect = useCallback((item: SelectedItem) => {
-        setSelectedItem(item);
+        setIsMobileNavOpen(false);
     }, []);
 
-    const closeSidebar = useCallback(() => {
-        setSelectedItem(null);
+    const handleResourceLoadError = useCallback((error: unknown) => {
+        console.error('%s', 'Failed to load routed resource:', error);
+        setResourceLoadFailed(true);
     }, []);
+
+    // Single owner of deep-link / external-navigation loading for the detail route.
+    useResourceFromRoute({
+        resourceKey,
+        onDataLoad: handleDataLoad,
+        onAdrLoad: handleAdrLoad,
+        onControlLoad: handleControlLoad,
+        onInterfaceLoad: handleInterfaceLoad,
+        onLoadError: handleResourceLoadError,
+    });
+
+    // handleItemSelect must stay stable, because the diagram lays out its nodes again when its click handler
+    // changes. A layout effect, so a click just after a navigation reads the new location.
+    const locationRef = useRef(location);
+    useLayoutEffect(() => {
+        locationRef.current = location;
+    });
+
+    // When the user selects another item or closes the panel, the URL stops naming the linked node, so a
+    // copied link or a reload does not open it again.
+    const handleItemSelect = useCallback(
+        (item: SelectedItem) => {
+            setSelectedItem(item);
+            const { pathname, search, hash, state } = locationRef.current;
+            const params = new URLSearchParams(search);
+            const linked = params.get('node');
+            if (!linked || item?.data['unique-id'] === linked) return;
+            params.delete('node');
+            const query = params.toString();
+            const nextSearch = query ? `?${query}` : '';
+            setNodeRemovedFromUrl(nextSearch);
+            navigate({ pathname, search: nextSearch, hash }, { replace: true, state });
+        },
+        [navigate]
+    );
+
+    const closeSidebar = useCallback(() => handleItemSelect(null), [handleItemSelect]);
+
+    // The resource's display name is fetched by DiagramSection (it owns the
+    // summaries fetch) and mirrored here so the crumb pushed on navigation can
+    // carry it. A ref, not state: it is only read imperatively at navigate time,
+    // so Hub need not re-render when it resolves. This handler MUST stay memoised
+    // (identity-stable) — DiagramSection lists it in a fetch effect's deps.
+    const handleDisplayNameChange = useCallback((name: string | undefined) => {
+        currentDisplayNameRef.current = name;
+    }, []);
+
+    const handleNavigateToDetailedArch = useCallback((ref: string) => {
+        if (!data) return;
+        const currentCrumb: BreadcrumbItem = {
+            namespace: data.name,
+            type: data.calmType === 'Architectures' ? 'architectures' : 'patterns',
+            id: data.id,
+            version: data.version,
+            name: currentDisplayNameRef.current,
+        };
+        const breadcrumbs = [...readBreadcrumbs(location.state), currentCrumb];
+        const parsed = parseCALMHubPath(ref);
+        if (parsed) {
+            navigate(`/${parsed.namespace}/${parsed.type}/${parsed.id}/${parsed.version}`, {
+                state: { breadcrumbs }
+            });
+        } else {
+            // A same-host ref the router cannot parse (an 'invalid' resolution,
+            // e.g. a missing id segment): land on the in-app not-found view so
+            // the broken reference is explained with a recovery path.
+            navigate('/broken-reference', { state: { breadcrumbs, brokenRef: ref } });
+        }
+    }, [navigate, data, location.state]);
+
+    const breadcrumbs = useMemo(() => readBreadcrumbs(location.state), [location.state]);
+
+    // Single, memoised provider value for every detailed-architecture navigation
+    // consumer: CustomNode (which ReactFlow instantiates internally, out of reach
+    // of props) and NodeDetails (rendered in both the Sidebar and the NodeSheet).
+    // Memoised so consumers don't re-render on unrelated Hub renders.
+    const diagramActions = useMemo(
+        () => ({ onNavigateToDetailedArch: handleNavigateToDetailedArch }),
+        [handleNavigateToDetailedArch]
+    );
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
 
-    const memoizedDataLoad = useMemo(() => handleDataLoad, []);
-    const memoizedAdrLoad = useMemo(() => handleAdrLoad, []);
+    // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
+    // is already in Hub — it's exactly what the Drawer renders (`data.data.nodes`)
+    // — so steppers need no new prop threading and never touch the desktop drawer.
+    // Architecture-only (its `nodes` is a flat array; patterns nest them under
+    // `properties.nodes` and degrade to no steppers) and node-only (a selected edge
+    // has no place in the node list, so the neighbours resolve to undefined).
+    // Steppers only feed the mobile NodeSheet; desktop renders <Sidebar> and never
+    // consumes onPrev/onNext, so skip the derivation entirely off mobile.
+    const diagramNodes = useMemo<CalmNodeSchema[]>(() => {
+        if (!isMobile) return [];
+        const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
+        return Array.isArray(nodes) ? (nodes as CalmNodeSchema[]) : [];
+    }, [data, isMobile]);
+
+    const selectedNodeIndex = useMemo(() => {
+        const selected = selectedItem?.data;
+        if (!selected || !('node-type' in selected)) return -1;
+        const id = selected['unique-id'];
+        return diagramNodes.findIndex((n) => n['unique-id'] === id);
+    }, [selectedItem, diagramNodes]);
+
+    // Plain function, not useCallback: onPrev/onNext below are fresh inline closures
+    // each render regardless, so memoising this buys no referential stability.
+    const stepToNode = (index: number) => {
+        const node = diagramNodes[index];
+        if (node) handleItemSelect({ data: node });
+    };
+
+    const onPrevNode = selectedNodeIndex > 0 ? () => stepToNode(selectedNodeIndex - 1) : undefined;
+    const onNextNode =
+        selectedNodeIndex >= 0 && selectedNodeIndex < diagramNodes.length - 1 ? () => stepToNode(selectedNodeIndex + 1) : undefined;
+
+    // The active namespace's full per-type counts, passed straight to NamespacePage
+    // so its type tabs show counts without a second fetch. `undefined` while the
+    // counts fetch is in flight OR if it failed — distinct from a known all-zero
+    // record — so the page renders tabs resting (not dimmed 0) rather than
+    // contradicting the item grid, and defers the first-non-empty default until
+    // counts resolve. Once loaded successfully, a namespace absent from the list is
+    // a genuine all-zero (e.g. an unknown namespace), not still loading.
+    const activeNamespaceCounts = useMemo<NamespaceCounts | undefined>(() => {
+        if (!namespaceCountsLoaded || namespaceCountsFailed) return undefined;
+        return (
+            namespaceCounts.find((c) => c.namespace === activeNamespace) ?? {
+                namespace: activeNamespace ?? '',
+                architectures: 0,
+                patterns: 0,
+                flows: 0,
+                standards: 0,
+                adrs: 0,
+                interfaces: 0,
+                total: 0,
+            }
+        );
+    }, [namespaceCounts, namespaceCountsLoaded, namespaceCountsFailed, activeNamespace]);
+    // Both counts stay `undefined` until the domain-counts fetch settles OR if it
+    // failed, so a deep-link shows "controls" rather than a misleading "0 controls"
+    // (mirrors the activeNamespaceCounts gate above).
+    const domainControlCount = useMemo(
+        () =>
+            !domainCountsLoaded || domainCountsFailed
+                ? undefined
+                : (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0),
+        [domainCounts, domainCountsLoaded, domainCountsFailed, activeDomain]
+    );
+
+    // Chrome-free intro / front door (`/` with nothing else active): early-returns
+    // before Hub's navbar + rail layout. Below every hook above, so none is skipped.
+    if (
+        !activeNamespace &&
+        !activeDomain &&
+        !isDetailRoute &&
+        !isSearchRoute &&
+        !isBrokenRefRoute &&
+        !data &&
+        !adrData &&
+        !controlData &&
+        !interfaceData
+    ) {
+        return <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} />;
+    }
+
+    const detailContent = interfaceData ? (
+        <InterfaceDetailSection interfaceData={interfaceData} />
+    ) : adrData ? (
+        <AdrRenderer adrDetails={adrData} />
+    ) : isDiagramView ? (
+        <DiagramSection
+            // Forces a full remount on navigating between diagrams (not just a
+            // data-prop update), so DiagramSection's own transient state —
+            // notably `latestPositionsRef`, which "Save as default layout" reads
+            // from — never carries over from the previously-viewed diagram.
+            // Without this, a fast navigation to a new architecture could let
+            // "Save as default layout" persist the previous architecture's
+            // on-screen positions under the new architecture's key.
+            key={`${data.calmType}:${data.name}:${data.id}`}
+            data={data}
+            onItemSelect={handleItemSelect}
+            hasDetailsPanel={!!selectedItem}
+            breadcrumbs={breadcrumbs}
+            onDisplayNameChange={handleDisplayNameChange}
+        />
+    ) : (
+        <DocumentDetailSection data={data} />
+    );
+
+    // Route decides the content pane. A resource loaded from a detail route takes
+    // precedence over the route-driven page so its detail view shows. A loaded control
+    // fills the whole pane like an architecture or document detail view — the
+    // ControlPanel carries its own breadcrumb (Explore / <domain> / <control>) back to
+    // the domain's control list. The key resets the panel's view mode when the
+    // control changes.
+    const content = controlData ? (
+        <ControlPanel key={controlData.controlId} controlData={controlData} />
+    ) : isBrokenRefRoute ? (
+        // A malformed detailed-architecture ref (missing/extra segments): the
+        // raw ref cannot be split into route segments, so echo it verbatim.
+        <ResourceNotFound kind="ref" refPath={brokenRef} breadcrumbs={breadcrumbs} />
+    ) : isDetailRoute && resourceLoadFailed && !interfaceData && !adrData && !data ? (
+        // The routed resource failed to load: show a recoverable not-found state
+        // (never a blank pane). Loaded data wins if a late success ever lands.
+        <ResourceNotFound
+            kind="route"
+            namespace={detailMatch.params.namespace!}
+            id={detailMatch.params.id!}
+            version={detailMatch.params.version!}
+            type={detailMatch.params.type}
+            breadcrumbs={breadcrumbs}
+        />
+    ) : isDetailRoute || interfaceData || adrData || data ? (
+        detailContent
+    ) : activeNamespace ? (
+        <NamespacePage namespace={activeNamespace} counts={activeNamespaceCounts} />
+    ) : activeDomain ? (
+        <DomainPage
+            domain={activeDomain}
+            controlCount={domainControlCount}
+        />
+    ) : (
+        // Only reached on `/search` (the bare-`/` intro early-returns above).
+        <SearchResultsPage />
+    );
 
     return (
+        <DiagramActionsContext.Provider value={diagramActions}>
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
-            <div className="flex flex-row flex-1 overflow-hidden bg-base-300">
-                <div className={`${isSidebarOpen ? 'w-1/4' : 'w-12'} p-4 pr-2 transition-all duration-300`}>
-                    <div className="h-full bg-base-100 rounded-box overflow-hidden shadow-xl flex flex-col">
+            {isMobile && !isMobileNavOpen && (
+                <button
+                    aria-label="Explore"
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-base-200 border-b border-base-300 text-sm text-primary"
+                    onClick={() => setIsMobileNavOpen(true)}
+                >
+                    <IoCompassOutline size={16} />
+                    <span>Explore</span>
+                </button>
+            )}
+            <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
+                {/* Desktop: inline, collapsible browse rail. */}
+                {!isMobile && (
+                    <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
-                            <div className="flex-1 min-h-0 overflow-hidden">
-                                <TreeNavigation onDataLoad={memoizedDataLoad} onAdrLoad={memoizedAdrLoad} onControlLoad={handleControlLoad} onInterfaceLoad={handleInterfaceLoad} onCollapse={() => setIsSidebarOpen(false)} />
-                            </div>
+                            <ExploreRail
+                                namespaceCounts={namespaceCounts}
+                                domainCounts={domainCounts}
+                                namespacesLoading={!namespaceCountsLoaded}
+                                domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
+                                onCollapse={() => setIsSidebarOpen(false)}
+                            />
                         ) : (
-                            <div className="flex items-center justify-center pt-3">
-                                <button
-                                    aria-label="Expand sidebar"
-                                    className="btn btn-ghost btn-xs btn-circle"
-                                    onClick={() => setIsSidebarOpen(true)}
-                                >
-                                    <IoChevronForwardOutline />
-                                </button>
-                            </div>
+                            <CollapsedRail namespaceCounts={namespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
                         )}
                     </div>
-                </div>
-                <div className="flex-1 overflow-auto min-w-0">
-                    {interfaceData ? (
-                        <InterfaceDetailSection interfaceData={interfaceData} />
-                    ) : controlData ? (
-                        <ControlDetailSection controlData={controlData} />
-                    ) : adrData ? (
-                        <AdrRenderer adrDetails={adrData} />
-                    ) : isDiagramView ? (
-                        <DiagramSection data={data} onItemSelect={handleItemSelect} hasDetailsPanel={!!selectedItem} />
-                    ) : (
-                        <DocumentDetailSection data={data} />
-                    )}
-                </div>
-                {selectedItem && isDiagramView && (
-                    <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
                 )}
+
+                {/* Mobile: drill-down navigation panel that slides in from the left,
+                    anchored below the Explore bar. Kept mounted (slid off screen) so
+                    the panel's own list state survives while closed. Deep-link
+                    loading is owned by Hub's useResourceFromRoute, not this panel. */}
+                {isMobile && (
+                    <div
+                        className={`absolute inset-0 z-40 bg-base-100 flex flex-col transition-transform duration-300 ${isMobileNavOpen ? 'translate-y-0' : '-translate-y-full pointer-events-none'}`}
+                        role="dialog"
+                        aria-modal={isMobileNavOpen}
+                        aria-hidden={!isMobileNavOpen}
+                    >
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <MobileNavMenu
+                                namespaceCounts={namespaceCounts}
+                                domainCounts={domainCounts}
+                                namespacesLoading={!namespaceCountsLoaded}
+                                domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
+                                onClose={() => setIsMobileNavOpen(false)}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <div className="flex-1 overflow-auto min-w-0">{content}</div>
+                </div>
+
+                {selectedItem &&
+                    isDiagramView &&
+                    (isMobile ? (
+                        // Mobile: bottom-sheet that keeps the diagram peeking above
+                        // (Frame G), replacing the old full-screen takeover.
+                        <NodeSheet selectedData={selectedItem.data} closeSheet={closeSidebar} onPrev={onPrevNode} onNext={onNextNode} />
+                    ) : (
+                        <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
+                    ))}
+
             </div>
         </div>
+        </DiagramActionsContext.Provider>
     );
 }

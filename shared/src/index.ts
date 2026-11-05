@@ -1,7 +1,17 @@
+import { registerNodeLoggerFactory } from './logger.js';
+import { createWinstonLogger } from './logger.node.js';
+import { registerOutputFormatter } from './commands/validate/format-output.js';
+import { junitFormatter } from './commands/validate/output-formats/junit-output.js';
+
+// These top-level calls are load-bearing side effects (they register the Node logger factory and
+// the junit output formatter for consumers of this entry point) — never add "sideEffects": false
+// to shared/package.json, or bundlers will tree-shake them away.
+registerNodeLoggerFactory(createWinstonLogger);
+registerOutputFormatter('junit', junitFormatter);
+
 export {
     validate,
     formatOutput as getFormattedOutput,
-    exitBasedOffOfValidationOutcome,
     ValidationFormattingOptions,
     ValidationDocumentContext,
 } from './commands/validate/validate.js';
@@ -31,15 +41,18 @@ export {
 export { ValidationOutput } from './commands/validate/validation.output.js';
 export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';
-export { initLogger } from './logger.js';
-export type { Logger } from './logger.js';
+export { initLogger, registerNodeLoggerFactory } from './logger.js';
+export type { Logger, LogLevel, NodeLoggerFactory } from './logger.js';
+export { createWinstonLogger } from './logger.node.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
+export { DirectUrlAuthPlugin } from './auth/direct-url-auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
 export {
     parseFrontMatter,
     parseFrontMatterFromContent,
+    parseYamlFrontMatterMapping,
     hasArchitectureFrontMatter,
     replaceVariables,
     injectFrontMatter,
@@ -47,14 +60,19 @@ export {
     type ParsedFrontMatter,
     type FrontMatterInjectionParams
 } from './template/front-matter.js';
-export { Docifier, DocifyMode } from './docify/docifier.js';
+export { Docifier, DocifyMode, DiagramExportFormat } from './docify/docifier.js';
 export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
-export { ValidationOutcome } from './commands/validate/validation.output';
-export * from './test/file-comparison.js';
+export { ValidationOutcome } from './commands/validate/validation.output.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
-export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader';
-export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader';
+export { DocumentLoader, DocumentLoaderOptions, DocumentLoadError, assertJsonObject, CALM_HUB_PROTOS } from './document-loader/document-loader.js';
+export { buildDocumentLoader } from './document-loader/node-document-loader.js';
+export { FileSystemDocumentLoader, isLocalPath, isRelativePath } from './document-loader/file-system-document-loader.js';
+export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader.js';
+export {
+    classifyWorkspaceDocumentType,
+    type WorkspaceDocumentKind,
+} from './document-loader/workspace-document-kind.js';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
@@ -64,21 +82,69 @@ export {
 export {
     CalmHubClient,
     HubClientError,
+    RESOURCE_TYPES,
     type HubNamespaceSummary,
-    type HubArchitectureSummary,
-    type HubPatternSummary,
-    type HubStandardSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
-    type HubControlRequirementSummary,
-    type CalmHubOptions
+    type CalmHubOptions,
+    type NarrativeDocumentRequest,
+    type NarrativeDocumentVersion,
+    type ResourceType,
+    type ResourceChangeType,
+    isValidResourceType
 } from './hub/calm-hub-client.js';
+export {
+    constructDocumentId,
+    isConformantDocumentId,
+    namespaceFromDocumentId,
+    resourceTypeFromDocumentId,
+    isControlDocumentId,
+    documentNameField,
+    documentName,
+    extractDocumentMetadata,
+    updateDocumentMetadata,
+    type DocumentMetadata,
+    constructControlDocumentId,
+    extractControlMetadata,
+    updateControlDocumentMetadata,
+    type ControlDocumentMetadata,
+    type ControlDocumentKind
+} from './hub/document-id-utils.js';
+export {
+    computeSemVerBump,
+    compareSemVer,
+    sortSemVer,
+    isSnapshotVersion,
+    latestReleaseVersion,
+    toSnapshotVersion,
+    toReleaseVersion,
+    SNAPSHOT_SUFFIX
+} from './hub/semver.js';
+export { canonicalEqual, canonicalize } from './hub/canonical.js';
+export {
+    isCurie,
+    parseCurie,
+    expandCurie,
+    type CurieComponents,
+} from './hub/curie.js';
+export { CurieReferenceResolver } from './resolver/curie-resolver.js';
+export { LocalCurieReferenceResolver } from './resolver/local-curie-resolver.js';
+export { ShaCacheReferenceResolver } from './resolver/sha-cache-resolver.js';
+export { ChainReferenceResolver } from './resolver/chain-reference-resolver.js';
+export { type CalmReferenceResolver, HttpReferenceResolver } from './resolver/calm-reference-resolver.js';
+export { SchemaDirectoryReferenceResolver } from './resolver/schema-directory-reference-resolver.js';
+export { mergeControls } from './controls/merge-controls.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
     type ParsedDocumentContext,
     __test__ as validationEnrichmentTest
 } from './commands/validate/validation-enrichment.js';
+export { InMemoryDocumentLoader } from './document-loader/in-memory-document-loader.js';
+export { buildBrowserDocumentLoader, type BrowserDocumentLoaderOptions } from './document-loader/browser-document-loader.js';
+export { generate, type GenerateOptions } from './commands/generate/generate-core.js';
+export { diffDocuments, diffTimeline, tryDetectDocumentType, type DiffDocumentsOptions } from './commands/diff/diff-core.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';

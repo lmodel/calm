@@ -1,7 +1,18 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { NodeDetails } from './NodeDetails.js';
+import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { CalmNodeSchema } from '@finos/calm-models/types';
+import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
+
+function renderWithNavigation(node: CalmNodeSchema, onNavigateToDetailedArch: (ref: string) => void) {
+    return render(
+        <DiagramActionsContext.Provider value={{ onNavigateToDetailedArch }}>
+            <NodeDetails data={node} />
+        </DiagramActionsContext.Provider>
+    );
+}
 
 const baseNode: CalmNodeSchema = {
     'unique-id': 'node-001',
@@ -11,6 +22,10 @@ const baseNode: CalmNodeSchema = {
 };
 
 describe('NodeDetails', () => {
+    // No-op unless a test called setHostname; keeps a failed assertion from
+    // leaking the overridden window.location into the tests that follow.
+    afterEach(() => restoreLocation());
+
     it('renders node name, unique-id, and description', () => {
         render(<NodeDetails data={baseNode} />);
 
@@ -89,14 +104,88 @@ describe('NodeDetails', () => {
         expect(screen.getByText('Encryption at rest')).toBeInTheDocument();
     });
 
-    it('renders detailed architecture indicator when present', () => {
+    it('renders detailed architecture label and reference value when present', () => {
         const nodeWithDetails: CalmNodeSchema = {
             ...baseNode,
-            details: { 'detailed-architecture': 'arch-ref-001' },
+            details: { 'detailed-architecture': 'api-platform.json' },
         };
         render(<NodeDetails data={nodeWithDetails} />);
 
-        expect(screen.getByText('Has detailed architecture')).toBeInTheDocument();
+        expect(screen.getByText('Detailed Architecture')).toBeInTheDocument();
+        expect(screen.getByText('api-platform.json')).toBeInTheDocument();
+    });
+
+    it('renders detailed architecture as a clickable button when reference is a CALM Hub path', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        const nodeWithDetails: CalmNodeSchema = {
+            ...baseNode,
+            details: { 'detailed-architecture': '/calm/namespaces/finos/architectures/2/versions/1-0-0' },
+        };
+        renderWithNavigation(nodeWithDetails, onNavigate);
+
+        const btn = screen.getByRole('button', { name: '/calm/namespaces/finos/architectures/2/versions/1-0-0' });
+        expect(btn).toBeInTheDocument();
+        await user.click(btn);
+        expect(onNavigate).toHaveBeenCalledWith('/calm/namespaces/finos/architectures/2/versions/1-0-0');
+    });
+
+    it('renders an internal reference as plain text when no navigation handler is provided', () => {
+        const nodeWithDetails: CalmNodeSchema = {
+            ...baseNode,
+            details: { 'detailed-architecture': '/calm/namespaces/finos/architectures/2/versions/1-0-0' },
+        };
+        // No DiagramActionsContext provider: the default empty context means there
+        // is nowhere to navigate, so no clickable affordance may render.
+        render(<NodeDetails data={nodeWithDetails} />);
+
+        expect(screen.getByText('/calm/namespaces/finos/architectures/2/versions/1-0-0')).toBeInTheDocument();
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('renders detailed architecture as a link when reference is an http URL on a different hostname', () => {
+        const nodeWithDetails: CalmNodeSchema = {
+            ...baseNode,
+            details: { 'detailed-architecture': 'https://calm.finos.org/calm/namespaces/finos/architectures/2/versions/1.0.0' },
+        };
+        render(<NodeDetails data={nodeWithDetails} />);
+
+        const link = screen.getByRole('link', { name: 'https://calm.finos.org/calm/namespaces/finos/architectures/2/versions/1.0.0' });
+        expect(link).toBeInTheDocument();
+        expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('renders detailed architecture as a clickable button for same-hostname absolute URLs (e.g. different port in dev)', async () => {
+        setHostname('localhost');
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        const nodeWithDetails: CalmNodeSchema = {
+            ...baseNode,
+            details: { 'detailed-architecture': 'http://localhost:8080/calm/namespaces/finos/architectures/2/versions/1.0.0' },
+        };
+        renderWithNavigation(nodeWithDetails, onNavigate);
+
+        const btn = screen.getByRole('button', { name: 'http://localhost:8080/calm/namespaces/finos/architectures/2/versions/1.0.0' });
+        expect(btn).toBeInTheDocument();
+        await user.click(btn);
+        expect(onNavigate).toHaveBeenCalledWith('/calm/namespaces/finos/architectures/2/versions/1.0.0');
+    });
+
+    it('renders a same-hostname URL with a malformed hub path as a clickable button (in-app not-found, not a new tab)', async () => {
+        setHostname('localhost');
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        const nodeWithDetails: CalmNodeSchema = {
+            ...baseNode,
+            details: { 'detailed-architecture': 'http://localhost:8080/calm/namespaces/finos/architectures/versions/1.0.0' },
+        };
+        renderWithNavigation(nodeWithDetails, onNavigate);
+
+        const btn = screen.getByRole('button', { name: 'http://localhost:8080/calm/namespaces/finos/architectures/versions/1.0.0' });
+        expect(btn).toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        await user.click(btn);
+        expect(onNavigate).toHaveBeenCalledWith('/calm/namespaces/finos/architectures/versions/1.0.0');
     });
 
     it('renders extra properties not in the known set', () => {

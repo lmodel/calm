@@ -1,0 +1,139 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { validate } from './validate.js';
+import { ValidationOutcome } from './validation.output.js';
+import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
+import { InMemoryDocumentLoader } from '../../test/in-memory-document-loader.js';
+import { SchemaDirectory } from '../../schema-directory.js';
+import { calmSchemaDir } from '../../test/test-utils';
+
+const schemaDir = calmSchemaDir();
+
+const CYCLIC_ARCH_URL = 'https://calm.example.com/cyclic-arch.json';
+const NESTED_ARCH_URL = 'https://calm.example.com/nested-arch.json';
+
+function nodeWithDetail(detailUrl: string) {
+    return {
+        'unique-id': 'svc',
+        'node-type': 'service',
+        name: 'Service',
+        description: 'a service with detailed architecture',
+        details: { 'detailed-architecture': detailUrl }
+    };
+}
+
+const topArchWithCycle = {
+    'unique-id': 'top-cyclic',
+    nodes: [nodeWithDetail(CYCLIC_ARCH_URL)],
+    relationships: []
+};
+
+// The sub-architecture references itself, forming a cycle.
+const cyclicSubArch = {
+    'unique-id': 'cyclic-sub',
+    nodes: [nodeWithDetail(CYCLIC_ARCH_URL)],
+    relationships: []
+};
+
+const topArchNested = {
+    'unique-id': 'top-nested',
+    nodes: [nodeWithDetail(NESTED_ARCH_URL)],
+    relationships: []
+};
+
+// A well-formed nested sub-architecture (no cycle, no errors).
+const nestedSubArch = {
+    'unique-id': 'nested-sub',
+    nodes: [
+        { 'unique-id': 'db', 'node-type': 'database', name: 'DB', description: 'a database' }
+    ],
+    relationships: []
+};
+
+describe('validate node-details E2E', () => {
+    function schemaDirectoryWith(docs: Record<string, object>): SchemaDirectory {
+        const fsLoader = new FileSystemDocumentLoader([schemaDir], false);
+        return new SchemaDirectory(new InMemoryDocumentLoader(docs, fsLoader));
+    }
+
+    let schemaDirectory: SchemaDirectory;
+
+    beforeEach(async () => {
+        schemaDirectory = schemaDirectoryWith({
+            [CYCLIC_ARCH_URL]: cyclicSubArch,
+            [NESTED_ARCH_URL]: nestedSubArch
+        });
+        await schemaDirectory.loadSchemas();
+    });
+
+    it('terminates and reports a cycle-detected error on a cyclic detailed-architecture', async () => {
+        // Regression guard for the cycle bug: a pattern-less architecture whose
+        // detailed-architecture references itself must terminate and emit cycle-detected.
+        const outcome = await validate(topArchWithCycle, undefined, undefined, schemaDirectory, false);
+        expect(outcome).toBeDefined();
+        expect(outcome.hasErrors).toBe(true);
+        const cycleOutputs = outcome.jsonSchemaValidationOutputs.filter(o => o.code === 'cycle-detected');
+        expect(cycleOutputs).toHaveLength(1);
+        expect(cycleOutputs[0].path).toBe(
+            '/nodes/0/details/detailed-architecture/nodes/0/details/detailed-architecture'
+        );
+        expect(cycleOutputs[0].message).toContain(`${CYCLIC_ARCH_URL} -> ${CYCLIC_ARCH_URL}`);
+    }, 10000);
+
+    it('recursively validates a well-formed nested detailed-architecture', async () => {
+        const outcome = await validate(topArchNested, undefined, undefined, schemaDirectory, false);
+        expect(outcome).toBeDefined();
+        expect(outcome.hasErrors).toBe(false);
+    });
+
+    it('surfaces errors from an invalid nested detailed-architecture with a prefixed path', async () => {
+        const invalidNested = {
+            'unique-id': 'invalid-sub',
+            nodes: [
+                // node-type is required by the core schema; omit it to force an error
+                { 'unique-id': 'broken', name: 'Broken', description: 'missing node-type' }
+            ],
+            relationships: []
+        };
+        schemaDirectory = schemaDirectoryWith({ [NESTED_ARCH_URL]: invalidNested });
+        await schemaDirectory.loadSchemas();
+
+        const outcome = await validate(topArchNested, undefined, undefined, schemaDirectory, false);
+        expect(outcome.hasErrors).toBe(true);
+        const prefixed = outcome.jsonSchemaValidationOutputs.some(o =>
+            o.path.startsWith('/nodes/0/details/detailed-architecture')
+        );
+        expect(prefixed).toBe(true);
+    });
+
+    it('reports the errors of an invalid detailed-architecture once when two nodes reference it', async () => {
+        const invalidNested = {
+            'unique-id': 'invalid-sub',
+            nodes: [
+                { 'unique-id': 'broken', name: 'Broken', description: 'missing node-type' }
+            ],
+            relationships: []
+        };
+        const topArchSharingOneDetail = {
+            'unique-id': 'top-shared',
+            nodes: [
+                { ...nodeWithDetail(NESTED_ARCH_URL), 'unique-id': 'svc-a' },
+                { ...nodeWithDetail(NESTED_ARCH_URL), 'unique-id': 'svc-b' }
+            ],
+            relationships: []
+        };
+        const subArchOutputs = (outcome: ValidationOutcome) =>
+            [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs]
+                .filter(o => o.path.includes('/details/detailed-architecture'));
+
+        schemaDirectory = schemaDirectoryWith({ [NESTED_ARCH_URL]: invalidNested });
+        await schemaDirectory.loadSchemas();
+        const singleReference = subArchOutputs(await validate(topArchNested, undefined, undefined, schemaDirectory, false));
+
+        schemaDirectory = schemaDirectoryWith({ [NESTED_ARCH_URL]: invalidNested });
+        await schemaDirectory.loadSchemas();
+        const sharedReference = subArchOutputs(await validate(topArchSharingOneDetail, undefined, undefined, schemaDirectory, false));
+
+        expect(singleReference.length).toBeGreaterThan(0);
+        expect(sharedReference.map(o => o.path)).toEqual(singleReference.map(o => o.path));
+    });
+});

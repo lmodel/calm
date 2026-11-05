@@ -1,4 +1,3 @@
-import winston from 'winston';
 import log from 'loglevel';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -11,59 +10,42 @@ export interface Logger {
     error(message: string): void;
 }
 
+export type NodeLoggerFactory = (debug: boolean, label?: string) => Logger;
+
+let nodeLoggerFactory: NodeLoggerFactory | undefined;
+
+/**
+ * Registers the logger used in Node.js environments. The root entry point registers the
+ * winston implementation (see `logger.node.ts`); the browser entry registers nothing and
+ * therefore always uses loglevel. Calling this in a browser has no effect on behaviour because
+ * `initLogger` only consults the factory when `window` is undefined.
+ */
+export function registerNodeLoggerFactory(factory: NodeLoggerFactory): void {
+    nodeLoggerFactory = factory;
+}
+
 /**
  * Initializes a logger that works in both Node.js and browser environments.
  * @param debug - Enables debug logging if true.
  * @param label - Optional label to prefix Node.js logs.
+ * @param quiet - If true, suppresses all logging output.
  * @returns Logger instance
  */
-export function initLogger(debug: boolean, label?: string): Logger {
-    if (typeof window === 'undefined') {
-        return initNodeLogger(debug, label);
-    } else {
-        return initBrowserLogger(debug);
+export function initLogger(debug: boolean, label?: string, quiet: boolean = false): Logger {
+    if (quiet) {
+        return createQuietLogger();
     }
+    if (typeof window === 'undefined' && nodeLoggerFactory) {
+        return nodeLoggerFactory(debug, label);
+    }
+    return initBrowserLogger(debug);
 }
 
-/**
- * Initializes a logger for Node.js environment using winston.
- * @param debug - Whether to enable debug logging.
- * @param label - Optional label to prefix Node.js logs.
- * @returns Logger instance for Node.js.
- */
-function initNodeLogger(debug: boolean, label?: string): Logger {
-    const level = debug ? 'debug' : 'info';
-    const winstonLogger = winston.createLogger({
-        level,
-        transports: [
-            new winston.transports.Console({ stderrLevels: ['error', 'warn', 'info'] }),
-        ],
-        format: winston.format.combine(
-            winston.format.label({ label }),
-            winston.format.cli(),
-            winston.format.errors({ stack: true }),
-            winston.format.printf(({ level, message, stack, label }) =>
-                stack
-                    ? `${level} [${label}]: ${message} - ${stack}`
-                    : `${level} [${label}]: ${message}`
-            )
-        ),
-    });
-
-    return {
-        log: (lvl, msg) => winstonLogger.log({ level: lvl, message: msg }),
-        debug: (msg) => winstonLogger.debug(msg),
-        info: (msg) => winstonLogger.info(msg),
-        warn: (msg) => winstonLogger.warn(msg),
-        error: (msg) => winstonLogger.error(msg),
-    };
+function createQuietLogger(): Logger {
+    const noop = () => { };
+    return { log: noop, debug: noop, info: noop, warn: noop, error: noop };
 }
 
-/**
- * Initializes a logger for the browser environment using loglevel.
- * @param debug - Whether to enable debug logging.
- * @returns Logger instance for browser.
- */
 function initBrowserLogger(debug: boolean): Logger {
     const level = debug ? 'debug' : 'info';
     log.setLevel(level);

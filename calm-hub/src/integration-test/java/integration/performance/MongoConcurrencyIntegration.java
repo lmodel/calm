@@ -8,7 +8,8 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
-import org.eclipse.microprofile.config.ConfigProvider;
+import integration.MongoTestConnection;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -36,10 +37,13 @@ public class MongoConcurrencyIntegration {
     private static final Logger LOG = LoggerFactory.getLogger(MongoConcurrencyIntegration.class);
     private static final int THREADS = DEFAULT_THREAD_COUNT;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
@@ -54,7 +58,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_pattern_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -68,7 +72,7 @@ public class MongoConcurrencyIntegration {
                                     "patternJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/patterns")
+                        .when().post("/api/calm/namespaces/finos/patterns")
                         .thenReturn()
         );
 
@@ -80,7 +84,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -92,7 +96,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_architecture_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/api/calm/namespaces/finos/architectures")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -106,7 +110,7 @@ public class MongoConcurrencyIntegration {
                                     "architectureJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/architectures")
+                        .when().post("/api/calm/namespaces/finos/architectures")
                         .thenReturn()
         );
 
@@ -118,7 +122,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/api/calm/namespaces/finos/architectures")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -130,7 +134,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_flow_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -144,7 +148,7 @@ public class MongoConcurrencyIntegration {
                                     "flowJson": "{\\"test\\": true}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/flows")
+                        .when().post("/api/calm/namespaces/finos/flows")
                         .thenReturn()
         );
 
@@ -156,7 +160,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/flows")
+                .when().get("/api/calm/namespaces/finos/flows")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -168,7 +172,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_standard_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -182,7 +186,7 @@ public class MongoConcurrencyIntegration {
                                     "standardJson": "{}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/standards")
+                        .when().post("/api/calm/namespaces/finos/standards")
                         .thenReturn()
         );
 
@@ -194,7 +198,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -206,7 +210,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_interface_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -220,7 +224,7 @@ public class MongoConcurrencyIntegration {
                                     "interfaceJson": "{}"
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/interfaces")
+                        .when().post("/api/calm/namespaces/finos/interfaces")
                         .thenReturn()
         );
 
@@ -232,7 +236,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/interfaces")
+                .when().get("/api/calm/namespaces/finos/interfaces")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -244,7 +248,7 @@ public class MongoConcurrencyIntegration {
     @Test
     void concurrent_decorator_creation_produces_unique_ids_and_no_data_loss() {
         int countBefore = given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -255,13 +259,13 @@ public class MongoConcurrencyIntegration {
                                 {
                                     "unique-id": "concurrent-decorator",
                                     "type": "deployment",
-                                    "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                                    "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                                     "target-type": ["architecture"],
                                     "applies-to": ["example-node"],
                                     "data": {"status": "test"}
                                 }
                                 """)
-                        .when().post("/calm/namespaces/finos/decorators")
+                        .when().post("/api/calm/namespaces/finos/decorators")
                         .thenReturn()
         );
 
@@ -273,7 +277,7 @@ public class MongoConcurrencyIntegration {
         assertAllIdsUnique(ids);
 
         int countAfter = given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -289,73 +293,55 @@ public class MongoConcurrencyIntegration {
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
-        ConcurrencyResult<Response> result = runConcurrently(THREADS, () ->
+        // Each thread creates a distinctly-named control via the name-based requirement endpoint.
+        ConcurrencyResult<Response> result = runConcurrently(THREADS, new java.util.concurrent.atomic.AtomicInteger(0), (index) ->
                 given()
                         .contentType(ContentType.JSON)
-                        .body("""
-                                {
-                                    "name": "concurrent-control",
-                                    "description": "concurrency test",
-                                    "requirementJson": "{\\"type\\": \\"requirement\\"}"
-                                }
-                                """)
-                        .when().post("/calm/domains/security/controls")
+                        .body("{\"$id\":\"http://localhost:8080/calm/domains/security/controls/concurrent-control-" + index
+                                + "/requirement/versions/1.0.0\",\"type\":\"requirement\",\"description\":\"concurrency test\"}")
+                        .when().post("/calm/domains/security/controls/concurrent-control-" + index + "/requirement/versions/1.0.0")
                         .thenReturn()
         );
 
         assertTrue(result.allSucceeded(), "Some control creation requests failed: " + result.errors());
         assertAllStatusCodes(result.successfulResults(), 201);
 
-        List<Integer> ids = extractIdsFromLocations(result.successfulResults(), "controls/(\\d+)");
-        assertEquals(THREADS, ids.size());
-        assertAllIdsUnique(ids);
-
-        int countAfter = given()
+        // Controls are now identified by name; verify every concurrently-created control persisted
+        // (no lost updates to the domain's controls array) and the count grew by exactly THREADS.
+        List<String> names = given()
                 .when().get("/calm/domains/security/controls")
                 .then().statusCode(200)
-                .extract().jsonPath().getList("values").size();
-
-        assertNoDataLoss(THREADS, countAfter - countBefore, "Control");
+                .extract().jsonPath().getList("values.name");
+        for (int i = 0; i < THREADS; i++) {
+            assertTrue(names.contains("concurrent-control-" + i), "Missing control concurrent-control-" + i);
+        }
+        assertNoDataLoss(THREADS, names.size() - countBefore, "Control");
     }
 
     @Test
     void concurrent_control_configuration_creation_produces_unique_ids_and_no_data_loss() {
-        // Pre-create a control and extract its ID from the Location header
-        Response controlResponse = given()
+        // Pre-create a named control via the requirement endpoint.
+        given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                            "name": "config-test-control",
-                            "description": "for config concurrency test",
-                            "requirementJson": "{\\"type\\": \\"requirement\\"}"
-                        }
-                        """)
-                .when().post("/calm/domains/security/controls")
-                .thenReturn();
-        assertEquals(201, controlResponse.getStatusCode());
-        int controlId = extractIdsFromLocations(List.of(controlResponse), "controls/(\\d+)").get(0);
+                .body("{\"$id\":\"http://localhost:8080/calm/domains/security/controls/config-test-control/requirement/versions/1.0.0\",\"type\":\"requirement\",\"description\":\"for config concurrency test\"}")
+                .when().post("/calm/domains/security/controls/config-test-control/requirement/versions/1.0.0")
+                .then().statusCode(201);
 
-        ConcurrencyResult<Response> result = runConcurrently(THREADS, () ->
+        // Each thread creates a distinctly-named configuration on that control.
+        ConcurrencyResult<Response> result = runConcurrently(THREADS, new java.util.concurrent.atomic.AtomicInteger(0), (index) ->
                 given()
                         .contentType(ContentType.JSON)
-                        .body("""
-                                {
-                                    "configurationJson": "{\\"setting\\": \\"enabled\\"}"
-                                }
-                                """)
-                        .when().post("/calm/domains/security/controls/" + controlId + "/configurations")
+                        .body("{\"$id\":\"http://localhost:8080/calm/domains/security/controls/config-test-control/configurations/config-" + index
+                                + "/versions/1.0.0\",\"setting\":\"enabled\"}")
+                        .when().post("/calm/domains/security/controls/config-test-control/configurations/config-" + index + "/versions/1.0.0")
                         .thenReturn()
         );
 
         assertTrue(result.allSucceeded(), "Some config creation requests failed: " + result.errors());
         assertAllStatusCodes(result.successfulResults(), 201);
 
-        List<Integer> ids = extractIdsFromLocations(result.successfulResults(), "configurations/(\\d+)");
-        assertEquals(THREADS, ids.size());
-        assertAllIdsUnique(ids);
-
         int countAfter = given()
-                .when().get("/calm/domains/security/controls/" + controlId + "/configurations")
+                .when().get("/calm/domains/security/controls/config-test-control/configurations")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -376,7 +362,7 @@ public class MongoConcurrencyIntegration {
                             "patternJson": "{\\"v\\": \\"1.0.0\\"}"
                         }
                         """)
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .thenReturn();
         assertEquals(201, createResponse.getStatusCode());
 
@@ -387,7 +373,7 @@ public class MongoConcurrencyIntegration {
                 given()
                         .contentType(ContentType.JSON)
                         .body("{\"name\":\"version-test-pattern\",\"description\":\"for version concurrency test\",\"patternJson\":\"{\\\"v\\\": \\\"" + (index + 2) + ".0.0\\\"}\"}")
-                        .when().post("/calm/namespaces/finos/patterns/" + patternId + "/versions/" + (index + 2) + ".0.0")
+                        .when().post("/api/calm/namespaces/finos/patterns/" + patternId + "/versions/" + (index + 2) + ".0.0")
                         .thenReturn()
         );
 
@@ -395,7 +381,7 @@ public class MongoConcurrencyIntegration {
         assertAllStatusCodes(result.successfulResults(), 201);
 
         int versionCount = given()
-                .when().get("/calm/namespaces/finos/patterns/" + patternId + "/versions")
+                .when().get("/api/calm/namespaces/finos/patterns/" + patternId + "/versions")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 
@@ -404,26 +390,20 @@ public class MongoConcurrencyIntegration {
 
     @Test
     void concurrent_control_requirement_version_creation_no_data_loss() {
-        // Pre-create a control and extract its ID from the Location header
-        Response controlResponse = given()
+        // Pre-create a named control at version 1.0.0 via the requirement endpoint.
+        given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                            "name": "version-test-control",
-                            "description": "for version concurrency test",
-                            "requirementJson": "{\\"v\\": \\"1.0.0\\"}"
-                        }
-                        """)
-                .when().post("/calm/domains/security/controls")
-                .thenReturn();
-        assertEquals(201, controlResponse.getStatusCode());
-        int controlId = extractIdsFromLocations(List.of(controlResponse), "controls/(\\d+)").get(0);
+                .body("{\"$id\":\"http://localhost:8080/calm/domains/security/controls/version-test-control/requirement/versions/1.0.0\",\"type\":\"requirement\",\"description\":\"for version concurrency test\"}")
+                .when().post("/calm/domains/security/controls/version-test-control/requirement/versions/1.0.0")
+                .then().statusCode(201);
 
+        // Each thread adds a distinct requirement version to that control.
         ConcurrencyResult<Response> result = runConcurrently(THREADS, new java.util.concurrent.atomic.AtomicInteger(0), (index) ->
                 given()
                         .contentType(ContentType.JSON)
-                        .body("{\"name\":\"version-test-control\",\"description\":\"for version concurrency test\",\"requirementJson\":\"{\\\"type\\\": \\\"requirement-v" + (index + 2) + "\\\"}\"}")
-                        .when().post("/calm/domains/security/controls/" + controlId + "/requirement/versions/" + (index + 2) + ".0.0")
+                        .body("{\"$id\":\"http://localhost:8080/calm/domains/security/controls/version-test-control/requirement/versions/" + (index + 2)
+                                + ".0.0\",\"type\":\"requirement-v" + (index + 2) + "\"}")
+                        .when().post("/calm/domains/security/controls/version-test-control/requirement/versions/" + (index + 2) + ".0.0")
                         .thenReturn()
         );
 
@@ -431,7 +411,7 @@ public class MongoConcurrencyIntegration {
         assertAllStatusCodes(result.successfulResults(), 201);
 
         int versionCount = given()
-                .when().get("/calm/domains/security/controls/" + controlId + "/requirement/versions")
+                .when().get("/calm/domains/security/controls/version-test-control/requirement/versions")
                 .then().statusCode(200)
                 .extract().jsonPath().getList("values").size();
 

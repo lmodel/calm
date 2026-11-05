@@ -1,9 +1,12 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger } from '@finos/calm-shared';
+import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome, WorkspaceDocumentLoader, isLocalPath, isRelativePath } from '@finos/calm-shared';
+
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
-import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
+import { buildSchemaDirectory } from '../cli';
+import { parseDocumentLoaderConfig } from '../document-loader-config';
+import { findWorkspaceManifestPath } from '../workspace-resolver';
 import { parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
@@ -12,6 +15,7 @@ export interface ValidateOptions {
     timelinePath?: string;
     metaSchemaPath: string;
     calmHubUrl?: string;
+    assetsPath?: string;
     urlToLocalFileMapping?: string;
     verbose: boolean;
     strict: boolean;
@@ -24,7 +28,12 @@ export async function runValidate(options: ValidateOptions) {
     try {
         const { getUrlToLocalFileMap } = await import('./template');
         const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
-        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        const workspace = workspaceBundle ? new WorkspaceDocumentLoader(workspaceBundle, options.verbose) : undefined;
+        const architecturePath = options.architecturePath ? resolveLocalPath(options.architecturePath, workspace) : undefined;
+        const patternPath = options.patternPath ? resolveLocalPath(options.patternPath, workspace) : undefined;
+        const timelinePath = options.timelinePath ? resolveLocalPath(options.timelinePath, workspace) : undefined;
+        const patternBasePath = patternPath && isLocalPath(patternPath) ? path.dirname(patternPath) : undefined;
         const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
@@ -34,9 +43,9 @@ export async function runValidate(options: ValidateOptions) {
         let pattern: object | undefined = undefined;
         let timeline: object | undefined = undefined;
 
-        if (options.timelinePath) {
+        if (timelinePath) {
             const result = await loadTimeline(
-                options.timelinePath,
+                timelinePath,
                 docLoader,
                 schemaDirectory,
                 logger
@@ -46,8 +55,8 @@ export async function runValidate(options: ValidateOptions) {
         }
         else {
             const result = await loadArchitectureAndPattern(
-                options.architecturePath ?? '',
-                options.patternPath ?? '',
+                architecturePath ?? '',
+                patternPath ?? '',
                 docLoader,
                 schemaDirectory,
                 logger
@@ -55,11 +64,17 @@ export async function runValidate(options: ValidateOptions) {
             architecture = result.architecture;
             pattern = result.pattern;
         }
-        const documentContexts = buildDocumentContexts(options, logger);
+        const documentContexts = buildDocumentContexts({
+            ...options,
+            architecturePath,
+            patternPath,
+            timelinePath
+        }, logger);
         if (!architecture && !pattern && !timeline) {
             throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
-        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose);
+        const curieResolver = buildCurieResolverChain(options, schemaDirectory);
+        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose, curieResolver);
         enrichWithDocumentPositions(outcome, documentContexts);
         const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));
         writeOutputFile(options.outputPath, content);
@@ -69,13 +84,70 @@ export async function runValidate(options: ValidateOptions) {
         const message = err instanceof Error ? err.message : String(err);
         const stack = err instanceof Error ? err.stack : undefined;
         logger.error('An error occurred while validating: ' + message);
+        if (options.verbose) {
+            for (const causeMessage of formatErrorCauseChain(err)) {
+                logger.error(causeMessage);
+            }
+        }
         if (stack) logger.debug(stack);
         process.exit(1);
     }
 }
 
+function formatErrorCauseChain(error: unknown): string[] {
+    const messages: string[] = [];
+    let currentCause = getErrorCause(error);
+    let isFirst = true;
+
+    while (currentCause instanceof Error) {
+        messages.push(`${isFirst ? 'Cause' : 'Caused by'}: ${currentCause.message}`);
+        currentCause = getErrorCause(currentCause);
+        isFirst = false;
+    }
+
+    return messages;
+}
+
+function getErrorCause(error: unknown): unknown {
+    return error instanceof Error && 'cause' in error
+        ? error.cause
+        : undefined;
+}
+
+function resolveLocalPath(argPath: string, workspace?: WorkspaceDocumentLoader): string {
+    return workspace?.resolvePath(argPath) ?? (isRelativePath(argPath) ? path.resolve(argPath) : argPath);
+}
 
 
+
+
+/**
+ * CURIE resolution chain: SHA cache → local assets → Hub.
+ * Returns undefined when neither --assets-path nor --calm-hub-url is set,
+ * so validation error text stays unchanged for users who don't use CURIEs.
+ */
+function buildCurieResolverChain(options: ValidateOptions, schemaDirectory: SchemaDirectory): CalmReferenceResolver | undefined {
+    const resolvers: CalmReferenceResolver[] = [];
+
+    if (options.assetsPath) {
+        resolvers.push(new LocalCurieReferenceResolver(path.resolve(options.assetsPath)));
+    }
+
+    if (options.calmHubUrl) {
+        resolvers.push(new CurieReferenceResolver(options.calmHubUrl, new SchemaDirectoryReferenceResolver(schemaDirectory)));
+    }
+
+    if (resolvers.length === 0) return undefined;
+
+    // Cache writes are wired up in the next stacked PR; the resolver is inert until then.
+    resolvers.unshift(new ShaCacheReferenceResolver());
+
+    return new ChainReferenceResolver(resolvers);
+}
+
+export function exitBasedOffOfValidationOutcome(outcome: ValidationOutcome, failOnWarnings: boolean) {
+    process.exit(outcome.hasErrors || (failOnWarnings && outcome.hasWarnings) ? 1 : 0);
+}
 
 export function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {
@@ -116,6 +188,13 @@ function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record
         const context = loadDocumentContext(options.patternPath, 'pattern', logger);
         if (context) {
             contexts['pattern'] = context;
+        }
+    }
+
+    if (options.timelinePath) {
+        const context = loadDocumentContext(options.timelinePath, 'timeline', logger);
+        if (context) {
+            contexts['timeline'] = context;
         }
     }
 

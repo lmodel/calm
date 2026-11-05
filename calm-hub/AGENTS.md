@@ -5,16 +5,16 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ## Tech Stack
 
 - **Language**: Java 21
-- **Framework**: Quarkus 3.34+ (Reactive REST, CDI) — `quarkus.platform.version` is pinned to `3.34.2` in the root `pom.xml`
+- **Framework**: Quarkus (Reactive REST, CDI) — version is set via `quarkus.platform.version` in the root `pom.xml`. Use [LTS releases](https://quarkus.io/blog/tag/lts/) only: upgrade to a new LTS release or a patch of the current LTS, never to a non-LTS minor release
 - **Build Tool**: Maven (via parent POM)
 - **Databases**: 
   - MongoDB (production default)
   - NitriteDB (embedded, standalone mode)
 - **Testing**: JUnit 5, TestContainers
 - **API Docs**: OpenAPI/Swagger UI
-- **Security**: Per-namespace permissions enforced via Quarkus Security (`org.finos.calm.security`); three auth modes — open (default), OIDC/Keycloak (`secure`), and proxy-injected header (`proxy-auth`)
+- **Security**: Per-namespace permissions enforced via Quarkus Security (`org.finos.calm.security`); four auth modes — the default is **secure** (rejects all requests with 401), `no-auth` (open, local testing only), OIDC/Keycloak (`secure` profile), and proxy-injected header (`proxy-auth`)
 
-> **Note**: Netty is pinned to `4.1.x` (currently `4.1.132.Final` via `netty-bom` in the root `pom.xml`) to mitigate CVEs. It must stay on 4.1.x — Quarkus 3.x applies a `CleanerJava9` bytecode transformation incompatible with Netty 4.2.
+> **Note**: Netty must stay on whatever 4.1.x version the Quarkus platform BOM manages — never add an explicit `netty-bom` override. Quarkus 3.x applies a `CleanerJava9` bytecode transformation incompatible with Netty 4.2. See the comment near the top of `calm-hub/pom.xml` for the full rationale.
 
 ## Key Commands
 
@@ -23,10 +23,13 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ../mvnw clean package                    # Full build
 ../mvnw -P integration verify            # Include integration tests
 ../mvnw test                              # Unit tests only
+../mvnw -Pserver-only clean package       # Backend only — skips the Node/npm frontend stage
 
 # Development Mode (Hot Reload)
-../mvnw quarkus:dev                       # Default (MongoDB)
-../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — use -Pstandalone, NOT -Dquarkus.profile=standalone
+# NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
+../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
+../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit, no Docker needed
+../mvnw quarkus:dev -Pstandalone,server-only         # Standalone + no frontend build — profiles compose
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
 # Docker
@@ -40,6 +43,15 @@ java -jar target/quarkus-app/quarkus-run.jar  # Run packaged app
 # Docker Build
 docker buildx build --platform linux/amd64,linux/arm64 \
   -f src/main/docker/Dockerfile.jvm -t calm-hub --push .
+
+# Docker image variants (from repo root)
+bash calm-hub/build-readonly-image.sh                 # JVM read-only (calm-hub:read-only-static)
+bash calm-hub/build-native-image.sh                   # Native MongoDB (calm-hub:native)
+bash calm-hub/build-readonly-native-image.sh          # Native read-only (calm-hub:read-only-native)
+
+# Smoke tests — validate a running image (MODE: readonly | readwrite)
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 ```
 
 ## Architecture Overview
@@ -58,6 +70,9 @@ src/
 │   │   ├── interfaces        # Store abstractions
 │   │   ├── mongo/           # MongoDB implementations
 │   │   ├── nitrite/         # NitriteDB implementations
+│   │   ├── github/          # Read-only stores over cloned GitHub repos (+ config/sync/registry/api/access)
+│   │   ├── classpath/       # CALM meta-schemas bundled in the JAR (GitHub mode has no database)
+│   │   ├── noop/            # GitHub-mode stubs for stores with nothing to back them
 │   │   └── producer/        # CDI producers for store selection
 │   ├── domain/               # Domain models
 │   └── config/               # Configuration beans
@@ -105,31 +120,48 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 **Modes**:
 1. **mongo** (default) - MongoDB production storage
 2. **standalone** - NitriteDB embedded storage (no external DB needed)
+3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
+4. **github** - read-only; namespaces map to cloned GitHub repos (`calm.github.namespaces`, one
+   `namespace|repo|branch|groups` entry each). Writes return 501. Versions are commit SHAs, never
+   `latest`. Needs no database.
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`
-- Implementations in `store/mongo/` and `store/nitrite/`
-- Producers in `store/producer/` select implementation at runtime
+- Implementations in `store/mongo/`, `store/nitrite/` and `store/github/`
+- `store/github/` reads from an in-memory registry (`registry/`) rebuilt after each clone or pull
+  (`sync/`). Its stores extend `AbstractGitHubStore` (no file to read) or
+  `AbstractReadOnlyGitHubStore` (reads the file at a SHA or from the clone).
+- A store with nothing to back it in GitHub mode gets a stub: `store/noop/` for stores that
+  need no namespace check, or a `store/github/` store that only does `verifyNamespace` (e.g.
+  `GitHubAdrStore`, `GitHubDocumentStore`)
+- Producers in `store/producer/` select the implementation at runtime from `DatabaseMode`. Every
+  producer needs a `github` arm: the Mongo store is gated on the mode, so a missing arm fails
+  every request in GitHub mode with an unsatisfied resolution.
 
 Example Producer Pattern:
 ```java
 @ApplicationScoped
 public class ArchitectureStoreProducer {
-    
+
     @Inject
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
-    
-    @Inject MongoArchitectureStore mongoStore;
-    
-    @Inject NitriteArchitectureStore nitriteStore;
-    
+
+    @Inject Instance<MongoArchitectureStore> mongoStore;
+
+    @Inject Instance<NitriteArchitectureStore> nitriteStore;
+
+    @Inject Instance<GitHubArchitectureStore> gitHubStore;
+
     @Produces
     @ApplicationScoped
     public ArchitectureStore produceStore() {
-        return "standalone".equals(databaseMode) 
-            ? nitriteStore 
-            : mongoStore;
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
+            return nitriteStore.get();
+        }
+        return mongoStore.get();
     }
 }
 ```
@@ -146,11 +178,53 @@ Security: `@PermissionsAllowed` on resource methods is resolved by
 `CalmHubPermissionChecker`, which consults `UserAccessValidator` against the
 caller's grants. See [PERMISSIONS.md](./PERMISSIONS.md) for the full model.
 
-There are **three auth modes**, each selected by a separate property file:
+#### Preventing Cross-Site Scripting (XSS) in Responses
 
-**Default** (open, no auth) — `application.properties`:
-- `quarkus.oidc.tenant-enabled=false`, `calm.auth.enabled` unset (permission checks pass)
-- All endpoints open; good for development
+**CRITICAL — never echo user-controlled input into a response body unsanitized.** CodeQL's
+`java/xss` rule (CWE-79) flags any path where a request value (`@PathParam`, `@QueryParam`,
+request-body field, or `exception.getMessage()` derived from one) reaches a `Response` entity
+or a log line. `@Pattern` bean-validation on the parameter is **not** a recognised barrier — CodeQL
+still flags it, and content negotiation can serve the error body as `text/html`, making reflected
+XSS exploitable.
+
+**The barrier:** wrap every user-derived value with the shared OWASP sanitizer before
+concatenating it into a body or log message:
+
+```java
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+
+return Response.status(Response.Status.NOT_FOUND)
+        .entity("Invalid namespace provided: " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
+        .build();
+
+logger.error("Cannot parse JSON for namespace [{}]: [{}]",
+        namespace, STRICT_SANITIZATION_POLICY.sanitize(request.getJson()), e);
+```
+
+Rules:
+- **Sanitize in the helper, not the call site.** Fix shared/private error-response helpers
+  (e.g. `invalidNamespaceResponse`, `invalidDomainResponse`) so every caller is covered — not just
+  the one method CodeQL happened to flag.
+- **Prefer not echoing input at all.** When the value adds no diagnostic value to the *client*,
+  return a generic message (see `CalmResourceErrorResponses.invalidJsonResponse`, which deliberately
+  does not echo the payload). Sanitize only when the echoed value genuinely helps the caller.
+- **Always set `@Produces`.** Every endpoint should declare `@Produces(MediaType.APPLICATION_JSON)`
+  (mutating endpoints with no return body included). A missing `@Produces` lets the entity be
+  content-negotiated to `text/html`, which is what turns an echoed string into an XSS sink.
+- The reference implementations are `ControlResource`, `MappingControllerResource`, and
+  `CalmResourceErrorResponses` — match how they sanitize.
+
+There are **four auth modes**, each selected by a separate property file:
+
+**Default** (secure, no mechanism configured) — `application.properties`:
+- `calm.auth.enabled=true`, `quarkus.oidc.tenant-enabled=false`
+- No auth mechanism provides an identity → all requests return 401
+- Forces explicit profile selection; nothing works until you choose an auth mode
+
+**No-auth** (open, local development only) — `application-no-auth.properties`:
+- `quarkus.oidc.tenant-enabled=false`, `calm.auth.enabled=false`
+- `NoAuthAuthenticationMechanism` supplies a non-anonymous identity so all permission checks pass
+- **Never use in production**; activate with `-Dquarkus.profile=no-auth`
 
 **Secure** (OIDC / Keycloak) — `application-secure.properties`:
 - `quarkus.oidc.tenant-enabled=true`, `calm.auth.enabled=true`
@@ -164,8 +238,143 @@ There are **three auth modes**, each selected by a separate property file:
   `Remote-User`, overridable via `calm.security.proxy.username-header`), handled by
   `ProxyAuthenticationMechanism` / `ProxyIdentityProvider`
 
-In the open default, `NoAuthAuthenticationMechanism` supplies an identity so
-permission checks pass without a token.
+## Docker Image Variants
+
+CALM Hub is published as **four container image variants**:
+
+| Tag | Dockerfile | Runtime | Storage | Writes |
+|:----|:-----------|:--------|:--------|:-------|
+| `latest` | `Dockerfile.jvm` | JVM (OpenJDK 21) | MongoDB (external) | ✅ Yes |
+| `latest-native` | `Dockerfile.native` | GraalVM native binary | MongoDB (external) | ✅ Yes |
+| `latest-read-only-static` | `Dockerfile.readonly-static` | JVM | Pre-seeded NitriteDB | ❌ 405 |
+| `latest-read-only-native` | `Dockerfile.readonly-native` | GraalVM native binary | Pre-seeded NitriteDB | ❌ 405 |
+
+All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are built per-arch on native runners (no QEMU).
+
+### Read-Only Mode
+
+**How it works:**
+
+1. `ReadOnlyRequestFilter` (`@PreMatching`, `@Priority(0)`) intercepts every request to `/calm/*`.  
+   Any mutating method (POST, PUT, DELETE, PATCH) is immediately rejected with `HTTP 405` and `Allow: GET, HEAD, OPTIONS`.  
+   The filter reads `calm.readonly` via `ConfigProvider` (not `@ConfigProperty`) so the value is respected in native images where runtime config injection may differ.
+
+2. `NitriteDBConfig` opens the NitriteDB file with `.readOnly(true).autoCommit(false)`. The database file must exist (pre-seeded) — the application will throw on startup if the file is absent.
+
+**Environment variables for read-only images:**
+```
+CALM_READONLY=true
+QUARKUS_PROFILE=standalone
+CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+CALM_HUB_BASE_URL=https://hub.calm.finos.org
+```
+
+### How the Read-Only Data Image Layer is Built
+
+The read-only images use a **two-stage Docker build**:
+
+```
+Stage 1 — seed (JVM, writable)
+  FROM ubi8/openjdk-21 (static) or ubi9/openjdk-21 (native)
+  COPY quarkus-app/ + released meta-schemas (npm copy) + controls/ + interfaces/
+  RUN boot Quarkus in standalone (writable) mode
+      init script POSTs all namespaces, schemas, controls
+      graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
+      result: /data/calmSchemas.db
+
+Stage 2 — runtime (minimal base)
+  COPY --from=seed /data/calmSchemas.db   ← baked as an image layer
+  chmod 0444                              ← filesystem-level immutability
+  ENV CALM_READONLY=true
+  ENV QUARKUS_PROFILE=standalone
+  ENV CALM_HUB_BASE_URL=https://hub.calm.finos.org
+```
+
+**Why native read-only uses JVM for seeding:** GraalVM native binaries cannot reliably *write* (commit) the H2 MVStore backing NitriteDB due to Java serialisation requirements not fully supported in native. The JVM seed stage writes the database; the native binary only reads it. Serialisation metadata for the read path is registered in `META-INF/native-image/org.finos/calm-hub/serialization-config.json`.
+
+### Build Scripts
+
+| Script | Output | Notes |
+|:-------|:-------|:------|
+| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build |
+| `build-native-image.sh [TAG]` | `calm-hub:native` | GraalVM Mandrel container build; requires ≥8 GB Docker RAM |
+| `build-readonly-native-image.sh [TAG]` | `calm-hub:read-only-native` | Builds JVM jar (for seed stage) AND native binary; two-stage Docker |
+
+### Smoke Tests
+
+`smoke-test.sh [BASE_URL] [MODE] [TIMEOUT]` is the shared assertion script used by all four Docker-publish CI workflows.
+
+**Arguments:**
+- `BASE_URL` — default `http://localhost:8080`
+- `MODE` — `readonly` or `readwrite` (default: `readwrite`)
+- `TIMEOUT` — seconds to wait for startup (default: `120`)
+
+**Readiness:** polls `/q/swagger-ui` (always available regardless of DB profile).
+
+**Assertions:**
+- `readonly`: `GET /api/calm/namespaces` → 200 (reads seeded data); POST/PUT/DELETE → 405 on both `/api/calm/...` and `/calm` (ReadOnlyRequestFilter)
+- `readwrite`: `GET /api/calm/namespaces` → 200; `POST /api/calm/namespaces` → 201; name-based `/calm/...` POST/GET → 201/200; `PUT /calm` → 403
+
+```bash
+# Read-only image (auth disabled by the standalone profile baked into the image)
+docker run --rm -p 8080:8080 calm-hub:read-only-static
+bash calm-hub/smoke-test.sh http://localhost:8080 readonly 120
+
+# MongoDB image (requires running Mongo; disable auth for unauthenticated smoke-test calls)
+cd calm-hub/local-dev && docker-compose up -d && cd ../..
+docker run --rm -p 8080:8080 \
+  -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://localhost:27017 \
+  -e CALM_AUTH_ENABLED=false \
+  calm-hub:latest
+bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
+```
+
+## MCP Server
+
+CALM Hub includes an experimental [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
+
+**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http`, version managed by `quarkus-mcp-server-bom` (imported in the root `pom.xml`, tracking the same `quarkus.platform.version`)  
+**Endpoint:** `POST /mcp` (HTTP Streamable JSON-RPC 2.0)  
+**Config:** `calm.mcp.enabled=false` (env: `CALM_MCP_ENABLED`)
+
+Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
+`ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+
+Enable for development:
+```bash
+../mvnw quarkus:dev -Dcalm.mcp.enabled=true
+# or
+export CALM_MCP_ENABLED=true && ../mvnw quarkus:dev
+```
+
+Dev-mode traffic logging: `%dev.quarkus.mcp.server.traffic-logging=true` (set in `application.properties`).
+
+Test with curl:
+```bash
+curl -s -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+## GitHub Actions — Docker Publish Workflows
+
+| Workflow file | Image tag | Trigger (path filter on `main`) |
+|:-------------|:----------|:-------------------------------|
+| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+
+`calm-hub/ec2/**` (the EC2 deployment scripts) is excluded from all four triggers so edits to the on-box install/deploy tooling don't kick off a native multi-arch image rebuild.
+
+All four workflows:
+- Support `workflow_dispatch` with a `tag` input (default: the tag above).
+- Run `smoke-test.sh` against a locally loaded single-arch image before pushing to Docker Hub.
+- Use `${{ secrets.DOCKER_USERNAME }}/calm-hub` as the image namespace.
+- Have `cancel-in-progress: false` (a publish in flight is never cancelled).
+
+**Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
 
 ## Key Concepts
 
@@ -178,7 +387,7 @@ permission checks pass without a token.
 ### Adding New Storage Modes
 1. Create implementation package: `org.finos.calm.store.newmode`
 2. Implement store interfaces
-3. Update Producer classes to inject and conditionally return new implementation
+3. Update every Producer class: inject `Instance<NewStore>` and add a `DatabaseMode` arm
 4. Add mode to configuration documentation
 
 ### MCP Server
@@ -188,17 +397,47 @@ permission checks pass without a token.
   method returns a disabled error, though the `/mcp` HTTP endpoint stays reachable
 - Enable with `-Dcalm.mcp.enabled=true` or `CALM_MCP_ENABLED=true`
 
+### UI Customization
+- `config/UiConfig` (`@ConfigMapping(prefix = "calm.ui")`) holds the operator values that
+  `GET /api/calm/ui/config` (`UiConfigResource`) returns to CALM Hub UI
+- `UiConfigValidator` fails startup on a bad colour, URL or item, so do not relax its checks:
+  they stop CSS injection and `javascript:` links in the UI
+- The response leaves out a section that is not configured or not enabled. The server does not
+  read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
+
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas and controls + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, controls,
+  standards, patterns and interfaces + build `Dockerfile.readonly-static`)
+
+### Bundled CALM Meta-Schemas
+- GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
+- The frontend stage runs `npm run calm-hub:copy-schemas` after `npm install`. It copies every
+  `@finos/calm-schema` release that the root `package.json` pins into `target/calm-schemas`, which
+  the build bundles. The build removes the previous copy first, and an enforcer check fails the
+  build if the copy did not run
+- `versions.txt` and each `files.txt` under `src/main/resources/META-INF/calm-schemas/` are
+  hand-authored. When the root `package.json` adds a release, add it to them;
+  `TestClasspathCoreSchemaResourcesShould` fails until you do
 
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
-  read-only variant
+  read-only variant. `-u` sets the URL the script calls and, unless
+  `CALM_HUB_BASE_URL` or `--base-url` is set, the name-based `$id` base. That
+  base must equal the server's `calm.hub.base-url`. Resolve it after argument
+  parsing (`resolve_calm_hub_base_url`); defaulting it at the top ignores `-u`
+- The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
+  `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). The
+  seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
+  or namespace
+- The name-based seed reads only the JSON files at the top of each `mongo/standards/<namespace>/`
+  directory, and requires a hub `$id`. Each subdirectory of `mongo/standards/finos.calm/` holds copies
+  of the decorator standards of one calm-schema release, with their calm.finos.org `$id`, so
+  `create_standards` seeds them through the numeric API instead, `deployment/` first
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
@@ -215,11 +454,11 @@ permission checks pass without a token.
 
 ### Coverage Requirements
 
-**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
 
 ```bash
 # Run the same check CI uses — always run this before pushing changes
-../mvnw clean verify -Ddependency-check.skip=true
+../mvnw clean verify
 ```
 
 **Exclusions** (from `pom.xml`): `**/*Builder.*`, `**/*CalmResourceErrorResponses.*`, `**/*Constants.*`, `**/*NamespaceStandardSummary.*`, `**/*ArchitectureRequest.*`, `**/config/**/*`, and `**/domain/**/*` are excluded from the coverage check.
@@ -294,10 +533,12 @@ void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern
 ```
 
 Import validation constants from `ResourceValidationConstants`:
+
 ```java
-import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_NAME_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.USERNAME_MESSAGE;
 ```
 
 #### Mongo Store Tests (`@QuarkusTest` + `@InjectMock`)
@@ -351,12 +592,41 @@ private static final int PATTERN_ID = 42;
 4. Write unit tests in `test/`
 5. Add integration test in `integration-test/`
 6. Document with OpenAPI annotations
+7. Declare `@Produces(MediaType.APPLICATION_JSON)` on every method, and sanitize any
+   user-derived value echoed into a response body or log with `STRICT_SANITIZATION_POLICY.sanitize(...)`
+   (see [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses))
+8. **A new mutating endpoint gets audit-trail coverage automatically** — no action needed —
+   as long as it follows the existing `{namespace|domain}/.../{id}[/versions/{version}]`
+   path convention and, for server-generated IDs, returns `Response.created(...)` with a
+   `Location` that embeds the new ID (see [Audit Logging](#audit-logging)). A one-line
+   addition is only needed in `AuditRequestFilter`'s `RESOURCE_CLASS_TO_ENTITY_TYPE` map
+   (and `LocationSegmentParser` if the new entity is server-ID-generated) when introducing
+   a genuinely new resource *type*, not a new endpoint on an existing one.
+
+## Audit Logging
+
+Every mutating (POST/PUT/DELETE) request that completes with a 2xx or 401/403 status is
+recorded to the `auditLogs` collection (and, if enabled, a structured log line under the
+`org.finos.calm.audit` category) by `security/AuditRequestFilter.java`, a post-matching
+`ContainerResponseFilter` — deliberately *not* `@PreMatching` like `ReadOnlyRequestFilter`,
+since it needs `UriInfo.getPathParameters()` resolved after routing. See that class's
+javadoc for the full entity-resolution design (path params → `Location`-header fallback →
+staged `AuditContext` for the handful of body-derived endpoints). `store/AuditLogStore.java`
+is append-only (no `update`/`delete`) and follows the standard Mongo/Nitrite dual-backend
+pattern. Toggle independently with `calm.audit.store.enabled` / `calm.audit.log.enabled` /
+`calm.audit.capture-source-ip` (all in `application.properties`). No REST API exposes the
+trail in this iteration — read it via direct DB access or ops tooling.
+
+GitHub storage mode (`calm.database.mode=github`) has no database, so it does not persist the
+trail: `GitHubAuditLogStore.query()` always returns an empty list, and the structured log line
+is the only record. `GitHubStartupInitializer` logs a warning about this at startup. Route the
+`org.finos.calm.audit` category to a durable sink if you need the trail in GitHub mode.
 
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
 2. Implement all store interfaces
-3. Update all Producer classes to include new implementation
-4. Add conditional logic based on `calm.database.mode`
+3. Update all Producer classes to include new implementation (`Instance<>` + a `DatabaseMode` arm)
+4. Add a producer test for the new mode
 5. Document in README.md
 
 ### Working with MongoDB
@@ -377,10 +647,34 @@ private static final int PATTERN_ID = 42;
 ## Configuration Files
 
 - `pom.xml` - Maven dependencies and build config
-- `src/main/resources/application.properties` - Default (open) config
+- `src/main/resources/application.properties` - Default (secure, rejects all requests) config
+- `src/main/resources/application-no-auth.properties` - No-auth profile (local testing only, no IdP)
 - `src/main/resources/application-secure.properties` - Secure (OIDC/Keycloak) profile config
 - `src/main/resources/application-proxy-auth.properties` - Proxy-auth profile config (proxy-injected `Remote-User` header)
+
+**Do not add a second `application.properties` under `src/test/resources`.** One
+used to exist and, depending on the machine, either it or the main file won
+wholesale rather than merging per-property — so tests silently lost either the
+audit-disable settings (writing to whatever MongoDB the developer had running) or
+the auth and security-header settings (7 failures that passed in isolation). All
+test-only configuration lives in the `%test.` block of
+`src/main/resources/application.properties`; add new test settings there.
+
+**When you add a `SchemaMigrationStep`, update `mongo/init-mongo.js` in the same change.**
+That script seeds a fresh database directly in the current storage shape and pins
+`LATEST_SCHEMA_VERSION`, so `SchemaMigrationRunner` skips every step on first startup.
+Two consequences: the seed data must already be in the shape your new step produces, and
+because step 0 is skipped along with the rest, the script creates the whole index
+inventory itself — a duplicate of `MongoIndexInitializationStep` that has to be kept in
+step. Miss the version bump and the seeded stack runs migrations it does not need; miss
+the index list and duplicate-prevention silently disappears. See
+[ADR 0001](decisions/0001-versioned-artefact-storage.md).
+
 - `PERMISSIONS.md` - Per-namespace permission model reference
+- `decisions/` - Architecture Decision Records for calm-hub's own backend
+  design (not the CALM ADR resource type). See `decisions/README.md` for
+  the format; check each ADR's `Status` field before assuming it describes
+  current behaviour rather than a proposed/pending design.
 
 ## Dependencies on Other Packages
 
@@ -396,11 +690,24 @@ CALM Hub is largely independent - it's a standalone REST API server.
 1. **TestContainers Errors**: Ensure Docker is running before integration tests
 2. **Port Conflicts**: Check if port 8080 is free (or change `quarkus.http.port`)
 3. **MongoDB Connection**: Start MongoDB before dev mode (unless using `-Pstandalone` for NitriteDB)
-   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. The Maven plugin
-     forks a separate JVM and the `-D` flag does not reliably propagate; the Maven profile injects
-     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration.
+   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. Dev mode
+     does not apply a `quarkus.profile` set with `-D` on the Maven command line; the Maven profile injects
+     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration. Other `-D`
+     flags reach the app.
+   - Standalone turns off all dev services, so it needs no Docker. To start the Grafana LGTM
+     observability dev service, add `-Dquarkus.devservices.enabled=true` (needs Docker).
+     OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
+6. **Reflected XSS in error bodies/logs**: Concatenating a raw `@PathParam`/`@QueryParam`/request
+   field into a `Response` entity or log message triggers CodeQL `java/xss`. `@Pattern` validation
+   is not a barrier — wrap the value in `STRICT_SANITIZATION_POLICY.sanitize(...)`. See
+   [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses).
+7. **`-Pserver-only` does not build or refresh the bundled UI**: it skips the Node/npm frontend
+   stage entirely (see [README.md](./README.md#skipping-the-frontend-build)). A fresh clone built
+   with this profile ships no UI at all; never use it for a release, Docker image, or CI build
+   that needs to serve the UI. It (and `-Dskip.npm`) also skips the meta-schema copy, so after
+   `clean` the jar has no bundled meta-schemas and GitHub mode serves none.
 
 ## Known Issues
 

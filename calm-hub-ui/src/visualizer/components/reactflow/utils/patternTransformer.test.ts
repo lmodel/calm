@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parsePatternData } from './patternTransformer';
 
 // Helper to build a minimal pattern node schema item
@@ -72,6 +72,16 @@ describe('parsePatternData', () => {
         const result = parsePatternData({});
         expect(result.nodes).toEqual([]);
         expect(result.edges).toEqual([]);
+        expect(result.failed).toBeUndefined();
+    });
+
+    it('flags a pattern that cannot be parsed', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const result = parsePatternData({ properties: { nodes: { prefixItems: 'not-an-array' } } });
+
+        expect(result).toEqual({ nodes: [], edges: [], failed: true });
+        consoleError.mockRestore();
     });
 
     it('creates nodes from a basic pattern', () => {
@@ -279,6 +289,35 @@ describe('parsePatternData', () => {
         expect(node?.data.interfaces[1].type).toBe('port-interface');
     });
 
+    it('does not use a generic interface definition as the interface type', () => {
+        const pattern = makePattern([
+            schemaNode('svc-1', 'Service', 'service', {
+                interfaces: {
+                    prefixItems: [
+                        {
+                            $ref: 'https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type',
+                            properties: {
+                                'unique-id': { const: 'svc-1-host-port' },
+                            },
+                        },
+                        {
+                            $ref: 'https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-definition',
+                            properties: {
+                                'unique-id': { const: 'svc-1-definition' },
+                            },
+                        },
+                    ],
+                },
+            }),
+        ]);
+        const result = parsePatternData(pattern);
+        const node = result.nodes.find((n) => n.id === 'svc-1');
+        expect(node?.data.interfaces).toEqual([
+            { 'unique-id': 'svc-1-host-port' },
+            { 'unique-id': 'svc-1-definition' },
+        ]);
+    });
+
     it('extracts controls from pattern schema', () => {
         const pattern = makePattern(
             [
@@ -443,6 +482,26 @@ describe('parsePatternData', () => {
         expect(result.nodes[0].id).toBe('node-1');
     });
 
+    it('extracts detailed-architecture from node details schema', () => {
+        const pattern = makePattern([
+            schemaNode('api-gateway', 'API Gateway', 'system', {
+                details: {
+                    properties: {
+                        'detailed-architecture': {
+                            const: '/calm/namespaces/finos/architectures/api-platform/versions/1-0-0',
+                        },
+                    },
+                    required: ['detailed-architecture'],
+                },
+            }),
+        ]);
+        const result = parsePatternData(pattern);
+        const node = result.nodes.find((n) => n.id === 'api-gateway');
+        expect(node?.data.details).toEqual({
+            'detailed-architecture': '/calm/namespaces/finos/architectures/api-platform/versions/1-0-0',
+        });
+    });
+
     it('does not create edges for unknown node references', () => {
         const pattern = makePattern(
             [schemaNode('node-1', 'Node 1', 'service')],
@@ -450,5 +509,173 @@ describe('parsePatternData', () => {
         );
         const result = parsePatternData(pattern);
         expect(result.edges).toHaveLength(0);
+    });
+});
+
+describe('nested container ordering', () => {
+    function deployedInRel(uniqueId: string, container: string, child: string) {
+        return {
+            properties: {
+                'unique-id': { const: uniqueId },
+                'relationship-type': {
+                    const: { 'deployed-in': { container, nodes: [child] } },
+                },
+            },
+        };
+    }
+
+    // A > B > C > system, nested containers listed out of order (A, C, B, system).
+    const pattern = {
+        properties: {
+            nodes: {
+                prefixItems: [
+                    schemaNode('A', 'A', 'system'),
+                    schemaNode('C', 'C', 'system'),
+                    schemaNode('B', 'B', 'system'),
+                    schemaNode('system', 'system', 'service'),
+                ],
+            },
+            relationships: {
+                prefixItems: [
+                    deployedInRel('b-in-a', 'A', 'B'),
+                    deployedInRel('c-in-b', 'B', 'C'),
+                    deployedInRel('s-in-c', 'C', 'system'),
+                ],
+            },
+        },
+    };
+
+    it('emits every parent before its children', () => {
+        const order = parsePatternData(pattern).nodes.map((n) => n.id);
+        const parentOf: Record<string, string> = { B: 'A', C: 'B', system: 'C' };
+        for (const [child, parent] of Object.entries(parentOf)) {
+            expect(order.indexOf(parent)).toBeLessThan(order.indexOf(child));
+        }
+    });
+
+    it('keeps all four nodes', () => {
+        const ids = parsePatternData(pattern).nodes.map((n) => n.id).sort();
+        expect(ids).toEqual(['A', 'B', 'C', 'system']);
+    });
+});
+describe('items catalogues', () => {
+    function optionsRelationship(uniqueId: string, prompt: string, nodeIds: string[]) {
+        return {
+            properties: {
+                'unique-id': { const: uniqueId },
+                description: { const: prompt },
+                'relationship-type': {
+                    properties: {
+                        options: {
+                            prefixItems: [
+                                {
+                                    anyOf: nodeIds.map((id) => ({
+                                        properties: {
+                                            description: { const: `Add ${id}` },
+                                            nodes: { const: [id] },
+                                            relationships: { const: [] },
+                                        },
+                                    })),
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        };
+    }
+
+    function withCatalogue(nodes: unknown[], catalogue: unknown[], relationships: unknown[] = []) {
+        return {
+            properties: {
+                nodes: { prefixItems: nodes, items: { oneOf: catalogue } },
+                relationships: { prefixItems: relationships },
+            },
+        };
+    }
+
+    it('renders a node declared under items', () => {
+        const result = parsePatternData(withCatalogue([], [schemaNode('cache', 'Cache', 'service')]));
+
+        expect(result.nodes.map((n) => n.id)).toContain('cache');
+    });
+
+    it('groups items members into one decision box', () => {
+        const result = parsePatternData(
+            withCatalogue(
+                [schemaNode('webapp', 'Web', 'service')],
+                [schemaNode('cache', 'Cache', 'service'), schemaNode('queue', 'Queue', 'service')]
+            )
+        );
+
+        const box = result.nodes.find((n) => n.type === 'decisionGroup');
+        expect(box).toBeDefined();
+        expect(result.nodes.filter((n) => n.parentId === box?.id).map((n) => n.id)).toEqual(['cache', 'queue']);
+        expect(result.nodes.find((n) => n.id === 'webapp')?.parentId).toBeUndefined();
+    });
+
+    it('attaches a decision prompt to the items box', () => {
+        const result = parsePatternData(
+            withCatalogue(
+                [],
+                [schemaNode('cache', 'Cache', 'service')],
+                [optionsRelationship('add-ons', 'Optional add-ons', ['cache'])]
+            )
+        );
+
+        const box = result.nodes.find((n) => n.type === 'decisionGroup');
+        expect(box?.data.prompt).toBe('Optional add-ons');
+        expect(box?.data.choices).toHaveLength(1);
+    });
+
+    it('reads an anyOf catalogue and labels the box', () => {
+        const pattern = {
+            properties: {
+                nodes: { items: { anyOf: [schemaNode('cache', 'Cache', 'service')] } },
+                relationships: { prefixItems: [] },
+            },
+        };
+
+        expect(parsePatternData(pattern).nodes.find((n) => n.type === 'decisionGroup')?.data.decisionType).toBe('anyOf');
+    });
+
+    it('keeps a prefixItems decision separate from the items box', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ oneOf: [schemaNode('pg', 'Postgres', 'database'), schemaNode('my', 'MySQL', 'database')] }],
+                    items: { oneOf: [schemaNode('cache', 'Cache', 'service')] },
+                },
+                relationships: { prefixItems: [] },
+            },
+        };
+
+        const boxes = parsePatternData(pattern).nodes.filter((n) => n.type === 'decisionGroup');
+        expect(boxes).toHaveLength(2);
+        expect(new Set(boxes.map((b) => b.id)).size).toBe(2);
+    });
+
+    it('draws an edge for a relationship declared under items', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [schemaNode('a', 'A', 'service'), schemaNode('b', 'B', 'service')] },
+                relationships: { items: { oneOf: [connectsRelationship('a-b', 'a', 'b')] } },
+            },
+        };
+
+        const edges = parsePatternData(pattern).edges;
+        expect(edges).toHaveLength(1);
+        expect([edges[0].source, edges[0].target]).toEqual(['a', 'b']);
+    });
+
+    it('ignores an items schema that offers no choice', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [schemaNode('a', 'A', 'service')], items: { $ref: 'core.json#/defs/node' } },
+                relationships: { prefixItems: [] },
+            },
+        };
+
+        expect(parsePatternData(pattern).nodes.map((n) => n.id)).toEqual(['a']);
     });
 });

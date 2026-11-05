@@ -5,6 +5,7 @@ import { RepeatedStrategy } from './repeated-strategy';
 import { TemplateEngine } from '../template-engine';
 import { TemplateEntry, OutputContext } from '../types';
 import { Logger } from '../../logger';
+import { createMockLogger } from '../../test/test-utils';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
@@ -28,12 +29,7 @@ describe('RepeatedStrategy', () => {
             compileTemplate: vi.fn()
         } as unknown as TemplateEngine;
 
-        mockLogger = {
-            info: vi.fn(),
-            warn: vi.fn(),
-            debug: vi.fn(),
-            error: vi.fn()
-        } as unknown as Logger;
+        mockLogger = createMockLogger();
 
         strategy = new RepeatedStrategy(mockEngine);
 
@@ -43,6 +39,33 @@ describe('RepeatedStrategy', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('output path containment', () => {
+        it('throws and writes nothing when an item id escapes the output directory', () => {
+            const entry: TemplateEntry = {
+                template: 'node.md.hbs',
+                from: 'document.nodes',
+                output: 'nodes/{{unique-id}}.md',
+                'output-type': 'repeated'
+            };
+
+            const context: OutputContext = {
+                data: {
+                    document: {
+                        nodes: [{ 'unique-id': '../../outside' }]
+                    }
+                },
+                outputDir: '/test/output',
+                scaffoldOnly: false
+            };
+
+            vi.mocked(mockEngine.getCompiledTemplate).mockReturnValue(() => 'content');
+
+            expect(() => strategy.process(entry, context, mockLogger))
+                .toThrow('resolves outside the output directory');
+            expect(fs.writeFileSync).not.toHaveBeenCalled();
+        });
     });
 
     describe('scaffold mode', () => {

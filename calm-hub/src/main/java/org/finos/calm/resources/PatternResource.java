@@ -10,7 +10,9 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -18,7 +20,9 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,12 +33,17 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class PatternResource {
 
     private final PatternStore store;
+    private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(PatternResource.class);
 
@@ -42,8 +51,10 @@ public class PatternResource {
     Boolean allowPutOperations;
 
     @Inject
-    public PatternResource(PatternStore store) {
+    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
+        this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -51,14 +62,18 @@ public class PatternResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Retrieve patterns in a given namespace",
-            description = "Patterns stored in a given namespace"
+            description = "Patterns stored in a given namespace. Optional limit/offset query "
+                    + "parameters page the result; when omitted the full list is returned. Offset "
+                    + "is only applied alongside a limit."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternsForNamespace(
-            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.PATTERN,
+                    store.getPatternsForNamespace(namespace, page.toPageRequest())))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving patterns", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -79,7 +94,7 @@ public class PatternResource {
             @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
         try {
-            return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace));
+            return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace, "1.0.0"));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -129,7 +144,7 @@ public class PatternResource {
     public Response getPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
-            @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
@@ -238,8 +253,33 @@ public class PatternResource {
 
     }
 
+    @DELETE
+    @Path("{namespace}/patterns/{patternId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a pattern",
+            description = "Deletes a pattern and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deletePattern(
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("patternId") int patternId
+    ) {
+        try {
+            store.deletePattern(namespace, patternId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting pattern", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (PatternNotFoundException e) {
+            logger.error("Invalid pattern [{}] when deleting pattern", patternId, e);
+            return invalidPatternResponse(patternId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.PATTERN, patternId);
+        return Response.noContent().build();
+    }
+
     private Response patternWithLocationResponse(Pattern pattern) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
     }
     private Response invalidPatternResponse(int patternId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid pattern provided: " + patternId).build();

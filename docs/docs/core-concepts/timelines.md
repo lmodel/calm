@@ -1,7 +1,7 @@
 ---
 id: timelines
 title: Timelines
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 # Timelines in CALM
@@ -10,7 +10,7 @@ sidebar_position: 6
 Timelines were introduced in **CALM schema version 1.2**. To use timelines, include the following schema reference in your timeline document:
 
 ```json
-"$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json"
+"$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json"
 ```
 :::
 
@@ -79,7 +79,7 @@ Here's a complete example of a timeline tracking the evolution of a system:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
   "current-moment": "v3-microservices",
   "moments": [
     {
@@ -215,4 +215,3 @@ In addition to schema validation, CALM applies custom validation rules:
 - **Future Moment Dates**: Moments after the current moment should not have `valid-from` dates (they represent planned future states)
 - **Chronological Order**: Moments with `valid-from` dates should be in chronological order
 - **Date Format**: All dates must be valid ISO dates (YYYY-MM-DD)
-

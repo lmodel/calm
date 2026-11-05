@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PatternStore;
 import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +40,7 @@ public class TestPatternResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .put("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .put("/api/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -50,10 +52,24 @@ public class TestPatternResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .put("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .put("/api/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
-                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_put_pattern_version() {
+        // PUT on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API.
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
+                .put("/api/calm/namespaces/finos/patterns/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForPutPatternTests() {
@@ -61,6 +77,8 @@ public class TestPatternResourcePutEnabledShould {
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new PatternNotFoundException(), 404),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }
@@ -89,16 +107,16 @@ public class TestPatternResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/patterns/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/patterns/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

@@ -26,6 +26,7 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { version: '1.0', details: { priority: 'high', owner: 'finance' } },
             };
             const node2: CalmNodeSchema = {
@@ -33,6 +34,7 @@ describe('diff', () => {
                 'node-type': 'service',
                 metadata: { details: { owner: 'finance', priority: 'high' }, version: '1.0' },
                 name: 'Payment Service',
+                description: 'Handles payments',
             };
             expect(nodeStructureMatches(node1, node2)).toBe(true);
         });
@@ -42,11 +44,13 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
             };
             const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Different Name',
+                description: 'Handles payments',
             };
             expect(nodeStructureMatches(node1, node2)).toBe(false);
         });
@@ -56,12 +60,14 @@ describe('diff', () => {
                 'unique-id': 'payment-service',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { tags: ['api', 'web'] },
             };
             const node2: CalmNodeSchema = {
                 'unique-id': 'payment-processor',
                 'node-type': 'service',
                 name: 'Payment Service',
+                description: 'Handles payments',
                 metadata: { tags: ['web', 'api'] },
             };
             expect(nodeStructureMatches(node1, node2)).toBe(false);
@@ -272,7 +278,11 @@ describe('diff', () => {
         });
 
         it('skips nodes missing unique-id but surfaces them via invalidItems', () => {
-            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture);
+            /*
+            Note: testArchitectures.invalidShapeArchitecture does not validly conform to the CALM schema i.e. its shape does not fit the CalmArchitectureSchema type.
+            To avoid compiler errors from not matching the input contract of diffArchitectures, we explicitly cast testArchitectures.invalidShapeArchitecture to CalmArchitectureSchema.
+            */
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.invalidShapeArchitecture as CalmArchitectureSchema);
             expect(
                 result.nodesAdded.length +
                     result.nodesRemoved.length +
@@ -300,9 +310,253 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - ADR changes', () => {
+        it('records unchanged and added ADRs when an ADR is added', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrAdditionArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.adrAdditionArchitecture.adrs[2],
+                    changeType: 'added'
+                }
+            ]);
+        });
+
+        it('records unchanged and removed ADRs when an ADR is removed', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrRemovalArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                }
+            ]);
+        });
+
+        it('records the removed, added and unchanged ADRs when an ADR is modified', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrModificationArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.adrModificationArchitecture.adrs[0],
+                    changeType: 'added'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                }
+            ]);
+        });
+
+        it('records the removed, added and unchanged ADRs when the ADR array is reordered', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrReorderArchitecture);
+            expect(result.adrDiffItems).toEqual([
+                {
+                    content: testArchitectures.baseArchitecture.adrs[0],
+                    changeType: 'removed'
+                },
+                {
+                    content: testArchitectures.baseArchitecture.adrs[1],
+                    changeType: 'unchanged'
+                },
+                {
+                    content: testArchitectures.adrReorderArchitecture.adrs[1],
+                    changeType: 'added'
+                }
+            ]);
+        });
+    });
+
+    describe('diffArchitectures - control diffs', () => {
+        it('records added and unchanged controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlAdditionArchitecture);
+            expect(result.controlItemsAdded).toEqual({
+                'id-2': {
+                    description: 'test control description 2',
+                    requirements: [{
+                        'requirement-url': 'https://new-url',
+                        'config-url': 'https://new-config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records removed controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlRemovalArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records unchanged controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.baseArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records added and removed controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlSimultaneousAddAndRemovalArchitecture);
+            expect(result.controlItemsAdded).toEqual({
+                'id-2': {
+                    description: 'test control description 2',
+                    requirements: [{
+                        'requirement-url': 'https://new-url',
+                        'config-url': 'https://new-config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsRemoved).toEqual({
+                'id-1': {
+                    description: 'test control description',
+                    requirements: [{
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url'
+                    }]
+                }
+            });
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({});
+        });
+
+        it('records modified controls', () => {
+            const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.controlEditArchitecture);
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({});
+            expect(result.controlItemsModified).toEqual({
+                'id-1': {
+                    descriptionDiff: [
+                        {
+                            changeType: 'removed',
+                            content: 'test control description',
+                        },
+                        {
+                            changeType: 'added',
+                            content: 'edited content',
+                        },
+                    ],
+                    requirementsDiff: [
+                        {
+                            changeType: 'removed',
+                            content: {
+                                'config-url': 'https://config-url',
+                                'requirement-url': 'https://url',
+                            },
+                        },
+                        {
+                            changeType: 'added',
+                            content: {
+                                'config-url': 'https://updated-config-url',
+                                'requirement-url': 'https://updated-url',
+                            },
+                        },
+                    ],
+                },
+            });
+        });
+
+        it('records description-only control edits when requirements are structurally identical', () => {
+            const modified = {
+                ...testArchitectures.baseArchitecture,
+                controls: {
+                    ...testArchitectures.baseArchitecture.controls,
+                    'id-1': {
+                        description: 'edited content',
+                        requirements: testArchitectures.baseArchitecture.controls['id-1'].requirements.map((r) => ({ ...r })),
+                    },
+                },
+            } as CalmArchitectureSchema;
+
+            const result = diffArchitectures(testArchitectures.baseArchitecture, modified);
+
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({});
+
+            expect(result.controlItemsModified['id-1'].descriptionDiff).toEqual([
+                { changeType: 'removed', content: 'test control description' },
+                { changeType: 'added', content: 'edited content' },
+            ]);
+
+            expect(result.controlItemsModified['id-1'].requirementsDiff).toEqual([
+                {
+                    changeType: 'unchanged',
+                    content: {
+                        'requirement-url': 'https://url',
+                        'config-url': 'https://config-url',
+                    },
+                },
+            ]);
+        });
+
+        it('treats controls with reordered object keys as unchanged when content is identical', () => {
+            const modified = {
+                ...testArchitectures.baseArchitecture,
+                controls: {
+                    ...testArchitectures.baseArchitecture.controls,
+                    'id-1': {
+                        requirements: testArchitectures.baseArchitecture.controls['id-1'].requirements,
+                        description: testArchitectures.baseArchitecture.controls['id-1'].description,
+                    },
+                },
+            } as CalmArchitectureSchema;
+
+            const result = diffArchitectures(testArchitectures.baseArchitecture, modified);
+
+            expect(result.controlItemsAdded).toEqual({});
+            expect(result.controlItemsRemoved).toEqual({});
+            expect(result.controlItemsModified).toEqual({});
+            expect(result.controlItemsUnchanged).toEqual({
+                'id-1': testArchitectures.baseArchitecture.controls['id-1'],
+            });
+        });
+    });
+
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
             nodes: [],
             relationships: [],
         });
@@ -341,6 +595,180 @@ describe('diff', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, reordered);
             expect(result.nodesModified).toHaveLength(0);
             expect(result.edgesModified).toHaveLength(0);
+        });
+    });
+
+    describe('diffArchitectures - metadata diffs', () => {
+        it('records added, removed and unchanged objects when comparing arrays', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataArrayBaseArchitecture,
+                testArchitectures.metadataArrayAdditionArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([{ name: 'added', value: 'new' }]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([
+                { name: 'shared', value: 'unchanged' },
+                { name: 'removed', value: 'old' },
+            ]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('records removed objects when an array item is removed', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataArrayBaseArchitecture,
+                testArchitectures.metadataArrayRemovalArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([{ name: 'removed', value: 'old' }]);
+            expect(result.metadataObjectsUnchanged).toEqual([{ name: 'shared', value: 'unchanged' }]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('records the array as removed and the object as added', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataArrayBaseArchitecture,
+                testArchitectures.metadataObjectBaseArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([{
+                unchanged: { nested: true },
+                removed: 'old',
+            }]);
+            expect(result.metadataObjectsRemoved).toEqual([
+                { name: 'shared', value: 'unchanged' },
+                { name: 'removed', value: 'old' },
+            ]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('records the object as removed and the array as added', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataObjectBaseArchitecture,
+                testArchitectures.metadataArrayRemovalArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([{ name: 'shared', value: 'unchanged' }]);
+            expect(result.metadataObjectsRemoved).toEqual([{
+                unchanged: { nested: true },
+                removed: 'old',
+            }]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('records added and removed keys without reporting unchanged keys as modified', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataObjectBaseArchitecture,
+                testArchitectures.metadataObjectModificationArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([{
+                removed: { changeType: 'removed', oldValue: 'old', newValue: null },
+                added: { changeType: 'added', oldValue: null, newValue: 'new' },
+            }]);
+        });
+
+        it('distinguishes a removed key from a key whose value changed to a genuine null via changeType', () => {
+            const base = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { foo: 'bar', other: 1 },
+            } as CalmArchitectureSchema;
+            const keyRemoved = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { other: 1 },
+            } as CalmArchitectureSchema;
+            const keySetToNull = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { foo: null, other: 1 },
+            } as CalmArchitectureSchema;
+
+            const removedResult = diffArchitectures(base, keyRemoved);
+            expect(removedResult.metadataObjectsModified).toEqual([{
+                foo: { changeType: 'removed', oldValue: 'bar', newValue: null },
+            }]);
+
+            const modifiedResult = diffArchitectures(base, keySetToNull);
+            expect(modifiedResult.metadataObjectsModified).toEqual([{
+                foo: { changeType: 'modified', oldValue: 'bar', newValue: null },
+            }]);
+        });
+
+        it('records unchanged object metadata', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataObjectBaseArchitecture,
+                testArchitectures.metadataObjectBaseArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([
+                testArchitectures.metadataObjectBaseArchitecture.metadata,
+            ]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('records unchanged array metadata', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataArrayBaseArchitecture,
+                testArchitectures.metadataArrayBaseArchitecture,
+            );
+
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual(
+                testArchitectures.metadataArrayBaseArchitecture.metadata,
+            );
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports a whole non-empty array as added when the other side has no metadata, without a phantom empty entry', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataEmptyObjectArchitecture,
+                testArchitectures.metadataArrayBaseArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual(testArchitectures.metadataArrayBaseArchitecture.metadata);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports a whole non-empty object as removed when the other side has no metadata, without a phantom empty entry', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataObjectBaseArchitecture,
+                testArchitectures.metadataEmptyArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([testArchitectures.metadataObjectBaseArchitecture.metadata]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports no changes when both sides have no metadata, regardless of container type', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataEmptyObjectArchitecture,
+                testArchitectures.metadataEmptyArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('treats content-identical object-form and array-form metadata as a structural change, not unchanged', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataMatchingObjectArchitecture,
+                testArchitectures.metadataMatchingArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual(testArchitectures.metadataMatchingArrayArchitecture.metadata);
+            expect(result.metadataObjectsRemoved).toEqual([testArchitectures.metadataMatchingObjectArchitecture.metadata]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
         });
     });
 });

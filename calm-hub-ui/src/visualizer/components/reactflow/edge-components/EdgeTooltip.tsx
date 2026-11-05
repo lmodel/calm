@@ -36,12 +36,14 @@ export function EdgeTooltip({
                     maxWidth: '400px',
                 }}
             >
-                <p style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.foreground, marginBottom: '8px' }}>
-                    {description}
-                </p>
+                {description && (
+                    <p style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.foreground, marginBottom: '8px' }}>
+                        {description}
+                    </p>
+                )}
                 {protocol && (
                     <p style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '8px' }}>
-                        Protocol: <span style={{ fontFamily: 'monospace', color: THEME.colors.accent }}>{protocol}</span>
+                        Protocol: <span style={{ fontFamily: 'monospace', color: THEME.colors.accentText }}>{protocol}</span>
                     </p>
                 )}
 
@@ -62,7 +64,7 @@ function FlowTransitionsSection({ transitions, direction }: { transitions: FlowT
     return (
         <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: `1px solid ${THEME.colors.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                <ArrowRight style={{ width: '12px', height: '12px', color: THEME.colors.accent }} />
+                <ArrowRight style={{ width: '12px', height: '12px', color: THEME.colors.accentText }} />
                 <span style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.foreground }}>
                     Flow Transitions {direction && <span style={{ color: THEME.colors.muted }}>({direction})</span>}:
                 </span>
@@ -85,7 +87,7 @@ function FlowTransitionsSection({ transitions, direction }: { transitions: FlowT
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontFamily: 'monospace', color: THEME.colors.accent, fontWeight: 600 }}>
+                                <span style={{ fontFamily: 'monospace', color: THEME.colors.accentText, fontWeight: 600 }}>
                                     Step {sequence}
                                 </span>
                                 {flowName && (

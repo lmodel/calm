@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Theme-aware custom properties — map VS Code's injected --vscode-* tokens
+   to semantic names. These auto-update when the user changes their VS Code theme.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+    --calm-bg: var(--vscode-editor-background, #1e1e1e);
+    --calm-bg-secondary: var(--vscode-sideBar-background, #252526);
+    --calm-bg-input: var(--vscode-input-background, #3c3c3c);
+    --calm-fg: var(--vscode-foreground, #cccccc);
+    --calm-fg-muted: var(--vscode-descriptionForeground, #888888);
+    --calm-text: var(--vscode-editor-foreground, #d4d4d4);
+    --calm-border: var(--vscode-panel-border, #2d2d2d);
+    --calm-border-input: var(--vscode-input-border, #555555);
+    --calm-border-heavy: var(--vscode-widget-border, #444444);
+    --calm-focus: var(--vscode-focusBorder, #007fd4);
+    --calm-link: var(--vscode-textLink-foreground, #3794ff);
+    --calm-btn-bg: var(--vscode-button-background, #0e639c);
+    --calm-btn-fg: var(--vscode-button-foreground, #ffffff);
+    --calm-badge-bg: var(--vscode-badge-background, #0e639c);
+    --calm-badge-fg: var(--vscode-badge-foreground, #ffffff);
+    --calm-hover: var(--vscode-toolbar-hoverBackground, #3c3c3c);
+    --calm-bg-widget: var(--vscode-editorWidget-background, #252526);
+    --calm-shadow: var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+    --calm-error-fg: var(--vscode-editorError-foreground, #f14c4c);
+    --calm-error-bg: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+    --calm-warning-fg: var(--vscode-editorWarning-foreground, #cca700);
+    --calm-warning-bg: var(--vscode-inputValidation-warningBackground, #352a05);
+    --calm-green: var(--vscode-charts-green, #89d185);
+    --calm-blue: var(--vscode-charts-blue, #3794ff);
+    --calm-overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* Override ReactFlow's default node selection box (ugly blue border + handles) */
+.react-flow__node.selected {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Hide ReactFlow attribution */
+.react-flow__attribution {
+    display: none !important;
+}
+
+/* Minimap styling. These rules override the fill attributes that React Flow sets, so the
+   selected state and the container class can have their own colours. */
+.react-flow__minimap {
+    background: var(--calm-bg-secondary);
+    /* Many themes set widget.border close to the background, so mix one from the foreground */
+    border: 2px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--calm-fg) 70%, var(--calm-bg)));
+    border-radius: 4px;
+}
+
+.react-flow__minimap-node {
+    fill: color-mix(in srgb, var(--calm-fg-muted) 70%, transparent);
+    stroke: none;
+}
+
+.react-flow__minimap-node.calm-minimap-container {
+    fill: color-mix(in srgb, var(--calm-fg-muted) 12%, transparent);
+    stroke: var(--calm-fg-muted);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+
+.react-flow__minimap-node.selected {
+    fill: var(--calm-focus);
+}
+
+.react-flow__minimap-node.calm-minimap-container.selected {
+    fill: color-mix(in srgb, var(--calm-focus) 20%, transparent);
+    stroke: var(--calm-focus);
+}
+
+/* Dims the part of the diagram outside the view */
+.react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--calm-bg-secondary) 65%, transparent);
+}
+
+/* Controls styling */
+.react-flow__controls {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* Ensure custom edge interaction zone captures mouse events */
+.react-flow__edge-interaction {
+    pointer-events: stroke;
+}
+
+/* Make handles visible and interactive for wire drawing */
+.react-flow__handle {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: var(--calm-fg-muted) !important;
+    border: 1.5px solid var(--calm-bg) !important;
+    opacity: 0.85;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+/* Enlarge the clickable target (without enlarging the visible dot) so wires are
+   easy to start and drop on the first try. */
+.react-flow__handle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+}
+
+.react-flow__node:hover .react-flow__handle {
+    opacity: 1;
+    transform: scale(1.3);
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+    background: var(--calm-link) !important;
+    border-color: var(--calm-bg) !important;
+    opacity: 1;
+    transform: scale(1.5);
+}
+
+/* Connection line styling while dragging */
+.react-flow__connection-path {
+    stroke: var(--calm-link);
+    stroke-width: 2;
+}
+
+/* Edge hover highlight via CSS (backup for non-custom edges) */
+.react-flow__edge:hover .react-flow__edge-path {
+    stroke: var(--calm-link);
+    stroke-width: 2.5;
+}
+
+/* Toolbar: simple colored-text actions (matches the classic viewer toolbar). Chart colours alone
+   are too pale for text in light themes, so they are mixed with the editor text colour. */
+.fid-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--calm-fg);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.fid-toolbar-btn:hover {
+    background: var(--calm-hover);
+}
+
+.fid-toolbar-btn--validate {
+    color: color-mix(in srgb, var(--calm-green) 60%, var(--calm-text));
+}
+
+.fid-toolbar-btn--apply {
+    color: color-mix(in srgb, var(--vscode-charts-yellow, #cca700) 60%, var(--calm-text));
+}
+
+.fid-toolbar-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--calm-border-heavy);
+    margin: 0 4px;
+}
+
+/* ── Node resize handles — centered on corners/edges, visible in dark theme ── */
+.react-flow__resize-control.handle {
+    width: 10px !important;
+    height: 10px !important;
+    background: var(--calm-focus) !important;
+    border: 2px solid var(--calm-bg) !important;
+    border-radius: 2px !important;
+    z-index: 10 !important;
+}
+
+.react-flow__resize-control.handle.top.left {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.top.right {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.bottom.left {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.bottom.right {
+    transform: translate(-50%, -50%) !important;
+}
+
+/* Properties panel resize grip — visible and highlights on hover */
+.fid-resize-handle {
+    width: 5px;
+    cursor: col-resize;
+    background: var(--calm-border);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.fid-resize-handle:hover {
+    background: var(--calm-focus);
+}
+
+/* Overflow (⋮) dropdown menu items */
+.fid-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--calm-fg);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fid-menu-item:hover {
+    background: var(--calm-hover);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

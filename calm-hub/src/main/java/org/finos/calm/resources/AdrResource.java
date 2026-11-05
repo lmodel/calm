@@ -7,6 +7,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -34,15 +35,18 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 /**
  * Resource for managing ADRs in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class AdrResource {
 
     private final AdrStore store;
+    private final StorageWriteExceptionMapper storageWriteExceptionMapper;
     private final Logger logger = LoggerFactory.getLogger(AdrResource.class);
 
     @Inject
-    public AdrResource(AdrStore store) {
+    public AdrResource(AdrStore store, StorageWriteExceptionMapper storageWriteExceptionMapper) {
         this.store = store;
+        this.storageWriteExceptionMapper = storageWriteExceptionMapper;
     }
 
     /**
@@ -289,8 +293,35 @@ public class AdrResource {
         }
     }
 
+    /**
+     * Delete an ADR and all of its revisions
+     *
+     * @param namespace the namespace the ADR is in
+     * @param adrId     the ID of the ADR
+     * @return no content on success
+     */
+    @DELETE
+    @Path("{namespace}/adrs/{adrId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete an ADR",
+            description = "Deletes an ADR and all of its revisions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteAdrForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId
+    ) {
+        try {
+            store.deleteAdr(namespace, adrId);
+        } catch (Exception e) {
+            return handleException(e, namespace, adrId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response adrWithLocationResponse(AdrMeta adrMeta) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
     }
 
     private Response handleException(Exception e, String namespace) {
@@ -307,7 +338,9 @@ public class AdrResource {
                 AdrNotFoundException.class, ex -> handleAdrNotFoundException(adrId, ex),
                 AdrRevisionNotFoundException.class, ex -> handleAdrRevisionNotFoundException(adrId, revision, ex),
                 AdrParseException.class, this::handleAdrParseException,
-                AdrPersistenceException.class, ex -> handleAdrPersistenceException(adrId, ex)
+                AdrPersistenceException.class, ex -> handleAdrPersistenceException(adrId, ex),
+                AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex),
+                StorageWriteException.class, ex -> storageWriteExceptionMapper.toResponse((StorageWriteException) ex)
         );
 
         return handlers.getOrDefault(e.getClass(), ex -> {
@@ -344,5 +377,10 @@ public class AdrResource {
     private Response handleAdrPersistenceException(int adrId, Exception ex) {
         logger.error("Could not persist update of ADR [{}]", adrId, ex);
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Could not persist update of ADR: [{}]:" + adrId).build();
+    }
+
+    private Response handleAdrRevisionExistsException(int adrId, Exception ex) {
+        logger.error("Concurrent update created a conflicting revision for ADR [{}]", adrId, ex);
+        return Response.status(Response.Status.CONFLICT).entity("ADR " + adrId + " was concurrently updated, please retry").build();
     }
 }

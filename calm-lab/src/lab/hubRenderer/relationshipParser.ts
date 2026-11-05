@@ -1,0 +1,238 @@
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/relationshipParser.ts.
+// Keep logic in sync until the shared renderer package extraction.
+
+import type { Edge } from 'reactflow';
+import { createEdge } from './edgeFactory';
+import { extractId } from './calmHelpers';
+import { THEME } from './theme';
+import type { LabCalmFlow, LabCalmRelationship } from './types';
+
+export interface FlowTransition {
+    sequence: number;
+    direction: string;
+    description: string;
+    flowName: string;
+}
+
+/** Keyed `string | undefined` (not the Hub's `string`): a mid-edit relationship or transition can be missing its id. */
+export type FlowTransitionMap = Map<string | undefined, FlowTransition[]>;
+
+/**
+ * Extracts flow transitions from CALM flows data
+ */
+export function extractFlowTransitions(flows: LabCalmFlow[]): FlowTransitionMap {
+    const flowTransitions: FlowTransitionMap = new Map();
+
+    flows.forEach((flow) => {
+        const flowName = flow.name || 'Unnamed Flow';
+        const transitions = flow.transitions || [];
+
+        transitions.forEach((transition) => {
+            const relId = transition['relationship-unique-id'];
+            const direction = transition.direction || 'source-to-destination';
+            const sequence = transition['sequence-number'] || 0;
+            const description = transition.description || '';
+
+            if (!flowTransitions.has(relId)) {
+                flowTransitions.set(relId, []);
+            }
+            flowTransitions.get(relId)!.push({ sequence, direction, description, flowName });
+        });
+    });
+
+    return flowTransitions;
+}
+
+/**
+ * Parses an interacts relationship into edges
+ */
+function parseInteractsRelationship(rel: LabCalmRelationship, index: number): Edge[] {
+    const edges: Edge[] = [];
+    const interacts = rel['relationship-type']?.interacts;
+    if (!interacts) return edges;
+
+    // May be missing mid-edit; ReactFlow drops an edge whose source matches no node.
+    const actorId = interacts.actor as string;
+    const targetNodeIds = interacts.nodes || [];
+    const label = rel.description || 'interacts';
+
+    targetNodeIds.forEach((targetId, targetIndex) => {
+        edges.push(
+            createEdge({
+                id: `edge-${index}-${targetIndex}`,
+                source: actorId,
+                target: targetId,
+                label,
+                color: THEME.colors.edge.interacts,
+                animated: false,
+                dashed: true,
+                data: {
+                    ...rel,
+                },
+            })
+        );
+    });
+
+    return edges;
+}
+
+/**
+ * Parses a connects relationship into edges
+ */
+function parseConnectsRelationship(rel: LabCalmRelationship, index: number, flowTransitions: FlowTransitionMap): Edge[] {
+    const edges: Edge[] = [];
+    const connects = rel['relationship-type']?.connects;
+    if (!connects) return edges;
+
+    const sourceId = connects.source?.node;
+    const targetId = connects.destination?.node;
+    const label = rel.description || rel.protocol || '';
+    const relId = extractId(rel);
+
+    if (!sourceId || !targetId) return edges;
+
+    const transitions = flowTransitions.get(relId) || [];
+    const forwardTransitions = transitions.filter((t) => t.direction === 'source-to-destination');
+    const backwardTransitions = transitions.filter((t) => t.direction === 'destination-to-source');
+
+    const hasBidirectionalFlow = forwardTransitions.length > 0 && backwardTransitions.length > 0;
+
+    if (hasBidirectionalFlow) {
+        edges.push(
+            createEdge({
+                id: `edge-${index}-forward`,
+                source: sourceId,
+                target: targetId,
+                label,
+                color: THEME.colors.accent,
+                data: {
+                    ...rel,
+                    flowTransitions: forwardTransitions,
+                    direction: 'forward',
+                },
+            })
+        );
+
+        edges.push(
+            createEdge({
+                id: `edge-${index}-backward`,
+                source: sourceId,
+                target: targetId,
+                label,
+                color: THEME.colors.edge.backward,
+                dashed: true,
+                markerPosition: 'start',
+                data: {
+                    ...rel,
+                    flowTransitions: backwardTransitions,
+                    direction: 'backward',
+                },
+            })
+        );
+    } else {
+        edges.push(
+            createEdge({
+                id: `edge-${index}`,
+                source: sourceId,
+                target: targetId,
+                label,
+                color: THEME.colors.accent,
+                data: {
+                    ...rel,
+                    flowTransitions: transitions,
+                },
+            })
+        );
+    }
+
+    return edges;
+}
+
+/**
+ * Checks if a relationship is a containment relationship (deployed-in or composed-of)
+ */
+function isContainmentRelationship(rel: LabCalmRelationship): boolean {
+    return !!(rel['relationship-type']?.['deployed-in'] || rel['relationship-type']?.['composed-of']);
+}
+
+/**
+ * Parses all relationships into edges
+ */
+export function parseRelationships(relationships: LabCalmRelationship[], flowTransitions: FlowTransitionMap): Edge[] {
+    const edges: Edge[] = [];
+
+    relationships.forEach((rel, index) => {
+        if (isContainmentRelationship(rel)) {
+            return;
+        }
+
+        if (rel['relationship-type']?.interacts) {
+            edges.push(...parseInteractsRelationship(rel, index));
+            return;
+        }
+
+        if (rel['relationship-type']?.connects) {
+            edges.push(...parseConnectsRelationship(rel, index, flowTransitions));
+        }
+    });
+
+    return edges;
+}
+
+/**
+ * Connects edges to the drawings of nodes that are in several containers. A node drawn once
+ * connects to every copy of the other end. When both ends have copies, only the copies that share
+ * the most containers connect, e.g. two services in the same cluster. On a tie, a pair connects only
+ * if one of its drawings has no edge yet. If no copies share a container, one edge connects the first
+ * drawings. When one end contains drawings of the other,
+ * only those drawings connect.
+ */
+export function expandEdgesToInstances(
+    edges: Edge[],
+    instancesOf: Map<string, string[]>,
+    parentOf: Map<string, string>
+): Edge[] {
+    const ancestors = (id: string) => {
+        const found = new Set<string>();
+        for (let p = parentOf.get(id); p; p = parentOf.get(p)) found.add(p);
+        return found;
+    };
+
+    return edges.flatMap((edge) => {
+        const sources = instancesOf.get(edge.source) ?? [edge.source];
+        const targets = instancesOf.get(edge.target) ?? [edge.target];
+        if (sources.length === 1 && targets.length === 1) return [edge];
+
+        const drawings = [...sources, ...targets];
+        const ancestorsOf = new Map(drawings.map((d) => [d, ancestors(d)]));
+        const contains = (outer: string, inner: string) => ancestorsOf.get(inner)!.has(outer);
+        // A container that holds every drawing of both ends does not tell which drawings belong together
+        const everywhere = new Set([...ancestorsOf.get(drawings[0])!].filter((x) => drawings.every((d) => ancestorsOf.get(d)!.has(x))));
+        const sharedContainers = (a: string, b: string) =>
+            [...ancestorsOf.get(a)!].filter((x) => ancestorsOf.get(b)!.has(x) && !everywhere.has(x)).length;
+
+        const pairs = sources.flatMap((source) =>
+            targets.map((target) => ({ source, target, score: sharedContainers(source, target) }))
+        );
+        const nested = pairs.filter((p) => contains(p.source, p.target) || contains(p.target, p.source));
+        const bestForSource = new Map<string, number>();
+        const bestForTarget = new Map<string, number>();
+        for (const p of pairs) {
+            bestForSource.set(p.source, Math.max(bestForSource.get(p.source) ?? 0, p.score));
+            bestForTarget.set(p.target, Math.max(bestForTarget.get(p.target) ?? 0, p.score));
+        }
+        const shared: typeof pairs = [];
+        const linked = new Set<string>();
+        for (const p of pairs) {
+            if (p.score === 0 || p.score !== bestForSource.get(p.source) || p.score !== bestForTarget.get(p.target)) continue;
+            // On a tie, a pair connects only if one of its drawings has no edge yet
+            if (linked.has(p.source) && linked.has(p.target)) continue;
+            linked.add(p.source).add(p.target);
+            shared.push(p);
+        }
+        let kept = nested;
+        if (kept.length === 0) kept = sources.length === 1 || targets.length === 1 ? pairs : shared;
+        if (kept.length === 0) kept = pairs.slice(0, 1);
+        return kept.map((p, i) => ({ ...edge, id: i === 0 ? edge.id : `${edge.id}__${i}`, source: p.source, target: p.target }));
+    });
+}

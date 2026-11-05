@@ -11,6 +11,7 @@ import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ArchitectureStore;
 import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
 
@@ -38,6 +40,7 @@ public class TestArchitectureResourcePutEnabledShould {
     private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
     private static final String ARCHITECTURE_JSON = "{ \"test\": \"json\" }";
     private final ObjectMapper objectMapper = new ObjectMapper();
+
     @InjectMock
     ArchitectureStore mockArchitectureStore;
 
@@ -47,7 +50,7 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
+                .put("/api/calm/namespaces/fin_os/architectures/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -59,10 +62,24 @@ public class TestArchitectureResourcePutEnabledShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body(ARCHITECTURE_JSON)
-                .put("/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
+                .put("/api/calm/namespaces/finos/architectures/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
-                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$"));
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_put_architecture_version() throws NamespaceNotFoundException {
+        // PUT on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API.
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body(ARCHITECTURE_JSON)
+                .put("/api/calm/namespaces/finos/architectures/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
 
@@ -71,6 +88,8 @@ public class TestArchitectureResourcePutEnabledShould {
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new ArchitectureNotFoundException(), 404),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }
@@ -103,17 +122,17 @@ public class TestArchitectureResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed architecture in resource
-                    .header("Location", containsString("/calm/namespaces/test/architectures/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/architectures/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(objectMapper.writeValueAsString(architectureRequest))
                     .when()
-                    .put("/calm/namespaces/test/architectures/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/architectures/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

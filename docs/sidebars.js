@@ -13,9 +13,9 @@
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
-  // Default sidebar - shows when clicking CALM logo (introduction, core-concepts, working-with-calm)
+  // Default sidebar - reached via the Reference and Tools navbar items
+  // (introduction, core-concepts, working-with-calm)
   docsSidebar: [
-    'home',
     {
       type: 'category',
       label: 'Introduction',
@@ -36,6 +36,7 @@ const sidebars = {
         'core-concepts/interfaces',
         'core-concepts/controls',
         'core-concepts/standards',
+        'core-concepts/flows',
         'core-concepts/timelines',
         'core-concepts/decorators',
         'core-concepts/metadata',
@@ -48,18 +49,49 @@ const sidebars = {
       label: 'Working with CALM',
       link: {type: 'doc', id: 'working-with-calm/working-with-calm-index'},
       items: [
-        'working-with-calm/calm-hub',
-        'working-with-calm/vscode-extension',
         'working-with-calm/calm-ai-tools',
-        'working-with-calm/cli',
+        {
+          type: 'category',
+          label: 'CALM Hub',
+          link: {type: 'doc', id: 'calm-hub/calm-hub-overview'},
+          items: [
+            'working-with-calm/calm-hub',
+            'calm-hub/calm-hub-developer-guide',
+            'calm-hub/calm-hub-mcp-api',
+            'working-with-calm/calm-hub-entitlements',
+          ],
+        },
+        'working-with-calm/calm-studio',
+        'working-with-calm/vscode-extension',
+        {
+          type: 'category',
+          label: 'CALM CLI',
+          link: {type: 'doc', id: 'calm-cli/calm-cli-overview'},
+          items: [
+            'working-with-calm/cli',
+            'calm-cli/generate',
+            'calm-cli/validate',
+            'calm-cli/docify',
+            'calm-cli/template',
+            'calm-cli/diff',
+            'calm-cli/timeline',
+            'calm-cli/hub',
+            'calm-cli/workspace',
+            'calm-cli/configuration',
+            'calm-cli/direct-url-loading',
+            'working-with-calm/directurl-auth-plugin',
+          ],
+        },
         'working-with-calm/validation-server',
-        'working-with-calm/voice-mode'
+        'working-with-calm/voice-mode',
+        'working-with-calm/visualizing-architectures',
       ],
     },
   ],
 
   // Learning sidebar - tutorials
   learningSidebar: [
+    'tutorials/calm-overview-presentation',
     {
       type: 'category',
       label: 'Tutorials',
@@ -102,10 +134,9 @@ const sidebars = {
         },
         {
           type: 'category',
-          label: '🟠 Advanced',
-          link: {type: 'doc', id: 'tutorials/advanced/advanced-tutorials'},
+          label: '🔴 Advanced',
           items: [
-            'tutorials/advanced/architecture-discovery-skill-tutorial',
+            'tutorials/advanced/qcon-demos',
           ],
         },
         {
@@ -119,54 +150,9 @@ const sidebars = {
             'tutorials/build-a-calm-architecture/refine-architecture-definition',
             'tutorials/build-a-calm-architecture/generate-documentation',
             'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
+            'tutorials/build-a-calm-architecture/architecture-discovery-skill-tutorial',
            ],
         }
-      ],
-    },
-  ],
-
-  // CALM Studio sidebar — migrated from calm-suite/calm-studio/docs-site/sidebars.ts
-  calmStudioSidebar: [
-    'calm-studio/intro',
-    {
-      type: 'category',
-      label: 'Getting Started',
-      items: ['calm-studio/getting-started/quick-start'],
-    },
-    {
-      type: 'category',
-      label: 'User Guide',
-      items: ['calm-studio/user-guide/architecture-overview'],
-    },
-    {
-      type: 'category',
-      label: 'Guides',
-      items: ['calm-studio/guides/convert-arb-to-calm'],
-    },
-    {
-      type: 'category',
-      label: 'Developer Guide',
-      items: [
-        'calm-studio/developer-guide/extension-packs',
-        'calm-studio/developer-guide/mcp-server',
-        'calm-studio/developer-guide/contributing',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'ADRs',
-      items: [
-        'calm-studio/adrs/index',
-        'calm-studio/adrs/use-svelte-5-over-react',
-        'calm-studio/adrs/use-svelte-flow-as-canvas',
-        'calm-studio/adrs/use-elk-for-auto-layout',
-        'calm-studio/adrs/domain-oriented-control-keys',
-        'calm-studio/adrs/defer-calmscript-dsl',
-        'calm-studio/adrs/extension-pack-system',
-        'calm-studio/adrs/mcp-server-as-primary-ai-integration',
-        'calm-studio/adrs/docusaurus-for-documentation',
-        'calm-studio/adrs/tsup-for-calm-core-packaging',
-        'calm-studio/adrs/github-pages-hosting',
       ],
     },
   ],

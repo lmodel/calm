@@ -4,11 +4,14 @@ import com.mongodb.ErrorCategory;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
+import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.DomainStore;
 
 import java.util.ArrayList;
@@ -20,11 +23,10 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <h2>Concurrency strategy</h2>
  * Identical to {@link MongoNamespaceStore}: a unique index on {@code domains.name}
- * (created by {@link MongoIndexInitializer}) enforces uniqueness at the database level.
+ * (created by {@code MongoIndexInitializationStep}) enforces uniqueness at the database level.
  * Concurrent duplicate inserts are caught as {@link ErrorCategory#DUPLICATE_KEY} errors
  * and translated into {@link DomainAlreadyExistsException}.
  *
- * @see MongoIndexInitializer
  * @see org.finos.calm.store.nitrite.NitriteDomainStore NitriteDomainStore for the standalone
  *      ReentrantLock-based approach
  */
@@ -48,6 +50,11 @@ public class MongoDomainStore implements DomainStore {
         return domains;
     }
 
+    @Override
+    public boolean domainExists(String name) {
+        return domainsCollection.countDocuments(Filters.eq("name", name)) > 0;
+    }
+
     /**
      * Inserts a new domain document. Concurrent duplicate inserts are caught via
      * MongoDB's unique index and translated to {@link DomainAlreadyExistsException}.
@@ -63,6 +70,14 @@ public class MongoDomainStore implements DomainStore {
                 throw new DomainAlreadyExistsException("Domain already exists: " + name);
             }
             throw e;
+        }
+    }
+
+    @Override
+    public void deleteDomain(String name) throws DomainNotFoundException {
+        DeleteResult result = domainsCollection.deleteOne(Filters.eq("name", name));
+        if (result.getDeletedCount() == 0) {
+            throw new DomainNotFoundException(name);
         }
     }
 }

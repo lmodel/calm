@@ -5,20 +5,19 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
+import jakarta.inject.Inject;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
@@ -37,10 +36,13 @@ public class MongoStandardIntegration {
     private static final String DESCRIPTION = "Test Standard Description";
     private static int createdStandardId;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupStandards() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -51,12 +53,7 @@ public class MongoStandardIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("standards")) {
-                database.createCollection("standards");
-                database.getCollection("standards").insertOne(
-                        new Document("namespace", "finos").append("standards", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "standards");
 
             counterSetup(database);
             namespaceSetup(database);
@@ -72,7 +69,7 @@ public class MongoStandardIntegration {
     @Order(1)
     void end_to_end_get_with_no_standards() {
         given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -84,7 +81,7 @@ public class MongoStandardIntegration {
         var response = given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/standards")
+                .when().post("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/standards/"))
@@ -104,7 +101,7 @@ public class MongoStandardIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -115,7 +112,7 @@ public class MongoStandardIntegration {
     @Order(4)
     void end_to_end_verify_standard() {
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -129,7 +126,7 @@ public class MongoStandardIntegration {
         given()
                 .body(createStandardRequest)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0"));
@@ -141,7 +138,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         given()
-                .when().get("/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
+                .when().get("/api/calm/namespaces/finos/standards/" + createdStandardId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo("{}"));
@@ -156,9 +153,12 @@ public class MongoStandardIntegration {
         expected.put("id", createdStandardId);
         expected.put("name", "New Name");
         expected.put("description", "New Description");
+        // The standards summary now carries a versionCount; this standard has two versions
+        // (1.0.0 from creation + 2.0.0 added above), so the list item is an exact 4-key map.
+        expected.put("versionCount", 2);
 
         given()
-                .when().get("/calm/namespaces/finos/standards")
+                .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
                 .body("values", hasItem(equalTo(expected)));

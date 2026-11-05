@@ -1,0 +1,49 @@
+/// <reference types="vitest" />
+import { configDefaults, defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const shim = (name: string) => fileURLToPath(new URL(`./src/shims/${name}.ts`, import.meta.url));
+
+// The CLI version the lab reports (`calm --version` and the status bar), as the installed CLI
+// does. Read here rather than imported from src/: a `resolveJsonModule` import of
+// ../cli/package.json would pull the whole manifest into the bundle and reach outside the app's tree.
+const cliVersion: string = createRequire(import.meta.url)('../cli/package.json').version;
+
+// @finos/calm-shared/browser's dependency chain requests fs/path/buffer at bundle time but never
+// touches fs/path at runtime (see shared/README.md "Browser entry point"). Map them to shims and
+// resolve with the browser main field first, exactly as shared's own guard does.
+export default defineConfig({
+    plugins: [react()],
+    resolve: {
+        mainFields: ['browser', 'module', 'main'],
+        alias: [
+            { find: /^(node:)?fs$/, replacement: shim('empty') },
+            { find: /^(node:)?path$/, replacement: shim('empty') },
+            { find: /^(node:)?buffer$/, replacement: shim('buffer') },
+        ],
+    },
+    define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
+        __CALM_CLI_VERSION__: JSON.stringify(cliVersion),
+    },
+    optimizeDeps: {
+        include: ['reactflow'],
+    },
+    test: {
+        exclude: [...configDefaults.exclude, 'e2e/**'],
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: ['./vitest.setup.ts'],
+        coverage: {
+            provider: 'v8',
+            include: ['src/**/*.{ts,tsx}'],
+            exclude: ['src/shims/**', 'src/test-support/**', 'src/main.tsx'],
+        },
+    },
+    build: {
+        outDir: 'dist',
+        sourcemap: true,
+    },
+});

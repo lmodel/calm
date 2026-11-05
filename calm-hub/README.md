@@ -2,17 +2,39 @@
 
 ## Quick Start - No Coding, Just Product
 
-You can run a version of Calm Hub locally, by using the `docker-compose` deploy configuration.
-Note, this currently depends on @jpgough-ms publishing a Docker image, which will be fixed in the next few weeks by producing a build from this mono-repo.
-The only supported architectures at this time are `amd64` and `arm64`.
+You can run a version of CALM Hub locally using the published Docker images.
+The provided `docker-compose` file exposes four profiles, one per published image variant:
+
+| Profile           | Image                                  | Architectures   | Storage             |
+| ----------------- | -------------------------------------- | --------------- | ------------------- |
+| `jvm` *(default)* | `finos/calm-hub:latest`                | `amd64`/`arm64` | MongoDB sidecar     |
+| `native`          | `finos/calm-hub:latest-native`         | `amd64`/`arm64` | MongoDB sidecar     |
+| `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
+| `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
 ```shell
 cd deploy
-docker-compose up
+
+# Default JVM image with MongoDB sidecar (uses .env COMPOSE_PROFILES=jvm)
+docker compose up
+
+# Or pick a specific variant
+docker compose --profile native up
+docker compose --profile readonly-static up
+docker compose --profile readonly-native up
 ```
 
-A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)  
+The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas from
+`calm-hub/target/calm-schemas/release`. Make it first, from the repository root:
+
+```shell
+npm ci && npm run calm-hub:copy-schemas
+```
+
+A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
+
+> **Note:** The `jvm` and `native` profiles start CALM Hub with the `no-auth` Quarkus profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile. The `readonly-static` and `readonly-native` profiles use the `standalone` Quarkus profile (NitriteDB baked into the image) and reject all mutating HTTP verbs with 405. They serve the `$id` of each name-based document under `https://hub.calm.finos.org`. To use a different base, set `CALM_HUB_BASE_URL`.
 
 ## Working with the project
 
@@ -36,15 +58,43 @@ mvn -P integration verify
 
 Development mode is designed to provide a great developer experience from using modern tools and build systems.
 
-### Skipping `npm` build
+### Skipping the frontend build
 
 CalmHub will install and build the frontend every time you run it by default.
-This takes a while and can be rather tedious.
-To disable this, set `skip.npm`, which disables the NPM commands of the frontend Maven plugin:
+This takes a while and can be rather tedious for backend-only work.
+
+The `server-only` Maven profile skips the whole frontend stage — Node/npm download,
+the monorepo `npm install`, the CALM meta-schema copy, and the calm-hub-ui build:
+
+```shell
+../mvnw -Pserver-only package
+```
+
+The realistic day-to-day loop for backend work combines it with `standalone`
+(NitriteDB, no external Mongo needed) — profiles compose comma-separated:
+
+```shell
+../mvnw quarkus:dev -Pstandalone,server-only
+```
+
+If you only want to skip the npm commands but still let Maven install/verify the Node
+toolchain, use the narrower `-Dskip.npm` property instead:
 
 ```shell
 ../mvnw quarkus:dev -Dskip.npm
 ```
+
+**Consequence of skipping the frontend build:** the built UI is copied into
+`src/main/resources/META-INF/resources` by the npm script, and that directory is
+gitignored — `mvn clean` does not remove it, since it lives under `src/`, not `target/`.
+So on a fresh clone, `-Pserver-only` produces a jar/dev server with **no UI at all**
+(404 at `/`); on a machine that has built before, it silently keeps serving whatever UI
+was last built. Never use `-Pserver-only` for a release, Docker image, or CI build that
+needs to ship the UI.
+
+`-Pserver-only` and `-Dskip.npm` also skip the copy of the CALM meta-schemas from npm
+into `target/calm-schemas`. After `mvn clean`, the jar has no bundled meta-schemas, and
+GitHub storage mode serves none from `/calm/schemas`.
 
 ### Storage Modes
 
@@ -71,12 +121,32 @@ java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 ```
 
 > **Note:** In dev mode use `-Pstandalone` (the Maven profile), not `-Dquarkus.profile=standalone`.
-> The `quarkus-maven-plugin` forks a separate JVM for dev mode and does not reliably propagate
-> `-D` flags from the Maven CLI into that process; the Maven profile `standalone` configures the
-> plugin's own `systemProperties` so `quarkus.profile=standalone` reaches the running app.
-> The `standalone` Quarkus profile activates `calm.database.mode=standalone` and suppresses
-> MongoDB health-checks and dev-services. For production (`java -jar …`) the JVM flag
-> `-Dquarkus.profile=standalone` is passed directly to the process and works as expected.
+> Dev mode does not apply a `quarkus.profile` set with `-D` on the Maven command line; the Maven
+> profile `standalone` sets it through the plugin's own `systemProperties`, so it reaches the
+> running app. Other `-D` flags reach the app as usual.
+> The `standalone` Quarkus profile activates `calm.database.mode=standalone`, suppresses
+> MongoDB health-checks and turns off all dev services, so standalone dev mode needs no Docker.
+> To start the Grafana LGTM observability dev service, add `-Dquarkus.devservices.enabled=true`
+> (needs Docker). OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
+> For production (`java -jar …`) the JVM flag `-Dquarkus.profile=standalone` is passed directly
+> to the process and works as expected.
+
+#### Seeding a standalone instance
+
+`nitrite/init-nitrite.sh` loads namespaces, schemas, and the name-based documents through the REST API.
+
+```shell
+bash nitrite/init-nitrite.sh -u http://localhost:18091
+```
+
+`-u` is the URL the script calls. Name-based document `$id` values use `CALM_HUB_BASE_URL` or `--base-url`. That value must equal the server's `calm.hub.base-url` (default `http://localhost:8080`). When you do not set it, the script uses the `-u` URL. The Hub returns HTTP 400 when a seed `$id` does not match `calm.hub.base-url`.
+
+```shell
+java -Dquarkus.profile=standalone -Dquarkus.http.port=18091 \
+  -Dcalm.hub.base-url=http://localhost:18091 \
+  -jar target/quarkus-app/quarkus-run.jar
+bash nitrite/init-nitrite.sh -u http://localhost:18091
+```
 
 ### Mongo Database Startup
 
@@ -133,12 +203,36 @@ public class AdrStoreProducer {
 From the `calm-hub` directory
 
 1. `../mvnw package`
-2. `../mvnw quarkus:dev`
+2. `../mvnw quarkus:dev -Dquarkus.profile=no-auth`
+
+> **Note:** The default profile is secure and rejects all requests with 401. Pass `-Dquarkus.profile=no-auth` for local development without an IdP, or `-Dquarkus.profile=secure` / `-Dquarkus.profile=proxy-auth` for authenticated modes.
 
 
-### Secure profile
+### Auth Profiles
 
-There are two secure profiles, `secure` and `proxy-auth`.
+The default profile is **secure by default**: no authentication mechanism is wired, so all requests are rejected with 401. You must explicitly activate one of the following profiles:
+
+| Profile | How to activate | When to use |
+|---|---|---|
+| `no-auth` | `-Dquarkus.profile=no-auth` | Local development and testing — **not for production** |
+| `secure` | `-Dquarkus.profile=secure` | Production with JWT/OIDC (Keycloak or another IdP) |
+| `proxy-auth` | `-Dquarkus.profile=proxy-auth` | Production behind an authenticating reverse proxy |
+
+#### no-auth profile
+
+For local development and testing where you do not want to configure an IdP:
+
+```bash
+# MongoDB backend
+../mvnw quarkus:dev -Dquarkus.profile=no-auth
+
+# Standalone (NitriteDB) backend — no-auth is implicit, just use -Pstandalone
+../mvnw quarkus:dev -Pstandalone
+```
+
+> **Warning:** The `no-auth` profile disables all authentication. Never use it in a production or shared environment.
+
+There are two authenticated profiles, `secure` and `proxy-auth`.
 Using either will enable entitlements driven by the database.
 
 The two modes are slightly different:
@@ -347,3 +441,12 @@ The Docker image will be built and pushed to Docker Hub as `username/calm-hub:yo
 1. `docker buildx build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.multistage -t calm-hub .`
 
 Known limitations, doesn't run integration tests.
+
+### Versioned CALM documents API
+
+CALM Hub exposes namespace-scoped Markdown documents at
+`/api/calm/namespaces/{namespace}/documents/{documentType}`. Supported types are
+`knowledge` and `sad`. Use `GET` to list documents, `POST` to create version `1.0.0`, and
+`GET`/`POST` on `/{id}/versions` and `/{id}/versions/{version}` to list, read,
+and create immutable versions. Request Markdown must start with a YAML mapping
+frontmatter block delimited by complete `---` lines.

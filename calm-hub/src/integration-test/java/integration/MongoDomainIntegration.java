@@ -7,7 +7,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.eclipse.microprofile.config.ConfigProvider;
+import jakarta.inject.Inject;
 import org.finos.calm.domain.Domain;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
@@ -25,10 +25,13 @@ public class MongoDomainIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupDomains() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -45,7 +48,7 @@ public class MongoDomainIntegration {
     @Order(1)
     void end_to_end_get_on_existing_domain() {
         given()
-                .when().get("/calm/domains")
+                .when().get("/api/calm/domains")
                 .then()
                 .statusCode(200)
                 .body("values", hasItem("security"));
@@ -59,7 +62,7 @@ public class MongoDomainIntegration {
         given()
                 .body(objectMapper.writeValueAsString(domain))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains")
+                .when().post("/api/calm/domains")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/domains/finos"));
@@ -73,7 +76,7 @@ public class MongoDomainIntegration {
         given()
                 .body(objectMapper.writeValueAsString(domain))
                 .header("Content-Type", "application/json")
-                .when().post("/calm/domains")
+                .when().post("/api/calm/domains")
                 .then()
                 .statusCode(409);
     }

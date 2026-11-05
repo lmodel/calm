@@ -74,8 +74,9 @@ describe('buildImpliedTimeline', () => {
 
         const timeline = buildImpliedTimeline([a], outputPath);
 
+        // Not path.join: that would assert the host separator.
         expect(timeline.moments[0].details['detailed-architecture']).toBe(
-            path.join('..', 'archs', 'v1.json'),
+            '../archs/v1.json',
         );
     });
 
@@ -101,6 +102,13 @@ describe('buildImpliedTimeline', () => {
         const timeline = buildImpliedTimeline([bad], path.join(tempDir, 'timeline.json'));
 
         expect(timeline.moments[0].name).toBe('broken');
+    });
+
+    it('returns timeline without current-moment when given no architectures', () => {
+        const timeline = buildImpliedTimeline([]);
+
+        expect(timeline.moments).toHaveLength(0);
+        expect(timeline['current-moment']).toBeUndefined();
     });
 });
 
@@ -131,6 +139,16 @@ describe('runTimelineGenerate', () => {
         const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
 
         runTimelineGenerate({ architecturePaths: [], verbose: false });
+
+        expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('handles non-Error thrown values in the catch block', () => {
+        const a = writeArch('a.json', { name: 'A' });
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+        vi.spyOn(process.stdout, 'write').mockImplementation(() => { throw 'non-error string'; });
+
+        runTimelineGenerate({ architecturePaths: [a], verbose: false });
 
         expect(exitSpy).toHaveBeenCalledWith(1);
     });

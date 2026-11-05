@@ -7,13 +7,17 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
+import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,8 +32,10 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -40,6 +46,9 @@ public class TestInterfaceResourceShould {
 
     @InjectMock
     InterfaceStore mockInterfaceStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -58,7 +67,7 @@ public class TestInterfaceResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/interfaces")
+                .get("/api/calm/namespaces/invalid/interfaces")
                 .then()
                 .statusCode(404);
 
@@ -69,7 +78,7 @@ public class TestInterfaceResourceShould {
     void return_a_400_when_an_invalid_namespace_is_provided_on_get_interfaces() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/interfaces")
+                .get("/api/calm/namespaces/$$$$$/interfaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -83,7 +92,7 @@ public class TestInterfaceResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/interfaces")
+                .get("/api/calm/namespaces/valid/interfaces")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("tcp-port"))
@@ -95,8 +104,31 @@ public class TestInterfaceResourceShould {
     }
 
     @Test
+    void include_the_custom_id_on_interface_summaries_that_have_a_mapping() throws Exception {
+        when(mockInterfaceStore.getInterfacesForNamespace("valid"))
+                .thenReturn(List.of(this.tcpInterfaceSummary, this.httpInterfaceSummary));
+        when(mockResourceMappingStore.listMappingsByNumericIds("valid", ResourceType.INTERFACE, List.of(1, 2)))
+                .thenReturn(List.of(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("valid")
+                        .setCustomId("tcp-port")
+                        .setResourceType(ResourceType.INTERFACE)
+                        .setNumericId(1)
+                        .build()));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/valid/interfaces")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(1))
+                .body("values[0].customId", equalTo("tcp-port"))
+                .body("values[1].id", equalTo(2))
+                .body("values[1].customId", nullValue());
+    }
+
+    @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_interfaces() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
@@ -106,11 +138,11 @@ public class TestInterfaceResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createInterfaceRequest))
                 .when()
-                .post("/calm/namespaces/invalid/interfaces")
+                .post("/api/calm/namespaces/invalid/interfaces")
                 .then()
                 .statusCode(404);
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -124,7 +156,7 @@ public class TestInterfaceResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createInterfaceRequest))
                 .when()
-                .post("/calm/namespaces/$$$$$/interfaces")
+                .post("/api/calm/namespaces/$$$$$/interfaces")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -137,23 +169,23 @@ public class TestInterfaceResourceShould {
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
         createInterfaceRequest.setInterfaceJson("{ \"test\": \"json\" }");
-        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid")).thenReturn(storedInterface);
+        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0")).thenReturn(storedInterface);
 
         given()
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createInterfaceRequest))
                 .when()
-                .post("/calm/namespaces/valid/interfaces")
+                .post("/api/calm/namespaces/valid/interfaces")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/valid/interfaces/5/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/valid/interfaces/5/versions/1.0.0"));
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0");
     }
 
     @Test
     void return_a_400_when_invalid_json_is_provided_on_create_interface() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid")))
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid"), eq("1.0.0")))
                 .thenThrow(new JsonParseException());
 
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
@@ -165,7 +197,7 @@ public class TestInterfaceResourceShould {
                 .header("Content-Type", "application/json")
                 .body(objectMapper.writeValueAsString(createInterfaceRequest))
                 .when()
-                .post("/calm/namespaces/valid/interfaces")
+                .post("/api/calm/namespaces/valid/interfaces")
                 .then()
                 .statusCode(400);
     }
@@ -174,7 +206,7 @@ public class TestInterfaceResourceShould {
     void return_400_when_invalid_namespace_provided_when_getting_versions_of_interface() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$$/interfaces/5/versions")
+                .get("/api/calm/namespaces/$$$$$/interfaces/5/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -201,14 +233,14 @@ public class TestInterfaceResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/interfaces/5/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/interfaces/5/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/interfaces/5/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/interfaces/5/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(containsString(expectedBody));
@@ -221,7 +253,7 @@ public class TestInterfaceResourceShould {
     void return_400_when_invalid_namespace_provided_when_getting_version_of_interface() {
         given()
                 .when()
-                .get("/calm/namespaces/$$$$/interfaces/5/versions/1.0.0")
+                .get("/api/calm/namespaces/$$$$/interfaces/5/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -231,10 +263,20 @@ public class TestInterfaceResourceShould {
     void return_400_when_invalid_version_provided_when_getting_version_of_interface() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/interfaces/5/versions/invalid_version")
+                .get("/api/calm/namespaces/finos/interfaces/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_of_interface() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/interfaces/5/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetInterfaceTests() {
@@ -264,14 +306,14 @@ public class TestInterfaceResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{}"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -288,7 +330,7 @@ public class TestInterfaceResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createInterfaceRequest)
                 .when()
-                .post("/calm/namespaces/$$$$/interfaces/5/versions/1.0.1")
+                .post("/api/calm/namespaces/$$$$/interfaces/5/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -305,7 +347,26 @@ public class TestInterfaceResourceShould {
                 .header("Content-Type", "application/json")
                 .body(createInterfaceRequest)
                 .when()
-                .post("/calm/namespaces/finos/interfaces/5/versions/invalid-version")
+                .post("/api/calm/namespaces/finos/interfaces/5/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_interface() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
+        createInterfaceRequest.setName("amazing-interface");
+        createInterfaceRequest.setDescription("An amazing interface");
+        createInterfaceRequest.setInterfaceJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createInterfaceRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/interfaces/5/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -317,6 +378,8 @@ public class TestInterfaceResourceShould {
                 Arguments.of("valid", new InterfaceNotFoundException(), 404),
                 Arguments.of("valid", new InterfaceVersionExistsException(), 409),
                 Arguments.of("valid", new JsonParseException(), 400),
+                Arguments.of("valid", StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of("valid", StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of("valid", null, 201)
         );
     }
@@ -344,20 +407,78 @@ public class TestInterfaceResourceShould {
                     .header("Content-Type", "application/json")
                     .body(createInterfaceRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/valid/interfaces/5/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/valid/interfaces/5/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(createInterfaceRequest)
                     .when()
-                    .post("/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.1")
+                    .post("/api/calm/namespaces/" + namespace + "/interfaces/5/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
 
         verify(mockInterfaceStore, times(1)).createInterfaceForVersion(createInterfaceRequest, namespace, 5, "1.0.1");
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_interface() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/interfaces/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteInterfaceTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new InterfaceNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteInterfaceTests")
+    void respond_correctly_to_delete_interface(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws InterfaceNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockInterfaceStore).deleteInterface(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/interfaces/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockInterfaceStore, times(1)).deleteInterface(namespace, 12);
+    }
+
+    @Test
+    void delete_interface_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/interfaces/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.INTERFACE, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_interface() throws Exception {
+        doThrow(new InterfaceNotFoundException()).when(mockInterfaceStore).deleteInterface("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/interfaces/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

@@ -15,7 +15,7 @@ interface MomentCardsProps {
     compareTo?: string | null;
     /** Navigate the main diagram to a moment's version. */
     onNavigate: (version: string) => void;
-    onCompare: (from: string, to: string) => void;
+    onCompare?: (from: string, to: string) => void;
     onInteract: () => void;
 }
 
@@ -98,17 +98,18 @@ export function MomentCards({
         onNavigate(moment.version);
     };
     const handleContextMenu = (e: React.MouseEvent, moment: TimelineMoment) => {
+        if (!onCompare) return;
         e.preventDefault();
         onInteract();
         setMenu({ moment, x: e.clientX, y: e.clientY });
     };
     const handleCompareFrom = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(menu.moment.version, currentVersion);
         setMenu(null);
     };
     const handleCompareTo = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(currentVersion, menu.moment.version);
         setMenu(null);
     };
@@ -137,13 +138,15 @@ export function MomentCards({
                     ? moment.version === compareFrom || moment.version === compareTo
                     : moment.version === currentVersion;
 
-                // The pill highlight (blue border + blueSoft bg + shadow) follows
-                // the viewed card. Badges (NOW / FROM / TO) are independent.
-                const borderColor = isViewed ? colors.calm.blue : colors.ink[200];
-                const background = isViewed ? colors.calm.blueSoft : '#ffffff';
+                // The pill highlight (blue border + tint bg + shadow) follows the
+                // viewed card. Re-tokenised to redesign.primary so the timeline's
+                // active state matches the one blue active system used elsewhere
+                // (redesign problem #8). Badges (NOW / FROM / TO) are independent.
+                const borderColor = isViewed ? colors.redesign.primary : colors.ink[200];
+                const background = isViewed ? colors.redesign.tintBg : colors.background.card;
                 const titleColor =
                     badge === 'FROM' || badge === 'TO'
-                        ? colors.calm.blueDeep
+                        ? colors.redesign.primaryText
                         : isViewed
                             ? colors.ink[900]
                             : colors.ink[700];
@@ -193,7 +196,7 @@ export function MomentCards({
                                     padding: '10px 14px',
                                     minWidth: 124,
                                     boxShadow: isViewed
-                                        ? '0 6px 14px rgba(31,109,255,0.18)'
+                                        ? `0 6px 14px ${colors.redesign.primary}2e`
                                         : 'none',
                                 }}
                             >
@@ -202,6 +205,13 @@ export function MomentCards({
                                         fontSize: 13,
                                         fontWeight: isViewed ? 600 : 500,
                                         color: titleColor,
+                                        // Cap + truncate long names so each card stays a
+                                        // bounded, readable size; the title tooltip shows
+                                        // the full name (#2728).
+                                        maxWidth: 200,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
                                     }}
                                     title={moment.label}
                                 >

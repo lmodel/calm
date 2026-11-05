@@ -1,20 +1,45 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
+
+import java.util.Set;
 
 public class ResourceValidationConstants {
     public static final String NAMESPACE_REGEX = "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*$";
     public static final String NAMESPACE_MESSAGE = "namespace must match pattern '^[A-Za-z0-9-]+([.][A-Za-z0-9-]+)*$'";
-    public static final String DOMAIN_NAME_REGEX = "^[A-Za-z0-9-]+$";
-    public static final String DOMAIN_NAME_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
+    // dashes, dots, usernames, upper/lowercase letters, numbers, and * for the public-access wildcard.
+    public static final String USERNAME_REGEX = "^(\\*|[A-Za-z0-9._-]+)$";
+    public static final String USERNAME_MESSAGE = "username must match pattern '^(\\*|[A-Za-z0-9._-]+)$'";
+    public static final String DOMAIN_REGEX = "^[A-Za-z0-9-]+$";
+    public static final String DOMAIN_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";
+    public static final String VERSION_OR_SHA_REGEX = "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)|[0-9a-f]{7,40})$";
     public static final String VERSION_MESSAGE = "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$'";
+    // The same pattern as VERSION_REGEX, plus an optional fixed -SNAPSHOT marker. Applied only
+    // to the five namespace resource types. ADR, timeline, control and layout endpoints keep
+    // VERSION_REGEX: ADR runs on the NUMERIC version scheme, where a suffixed value is an
+    // unparseable revision rather than a version.
+    public static final String SNAPSHOT_VERSION_REGEX =
+            "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?$";
+    public static final String SNAPSHOT_VERSION_MESSAGE =
+            "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$'";
+    public static final String VERSION_OR_SHA_MESSAGE = "version must be semver (e.g. 1.0.0) or a hex SHA (7-40 chars)";
+    // Read endpoints of the five namespace resource types also accept a commit SHA (GitHub-backed storage).
+    public static final String SNAPSHOT_VERSION_OR_SHA_REGEX =
+            "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?|[0-9a-f]{7,40})$";
+    public static final String SNAPSHOT_VERSION_OR_SHA_MESSAGE =
+            "version must be semver (e.g. 1.0.0 or 1.0.0-SNAPSHOT) or a hex SHA (7-40 chars)";
+    /** Temporary narrative document types pending a shared Java-consumable contract. */
+    public static final Set<String> NARRATIVE_DOCUMENT_TYPES = Set.of("knowledge", "sad");
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).
-    public static final String CUSTOM_ID_REGEX = "^[a-z][a-z0-9]*(-[a-z0-9]+)*$";
-    public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'";
+    public static final String CUSTOM_ID_REGEX = "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$";
+    public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$'";
     public static final String QUERY_PARAM_NO_WHITESPACE_REGEX = "^[A-Za-z0-9_/.-]+$";
     public static final String QUERY_PARAM_NO_WHITESPACE_MESSAGE = "Query parameter must match pattern '^[A-Za-z0-9_/.-]+$'";
+    public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";
+    public static final String OFFSET_MESSAGE = "offset must be greater than or equal to 0";
     public static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();
 
 }

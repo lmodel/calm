@@ -2,45 +2,66 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
+import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.controls.DomainControlCount;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
+import org.finos.calm.domain.exception.DomainNotEmptyException;
+import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
-import org.finos.calm.store.DomainStore;
+import org.finos.calm.security.UserAccessValidator;
+import org.finos.calm.services.CountsService;
+import org.finos.calm.services.DomainService;
 
 import java.net.URI;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.finos.calm.resources.CalmResourceErrorResponses.domainNotEmptyResponse;
+import static org.finos.calm.resources.CalmResourceErrorResponses.invalidDomainResponse;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 
 /**
  * REST resource for managing domains.
  */
-@Path("/calm/domains")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/domains")
 public class DomainResource {
 
-    private final DomainStore store;
+    private final DomainService service;
+    private final CountsService countsService;
+    private final Instance<UserAccessValidator> userAccessValidatorInstance;
 
-    /**
-     * Constructor for DomainSchemaResource.
-     *
-     * @param store the DomainStore instance
-     */
     @Inject
-    public DomainResource(DomainStore store) {
-        this.store = store;
+    SecurityIdentity identity;
+
+    @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
+
+    @Inject
+    public DomainResource(DomainService service,
+                          CountsService countsService,
+                          Instance<UserAccessValidator> userAccessValidatorInstance) {
+        this.service = service;
+        this.countsService = countsService;
+        this.userAccessValidatorInstance = userAccessValidatorInstance;
     }
 
-    /**
-     * Retrieves the list of domains.
-     *
-     * @return a Response containing the list of domains
-     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
@@ -49,14 +70,31 @@ public class DomainResource {
     )
     @Authenticated
     public Response getDomains() {
-        return Response.ok(new ValueWrapper<>(store.getDomains())).build();
+        return Response.ok(new ValueWrapper<>(service.getDomains())).build();
     }
 
-    /**
-     * Creates a new domain if it does not already exist and is of the correct structure
-     * @param domain the domain to create
-     * @return a Response indicating the result of the operation
-     */
+    @GET
+    @Path("counts")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Domain Control Counts",
+            description = "Per-domain count of controls, for the browse rail's control-domain section"
+    )
+    // @Authenticated (not @PermissionsAllowed) because @PermissionsAllowed cannot target a
+    // specific domain for an endpoint that returns all of them. The per-domain DOMAIN_READ
+    // filter is applied inside, mirroring SearchResource: a caller only sees control counts
+    // for domains they can DOMAIN_READ, while global-admin / no-auth / public-read
+    // (Optional.empty) see everything.
+    @Authenticated
+    public Response getDomainCounts() {
+        return Response.ok(new ValueWrapper<>(countsService.getDomainCounts(resolveReadableDomains()))).build();
+    }
+
+    private Optional<Set<String>> resolveReadableDomains() {
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableDomains);
+    }
+
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -75,11 +113,31 @@ public class DomainResource {
         }
 
         try {
-            store.createDomain(domainName);
+            service.createDomain(domainName);
         } catch (DomainAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT).entity("{\"error\":\"Domain already exists\"}").build();
         }
-        return Response.created(URI.create("/calm/domains/" + domainName)).build();
+        return Response.created(URI.create("/api/calm/domains/" + domainName)).build();
+    }
+
+    @DELETE
+    @Path("{domain}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete Domain",
+            description = "Deletes a domain, provided it has no controls. Also removes all user-access grants for the domain."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteDomain(
+            @PathParam("domain") @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain) {
+        try {
+            service.deleteDomain(domain);
+        } catch (DomainNotFoundException e) {
+            return invalidDomainResponse(domain);
+        } catch (DomainNotEmptyException e) {
+            return domainNotEmptyResponse(e.getDomain());
+        }
+        return Response.noContent().build();
     }
 
 }

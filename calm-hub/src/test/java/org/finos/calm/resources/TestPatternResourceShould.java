@@ -5,13 +5,17 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,10 +28,16 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -39,24 +49,27 @@ public class TestPatternResourceShould {
     @InjectMock
     PatternStore mockPatternStore;
 
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
+
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/patterns")
+                .get("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid");
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("invalid", PageRequest.UNPAGED);
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns")
+                .get("/api/calm/namespaces/fin_os/patterns")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -64,30 +77,108 @@ public class TestPatternResourceShould {
 
     @Test
     void return_list_of_pattern_summaries_when_valid_namespace_provided_on_get_patterns() throws NamespaceNotFoundException {
-        List<NamespacePatternSummary> summaries = Arrays.asList(
-                new NamespacePatternSummary("Pattern One", "First", 12345),
-                new NamespacePatternSummary("Pattern Two", "Second", 54321)
+        List<NamespaceResourceSummary> summaries = Arrays.asList(
+                new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
+                new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
         );
-        when(mockPatternStore.getPatternsForNamespace(anyString())).thenReturn(summaries);
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(summaries);
 
         given()
                 .when()
-                .get("/calm/namespaces/finos/patterns")
+                .get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
                 .body("values[0].description", equalTo("First"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Pattern Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
-        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos");
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
+    }
+
+    @Test
+    void include_the_custom_id_on_pattern_summaries_that_have_a_mapping() throws Exception {
+        List<NamespaceResourceSummary> summaries = Arrays.asList(
+                new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
+                new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
+        );
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(summaries);
+        when(mockResourceMappingStore.listMappingsByNumericIds("finos", ResourceType.PATTERN, List.of(12345, 54321)))
+                .thenReturn(List.of(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos")
+                        .setCustomId("api-gateway-pattern")
+                        .setResourceType(ResourceType.PATTERN)
+                        .setNumericId(12345)
+                        .build()));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(12345))
+                .body("values[0].customId", equalTo("api-gateway-pattern"))
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].customId", nullValue());
+    }
+
+    @Test
+    void still_return_pattern_summaries_when_the_custom_id_lookup_fails() throws Exception {
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any()))
+                .thenReturn(List.of(new NamespaceResourceSummary("Pattern One", "First", 12345, 3)));
+        when(mockResourceMappingStore.listMappingsByNumericIds(anyString(), any(), anyList()))
+                .thenThrow(new IllegalStateException("mapping collection unavailable"));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values[0].name", equalTo("Pattern One"))
+                .body("values[0].id", equalTo(12345))
+                .body("values[0].customId", nullValue());
+    }
+
+    @Test
+    void pass_limit_and_offset_to_store_when_provided_on_get_patterns() throws NamespaceNotFoundException {
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(List.of());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?limit=3&offset=6")
+                .then()
+                .statusCode(200);
+
+        verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", new PageRequest(3, 6));
+    }
+
+    @Test
+    void return_a_400_when_limit_is_less_than_one_on_get_patterns() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?limit=0")
+                .then()
+                .statusCode(400)
+                .body(containsString(LIMIT_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_offset_is_negative_on_get_patterns() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns?offset=-1")
+                .then()
+                .statusCode(400)
+                .body(containsString(OFFSET_MESSAGE));
     }
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
@@ -96,16 +187,16 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/patterns")
+                .post("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(404);
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
     void return_a_400_when_invalid_pattern_json_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString(), anyString()))
                 .thenThrow(new JsonParseException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"invalid json\" }";
@@ -114,11 +205,11 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/patterns")
+                .post("/api/calm/namespaces/invalid/patterns")
                 .then()
                 .statusCode(400);
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
@@ -130,7 +221,7 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid_/patterns")
+                .post("/api/calm/namespaces/invalid_/patterns")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -148,7 +239,7 @@ public class TestPatternResourceShould {
                 .setNamespace(namespace)
                 .build();
 
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace))).thenReturn(stubbedReturnPattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace), eq("1.0.0"))).thenReturn(stubbedReturnPattern);
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
 
@@ -156,20 +247,20 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/finos/patterns")
+                .post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
                 //Derived from stubbed pattern in resource
-                .header("Location", containsString("/calm/namespaces/finos/patterns/12/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/finos/patterns/12/versions/1.0.0"));
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace), eq("1.0.0"));
     }
 
     @Test
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern_versions() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns/12/versions")
+                .get("/api/calm/namespaces/fin_os/patterns/12/versions")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -206,14 +297,14 @@ public class TestPatternResourceShould {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -225,7 +316,7 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_get_pattern() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/fin_os/patterns/12/versions/1.0.0")
+                .get("/api/calm/namespaces/fin_os/patterns/12/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -235,10 +326,20 @@ public class TestPatternResourceShould {
     void return_a_400_when_an_invalid_format_of_version_is_provided_on_get_pattern() throws NamespaceNotFoundException {
         given()
                 .when()
-                .get("/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
+                .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_pattern() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
@@ -273,14 +374,14 @@ public class TestPatternResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{ \"test\": \"json\" }"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/patterns/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -294,7 +395,7 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .post("/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
+                .post("/api/calm/namespaces/fin_os/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(NAMESPACE_MESSAGE));
@@ -306,10 +407,38 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
-                .post("/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_create_new_pattern_version() {
+        // POST/PUT on the numeric API keep the strict VERSION_REGEX -- snapshots are only
+        // accepted through the name-based /calm/... API, which holds the snapshot rules.
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void not_reject_a_snapshot_version_on_get_pattern() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternVersionNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(404);
     }
 
     @Test
@@ -318,7 +447,7 @@ public class TestPatternResourceShould {
                 .when()
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\"}")
-                .post("/calm/namespaces/finos/patterns/20/versions/1.0.1")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(400);
     }
@@ -356,17 +485,17 @@ public class TestPatternResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
                     //Derived from stubbed pattern in resource
-                    .header("Location", containsString("/calm/namespaces/test/patterns/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/patterns/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -380,8 +509,66 @@ public class TestPatternResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
-                .put("/calm/namespaces/test/patterns/20/versions/1.0.1")
+                .put("/api/calm/namespaces/test/patterns/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_pattern() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/patterns/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeletePatternTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new PatternNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeletePatternTests")
+    void respond_correctly_to_delete_pattern(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockPatternStore).deletePattern(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/patterns/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockPatternStore, times(1)).deletePattern(namespace, 12);
+    }
+
+    @Test
+    void delete_pattern_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.PATTERN, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_pattern() throws Exception {
+        doThrow(new PatternNotFoundException()).when(mockPatternStore).deletePattern("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

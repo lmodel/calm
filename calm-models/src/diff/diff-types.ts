@@ -1,4 +1,6 @@
 import type {
+    CalmControlDetailSchema,
+    CalmControlsSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -50,7 +52,34 @@ export interface UndiffableDiffItems {
     relationships: unknown[];
 }
 
-export interface DiffResult {
+export type ChangeType = 'added' | 'removed' | 'unchanged';
+
+export interface StringDiffItem {
+    content: string;
+    changeType: ChangeType;
+}
+
+type AdrDiffItem = StringDiffItem;
+
+interface ControlItemDetailsDiffItem {
+    content: CalmControlDetailSchema;
+    changeType: ChangeType;
+}
+
+export interface ControlItemDiffResult {
+    descriptionDiff: StringDiffItem[];
+    requirementsDiff: ControlItemDetailsDiffItem[];
+}
+
+export type MetadataFieldChangeType = 'added' | 'removed' | 'modified';
+
+export type MetadataItemDiffResult = Record<string, {
+    changeType: MetadataFieldChangeType;
+    oldValue: unknown;
+    newValue: unknown;
+}>;
+
+export interface NodesAndRelationshipsDiffResult {
     nodesAdded: CalmNodeSchema[];
     nodesRemoved: CalmNodeSchema[];
     nodesModified: NodeChange[];
@@ -66,3 +95,35 @@ export interface DiffResult {
     invalidItems?: InvalidDiffItems;
     undiffableItems?: UndiffableDiffItems;
 }
+
+/**
+ * Represents the result of diffing two lists of ADRs, including which ADRs were added, removed, or unchanged.
+ */
+export interface AdrDiffResult {
+    adrDiffItems: AdrDiffItem[];
+}
+
+/**
+ * Represents the result of diffing two CALM Controls schema objects.
+ */
+export interface ControlDiffResult {
+    controlItemsAdded: CalmControlsSchema;
+    controlItemsRemoved: CalmControlsSchema;
+    controlItemsUnchanged: CalmControlsSchema;
+    controlItemsModified: { [controlId: string]: ControlItemDiffResult };
+}
+
+/**
+ * Represents the result of diffing two CALM Metadata Schema objects.
+ */
+export interface MetadataDiffResult {
+    metadataObjectsAdded: Record<string, unknown>[];
+    metadataObjectsRemoved: Record<string, unknown>[];
+    metadataObjectsUnchanged: Record<string, unknown>[];
+    metadataObjectsModified: MetadataItemDiffResult[];
+}
+
+/**
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs, controls and metadata. TODO: incorporate flows.
+ */
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & MetadataDiffResult;

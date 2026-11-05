@@ -6,8 +6,8 @@ import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -37,7 +37,7 @@ public class MongoDecoratorIntegration {
             {
                 "unique-id": "finos-architecture-1-deployment",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["example-node"],
                 "data": {
@@ -52,7 +52,7 @@ public class MongoDecoratorIntegration {
             {
                 "unique-id": "finos-architecture-1-deployment",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["example-node"],
                 "data": {
@@ -63,10 +63,13 @@ public class MongoDecoratorIntegration {
             }
             """;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -92,7 +95,7 @@ public class MongoDecoratorIntegration {
     @Order(1)
     void end_to_end_get_with_no_decorators() {
         given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -104,10 +107,10 @@ public class MongoDecoratorIntegration {
         given()
                 .contentType(ContentType.JSON)
                 .body(VALID_DECORATOR)
-                .when().post("/calm/namespaces/finos/decorators")
+                .when().post("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/decorators/1"))
+                .header("Location", containsString("/api/calm/namespaces/finos/decorators/1"))
                 .body("id", equalTo(1));
     }
 
@@ -115,7 +118,7 @@ public class MongoDecoratorIntegration {
     @Order(3)
     void end_to_end_list_decorators_contains_created_id() {
         given()
-                .when().get("/calm/namespaces/finos/decorators")
+                .when().get("/api/calm/namespaces/finos/decorators")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -126,12 +129,12 @@ public class MongoDecoratorIntegration {
     @Order(4)
     void end_to_end_retrieve_decorator_by_id() {
         given()
-                .when().get("/calm/namespaces/finos/decorators/1")
+                .when().get("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("deployment"))
                 .body("uniqueId", equalTo("finos-architecture-1-deployment"))
-                .body("target[0]", equalTo("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
+                .body("target[0]", equalTo("/api/calm/namespaces/finos/architectures/1/versions/1-0-0"))
                 .body("targetType[0]", equalTo("architecture"))
                 .body("appliesTo[0]", equalTo("example-node"));
     }
@@ -140,7 +143,7 @@ public class MongoDecoratorIntegration {
     @Order(5)
     void end_to_end_update_decorator_by_id() {
         given()
-                .when().get("/calm/namespaces/finos/decorators/1")
+                .when().get("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(200)
                 .body("data.status", equalTo("in-progress"));
@@ -148,12 +151,12 @@ public class MongoDecoratorIntegration {
         given()
                 .contentType(ContentType.JSON)
                 .body(UPDATED_DECORATOR)
-                .when().put("/calm/namespaces/finos/decorators/1")
+                .when().put("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(200);
 
         given()
-                .when().get("/calm/namespaces/finos/decorators/1")
+                .when().get("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(200)
                 .body("data.status", equalTo("completed"));
@@ -163,7 +166,7 @@ public class MongoDecoratorIntegration {
     @Order(6)
     void end_to_end_retrieve_nonexistent_decorator_returns_404() {
         given()
-                .when().get("/calm/namespaces/finos/decorators/999")
+                .when().get("/api/calm/namespaces/finos/decorators/999")
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 999 does not exist in namespace: finos"));

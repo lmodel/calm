@@ -7,15 +7,48 @@ import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 
 import java.util.List;
 
 public interface PatternStore {
-    List<NamespacePatternSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException;
-    Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException;
+    /**
+     * Retrieve all pattern summaries for a namespace (unpaged).
+     *
+     * @param namespace the namespace to retrieve patterns for
+     * @return the full list of pattern summaries
+     */
+    default List<NamespaceResourceSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
+        return getPatternsForNamespace(namespace, PageRequest.UNPAGED);
+    }
+
+    /**
+     * Retrieve pattern summaries for a namespace, optionally paged.
+     *
+     * @param namespace the namespace to retrieve patterns for
+     * @param page      the optional {@code limit}/{@code offset} paging window
+     *                  ({@link PageRequest#UNPAGED} for the full list)
+     * @return a (possibly paged) list of pattern summaries
+     */
+    List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException;
+
+    Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException;
     List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
     String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
     Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException;
     Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
+
+    /**
+     * Deletes a pattern and all of its versions.
+     */
+    void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException;
+
+    /**
+     * Removes one version, leaving the resource and its other versions in place. Used by
+     * promotion to delete a snapshot once its release version is published.
+     *
+     * @return {@code true} if a version was removed.
+     */
+    boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException;
 }

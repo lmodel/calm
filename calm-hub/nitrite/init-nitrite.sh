@@ -8,8 +8,16 @@ set -e
 
 # Configuration
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
-CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
+# Do not default CALM_HUB_BASE_URL here. -u/--url is parsed later, and the
+# name-based $id base must follow that URL unless the caller already set
+# CALM_HUB_BASE_URL or passed --base-url. resolve_calm_hub_base_url runs after
+# argument parsing. The value must equal the server's calm.hub.base-url, which
+# is not necessarily the URL this script uses to reach the hub.
+CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
+CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-}"
+CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-}"
+CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
 
 # Colors for output
@@ -44,30 +52,45 @@ check_calmhub_status() {
     fi
 }
 
+# create_namespace <name> <description>
+# Returns non-zero when the namespace does not exist afterwards.
+create_namespace() {
+    local namespace="$1" description="$2"
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
+        -H "$CONTENT_TYPE" \
+        -d "$(jq -n --arg name "$namespace" --arg description "$description" '{name: $name, description: $description}')")
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_status "Namespace $namespace already exists, skipping"
+    else
+        print_warning "Failed to create namespace $namespace (HTTP $http_code)"
+        return 1
+    fi
+}
+
 # Function to create namespaces
 create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos workshop traderx ai-governance-v2 timeline-demo; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating namespace: $namespace"
-        local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/namespaces" \
-            -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$namespace\", \"description\": \"$namespace namespace\"}")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created namespace $namespace"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Namespace $namespace already exists, skipping"
-        else
-            print_warning "Failed to create namespace $namespace (HTTP $http_code)"
-        fi
+        local description
+        case "$namespace" in
+            # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
+            finos.fluxnova) description="FluxNova BPM example architectures" ;;
+            finos.sdlc-common-controls) description="The Standard the SDLC Common Controls Catalog control requirements conform to" ;;
+            *) description="$namespace namespace" ;;
+        esac
+        create_namespace "$namespace" "$description" || true
     done
 }
 
-# Function to load schemas from a directory (release or draft)
+# Function to load schemas from a directory
 # Usage: load_schemas_from_dir <base_dir> <prefix>
-# e.g. load_schemas_from_dir /calm/release release
+# e.g. load_schemas_from_dir /calm-schemas/release release
 load_schemas_from_dir() {
     local base_dir="$1"
     local prefix="$2"
@@ -109,7 +132,7 @@ load_schemas_from_dir() {
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/schemas" \
             -H "$CONTENT_TYPE" \
-            -d "$payload")
+            --data-binary @- <<< "$payload")
 
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created schema version ${version}"
@@ -121,27 +144,52 @@ load_schemas_from_dir() {
     done
 }
 
+# Resolve the schema path once (falling back to the directory beside this
+# script when unset) so create_core_schemas sees the same path.  Without this a
+# bare `bash init-nitrite.sh` (no env var) leaves the var empty, which causes
+# the function to build absolute paths from '/' that don't exist.
+# seed-readonly.sh always exports the path, so the Docker build masks the
+# issue; this makes the bare run equally safe.
+#
+# The released meta-schemas come from the @finos/calm-schema npm packages, which
+# `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
+resolve_release_schema_path() {
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        CALM_RELEASE_SCHEMA_PATH=$(realpath "$script_dir/../target/calm-schemas/release" 2>/dev/null || echo "")
+    fi
+}
+
+# Name-based seeds build $id from CALM_HUB_BASE_URL. An explicit value (the
+# environment variable or --base-url) wins. Otherwise use CALM_HUB_URL, which
+# already includes -u/--url. The result must equal calm.hub.base-url.
+resolve_calm_hub_base_url() {
+    CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
+}
+
+# Canonical $id the name-based API requires:
+# {calm.hub.base-url}/calm/namespaces/{namespace}/{resource}/{slug}/versions/{version}
+named_document_canonical_id() {
+    local namespace="$1"
+    local resource="$2"
+    local slug="$3"
+    local version="$4"
+    printf '%s/calm/namespaces/%s/%s/%s/versions/%s' \
+        "$CALM_HUB_BASE_URL" "$namespace" "$resource" "$slug" "$version"
+}
+
 # Function to create core schemas
 create_core_schemas() {
     print_status "Creating core schemas..."
 
-    local base_path="$CALM_SCHEMA_BASE_PATH"
-
-    if [[ -z "$base_path" ]]; then
-        # Try to find the calm directory relative to this script's location
-        local script_dir
-        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-        base_path=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
-    fi
-
-    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
-        print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" || ! -d "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        print_error "Released CALM schemas not found. Run './mvnw package' in calm-hub (or 'npm run calm-hub:copy-schemas' at the repository root), or set CALM_RELEASE_SCHEMA_PATH."
         return 1
     fi
 
-    print_status "Loading schemas from: $base_path"
-    load_schemas_from_dir "${base_path}/release" "release"
-    load_schemas_from_dir "${base_path}/draft" "draft"
+    print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
+    load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
 }
 
 # Function to POST a CALM document using the request envelope expected by the API.
@@ -165,9 +213,9 @@ post_document() {
         '{name: $name, description: $description} + {($field): ($doc | tojson)}')
 
     local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/namespaces/$namespace/$resource" \
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$name' in namespace $namespace"
@@ -178,6 +226,102 @@ post_document() {
     fi
 }
 
+# post_named_document <namespace> <type-plural> <slug> <version> <document-json>
+# Seeds a document through the name-based API (/calm/...), which creates the
+# resource_mappings slug entry as well as the document itself (the numeric-ID
+# API creates no mapping). The document's $id is rewritten to the canonical hub
+# URL the server requires and is stripped again before persistence; the stored
+# name/description come from the document's title/description fields. Failures
+# are fatal: a systematic $id mismatch would otherwise bake a read-only image
+# with an empty namespace.
+post_named_document() {
+    local namespace="$1"
+    local resource="$2"
+    local slug="$3"
+    local version="$4"
+    local doc="$5"
+
+    local canonical
+    canonical="$(named_document_canonical_id "$namespace" "$resource" "$slug" "$version")"
+    local payload
+    payload=$(printf '%s' "$doc" | jq --arg id "$canonical" '. + {"$id": $id}')
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "$CALM_HUB_URL/calm/namespaces/$namespace/$resource/$slug/versions/$version" \
+        -H "$CONTENT_TYPE" \
+        --data-binary @- <<< "$payload")
+
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created $resource '$slug' version $version in namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_warning "$resource '$slug' version $version in namespace $namespace already exists, skipping"
+    else
+        print_error "Failed to create $resource '$slug' version $version in namespace $namespace (HTTP $http_code)"
+        print_error "  \$id sent: $canonical"
+        exit 1
+    fi
+}
+
+# seed_named_documents_from_dir <base path> <resource plural> <default path beside this script>
+# Seeds every <base path>/<namespace>/*.json through the name-based API (post_named_document), so
+# the $id each document carries resolves on the hub. Namespace, slug and version are read from that
+# $id (.../calm/namespaces/<namespace>/<resource>/<slug>/versions/<version>) and the namespace must
+# match the directory. Failures are fatal, as for every name-based seed.
+seed_named_documents_from_dir() {
+    local base_path="$1" resource="$2" fallback="$3"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/$fallback" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No $resource directory at ${base_path:-$fallback}, skipping namespace $resource"
+        return
+    fi
+    print_status "Loading $resource from: $base_path"
+    local id_pattern="^.*/calm/namespaces/([^/]+)/${resource}/([^/]+)/versions/([^/]+)\$"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        # Create the namespace when create_namespaces does not list it.
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed $resource into namespace $namespace"
+            exit 1
+        fi
+        local document_file
+        while IFS= read -r document_file; do
+            [[ -f "$document_file" ]] || continue
+            local id doc
+            id=$(jq -r '."$id" // empty' "$document_file")
+            if [[ ! "$id" =~ $id_pattern ]]; then
+                print_error "$document_file needs a \$id of the form .../calm/namespaces/<namespace>/$resource/<slug>/versions/<version>"
+                exit 1
+            fi
+            if [[ "${BASH_REMATCH[1]}" != "$namespace" ]]; then
+                print_error "$document_file declares namespace ${BASH_REMATCH[1]} but sits in $namespace/"
+                exit 1
+            fi
+            doc=$(cat "$document_file")
+            post_named_document "$namespace" "$resource" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "$doc"
+        done < <(find "$namespace_dir" -maxdepth 1 -name '*.json' | sort)
+    done
+}
+
+# Standards contributed by projects, one directory per namespace under calm-hub/mongo/standards/.
+create_namespace_standards() {
+    print_status "Creating namespace standards..."
+    seed_named_documents_from_dir "$CALM_STANDARDS_BASE_PATH" standards "../mongo/standards"
+}
+
+# Patterns contributed by projects, one directory per namespace under calm-hub/mongo/patterns/.
+create_namespace_patterns() {
+    print_status "Creating namespace patterns..."
+    seed_named_documents_from_dir "$CALM_PATTERNS_BASE_PATH" patterns "../mongo/patterns"
+}
+
 # Look up the numeric id of a namespace-scoped resource by its name.
 # Usage: get_resource_id_by_name <namespace> <resource> <name>
 get_resource_id_by_name() {
@@ -185,7 +329,7 @@ get_resource_id_by_name() {
     local resource="$2"
     local name="$3"
 
-    curl -s "$CALM_HUB_URL/calm/namespaces/$namespace/$resource" -H "$CONTENT_TYPE" \
+    curl -s "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" -H "$CONTENT_TYPE" \
         | jq -r --arg name "$name" '.values[] | select(.name == $name) | .id' \
         | head -n1
 }
@@ -209,9 +353,9 @@ post_architecture_version() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
+        "$CALM_HUB_URL/api/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created architecture '$name' version $version in namespace $namespace"
@@ -223,9 +367,8 @@ post_architecture_version() {
 }
 
 # POST an additional version of an existing pattern (mutable version store).
-# Unlike the architecture version endpoint (which takes a name/description/architectureJson
-# envelope), the pattern version endpoint consumes the raw pattern document as the request
-# body, so the document JSON is sent directly.
+# PatternResource.createVersionedPattern requires a {name, description, patternJson}
+# envelope — the document JSON must be stringified into patternJson, not sent raw.
 # Usage: post_pattern_version <namespace> <pattern-id> <version> <name> <description> <document-json>
 post_pattern_version() {
     local namespace="$1"
@@ -235,11 +378,18 @@ post_pattern_version() {
     local description="$5"
     local doc="$6"
 
+    local payload
+    payload=$(jq -n \
+        --arg n "$name" \
+        --arg d "$description" \
+        --argjson doc "$doc" \
+        '{name: $n, description: $d, patternJson: ($doc | tojson)}')
+
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
+        "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$doc")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
@@ -259,7 +409,7 @@ create_patterns() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "$id": "https://calm.finos.org/calm/namespaces/finos/patterns/1/versions/1.0.0",
             "title": "API Gateway Pattern",
             "type": "object",
@@ -269,7 +419,7 @@ create_patterns() {
                     "minItems": 4,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "properties": {
                                 "well-known-endpoint": {
                                     "type": "string"
@@ -291,12 +441,22 @@ create_patterns() {
                                     "minItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "api-gateway-ingress"
+                                                },
+                                                "host": {
+                                                    "type": "string"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "host",
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
@@ -307,7 +467,7 @@ create_patterns() {
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "properties": {
                                 "description": {
                                     "const": "The API Consumer making an authenticated and authorized request"
@@ -324,7 +484,7 @@ create_patterns() {
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "properties": {
                                 "description": {
                                     "const": "The API Producer serving content"
@@ -343,12 +503,22 @@ create_patterns() {
                                     "minItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "producer-ingress"
+                                                },
+                                                "host": {
+                                                    "type": "string"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "host",
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
@@ -358,7 +528,7 @@ create_patterns() {
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "properties": {
                                 "description": {
                                     "const": "The Identity Provider used to verify the bearer token"
@@ -381,7 +551,7 @@ create_patterns() {
                     "minItems": 4,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "api-consumer-api-gateway"
@@ -414,7 +584,7 @@ create_patterns() {
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "api-gateway-idp"
@@ -440,7 +610,7 @@ create_patterns() {
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "api-gateway-api-producer"
@@ -469,7 +639,7 @@ create_patterns() {
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "api-consumer-idp"
@@ -504,14 +674,14 @@ create_patterns() {
         }
 CALMDOC
 )
-    post_document "finos" "patterns" "patternJson" "API Gateway Pattern" "API Gateway pattern for verifying authorization and access to downstream systems" "$doc"
+    post_document "workshop" "patterns" "patternJson" "API Gateway Pattern" "API Gateway pattern for verifying authorization and access to downstream systems" "$doc"
 
     # Workshop Conference Signup Pattern (Pattern 1) - Exact MongoDB content
     print_status "Creating Workshop Conference Signup Pattern..."
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "$id": "https://calm.finos.org/calm/namespaces/workshop/patterns/1/versions/1.0.0",
             "type": "object",
             "title": "Conference Signup Pattern",
@@ -523,7 +693,7 @@ CALMDOC
                     "maxItems": 5,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -544,19 +714,25 @@ CALMDOC
                                     "maxItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/url-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "conference-website-url"
+                                                },
+                                                "url": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "url"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -577,19 +753,29 @@ CALMDOC
                                     "maxItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "load-balancer-host-port"
+                                                },
+                                                "host": {
+                                                    "type": "string"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "host",
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -610,27 +796,39 @@ CALMDOC
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "attendees-image"
+                                                },
+                                                "image": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "image"
+                                            ]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "attendees-port"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -651,27 +849,39 @@ CALMDOC
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "database-image"
+                                                },
+                                                "image": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "image"
+                                            ]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "database-port"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -696,7 +906,7 @@ CALMDOC
                     "maxItems": 4,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -726,7 +936,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -756,7 +966,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -786,7 +996,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "deployed-in-k8s-cluster"
@@ -833,7 +1043,7 @@ CALMDOC
     local pattern_v2
     pattern_v2=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "type": "object",
             "title": "Conference Signup Pattern",
             "description": "A reusable architecture pattern for conference signup systems with Kubernetes deployment.",
@@ -844,7 +1054,7 @@ CALMDOC
                     "maxItems": 6,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "conference-website" },
@@ -854,7 +1064,7 @@ CALMDOC
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "load-balancer" },
@@ -864,7 +1074,7 @@ CALMDOC
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "attendees" },
@@ -874,7 +1084,7 @@ CALMDOC
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "attendees-store" },
@@ -884,7 +1094,7 @@ CALMDOC
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "attendees-cache" },
@@ -894,7 +1104,7 @@ CALMDOC
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "k8s-cluster" },
@@ -911,7 +1121,7 @@ CALMDOC
                     "maxItems": 5,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "conference-website-load-balancer" },
@@ -924,7 +1134,7 @@ CALMDOC
                             "required": [ "description" ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "load-balancer-attendees-service" },
@@ -937,7 +1147,7 @@ CALMDOC
                             "required": [ "description" ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "attendees-attendees-store" },
@@ -950,7 +1160,7 @@ CALMDOC
                             "required": [ "description" ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": { "const": "attendees-attendees-cache" },
@@ -963,7 +1173,7 @@ CALMDOC
                             "required": [ "description" ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": { "const": "deployed-in-k8s-cluster" },
                                 "description": { "const": "Components deployed on the k8s cluster" },
@@ -994,7 +1204,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "$id": "https://calm.finos.org/calm/namespaces/workshop/patterns/2/versions/1.0.0",
             "type": "object",
             "title": "Conference Secure Signup Pattern",
@@ -1006,7 +1216,7 @@ CALMDOC
                     "maxItems": 5,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1027,19 +1237,25 @@ CALMDOC
                                     "maxItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/url-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "conference-website-url"
+                                                },
+                                                "url": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "url"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1060,19 +1276,29 @@ CALMDOC
                                     "maxItems": 1,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/host-port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "load-balancer-host-port"
+                                                },
+                                                "host": {
+                                                    "type": "string"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "host",
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1093,27 +1319,39 @@ CALMDOC
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "attendees-image"
+                                                },
+                                                "image": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "image"
+                                            ]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "attendees-port"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1134,27 +1372,39 @@ CALMDOC
                                     "maxItems": 2,
                                     "prefixItems": [
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/container-image-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "database-image"
+                                                },
+                                                "image": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "image"
+                                            ]
                                         },
                                         {
-                                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/interface.json#/defs/port-interface",
+                                            "$ref": "https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type",
                                             "properties": {
                                                 "unique-id": {
                                                     "const": "database-port"
+                                                },
+                                                "port": {
+                                                    "type": "integer"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "port"
+                                            ]
                                         }
                                     ]
                                 }
                             }
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/node",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1179,7 +1429,7 @@ CALMDOC
                     "maxItems": 4,
                     "prefixItems": [
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1209,7 +1459,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1239,7 +1489,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "type": "object",
                             "properties": {
                                 "unique-id": {
@@ -1269,7 +1519,7 @@ CALMDOC
                             ]
                         },
                         {
-                            "$ref": "https://calm.finos.org/calm/schemas/2025-03/meta/core.json#/defs/relationship",
+                            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
                             "properties": {
                                 "unique-id": {
                                     "const": "deployed-in-k8s-cluster"
@@ -1311,40 +1561,12 @@ CALMDOC
 create_flows() {
     print_status "Creating flows..."
     
-    # FINOS Flow 1
-    print_status "Creating FINOS flow 1..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
-            "title": "Flow 1",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "flows" "flowJson" "Flow 1" "This is a non-compliant flow document. Just creating something to simulate" "$doc"
-
-    # FINOS Flow 2
-    print_status "Creating FINOS flow 2..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
-            "title": "Flow 2",
-            "description": "This is a non-compliant flow document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "flows" "flowJson" "Flow 2" "This is a non-compliant flow document. Just creating something to simulate" "$doc"
-
     # TraderX Flow 1 - Add or Update Account
     print_status "Creating TraderX flow 1..."
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
             "unique-id": "flow-add-update-account",
             "name": "Add or Update Account",
@@ -1353,17 +1575,17 @@ CALMDOC
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Submit Account Create/Update"
+                    "description": "Submit Account Create/Update"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "inserts or updates account"
+                    "description": "inserts or updates account"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 3,
-                    "summary": "Returns Account Create/Update Response Status",
+                    "description": "Returns Account Create/Update Response Status",
                     "direction": "destination-to-source"
                 }
             ],
@@ -1381,14 +1603,14 @@ CALMDOC
         }
 CALMDOC
 )
-    post_document "traderx" "flows" "flowJson" "Add or Update Account" "Flow for adding or updating account information in the database." "$doc"
+    post_document "finos.traderx" "flows" "flowJson" "Add or Update Account" "Flow for adding or updating account information in the database." "$doc"
 
     # TraderX Flow 2 - Load List of Accounts
     print_status "Creating TraderX flow 2..."
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
             "unique-id": "flow-load-list-of-accounts",
             "name": "Load List of Accounts",
@@ -1397,50 +1619,84 @@ CALMDOC
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Load list of accounts"
+                    "description": "Load list of accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "Query for all Accounts"
+                    "description": "Query for all Accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 3,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 4,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 }
             ]
         }
 CALMDOC
 )
-    post_document "traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
+    post_document "finos.traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
+
+    # FluxNova flows (namespace finos.fluxnova, drawn over the fluxnova-microservices architecture).
+    # Source of truth: examples/fluxnova/*.flow.json - keep these heredocs in sync.
+    print_status "Creating FluxNova flow: Payment Processing..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/payment-processing.json",
+  "unique-id": "flow-payment-processing",
+  "name": "Payment Processing",
+  "description": "End-to-end payment flow - API gateway receives a payment request, the engine fans out to fraud check and payment execution, then publishes a completion event.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits payment request via API gateway" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts the payment process in the engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud check worker scores the payment" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 3, "description": "Payment worker executes settlement" },
+    { "relationship-unique-id": "ms-payment-worker-to-broker", "sequence-number": 4, "description": "Payment worker publishes payment-completed event" },
+    { "relationship-unique-id": "ms-notification-worker-to-broker", "sequence-number": 5, "description": "Notification worker consumes the event and alerts the customer", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 6, "description": "Engine persists the completed process state" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Processing" "End-to-end payment flow with parallel fraud check and payment execution." "$doc"
+
+    print_status "Creating FluxNova flow: Payment Exception Handling..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/exception-handling.json",
+  "unique-id": "flow-exception-handling",
+  "name": "Payment Exception Handling",
+  "description": "A payment fails fraud scoring - the engine escalates to a human reviewer via the tasklist while simultaneously notifying the customer and logging the incident.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits high-value payment request" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts payment process in engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud worker returns HIGH risk score", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 4, "description": "Engine raises a human review task" },
+    { "relationship-unique-id": "ms-notification-worker-to-rest-api", "sequence-number": 4, "description": "Notification worker alerts the customer" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 4, "description": "Engine logs the fraud incident" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 5, "description": "Reviewer approves the payment", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 6, "description": "Payment worker settles the approved payment" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 7, "description": "Engine persists the review decision" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Exception Handling" "Fraud escalation flow with parallel human review, notification, and incident logging." "$doc"
 }
 
 # Function to create architectures
 create_architectures() {
     print_status "Creating architectures..."
     
-    # FINOS Architecture
-    print_status "Creating FINOS architecture..."
-    local doc
-    doc=$(cat <<'CALMDOC'
-{
-            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
-            "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/arch-1",
-            "title": "Architecture 1",
-            "description": "This is a non-compliant arch document. Just creating something to simulate"
-        }
-CALMDOC
-)
-    post_document "finos" "architectures" "architectureJson" "Architecture 1" "This is a non-compliant arch document. Just creating something to simulate" "$doc"
-
     # Workshop Architecture
     print_status "Creating Workshop architecture..."
     local doc
@@ -1694,7 +1950,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "nodes": [
                 {
                     "unique-id": "traderx-system",
@@ -2152,7 +2408,2959 @@ CALMDOC
         }
 CALMDOC
 )
-    post_document "traderx" "architectures" "architectureJson" "TraderX Architecture" "TraderX simple trading system architecture" "$doc"
+    post_document "finos.traderx" "architectures" "architectureJson" "TraderX Architecture" "TraderX simple trading system architecture" "$doc"
+
+    # FluxNova architectures
+    # Source of truth: examples/fluxnova/*.architecture.json — keep these heredocs in sync
+    # with those files (and with the equivalent inserts in calm-hub/mongo/init-mongo.js).
+    # Seeded via the name-based API so each architecture gets a stable slug mapping.
+
+    print_status "Creating FluxNova: Platform architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-platform.architecture.json",
+  "title": "FluxNova: Platform",
+  "description": "Base FluxNova BPM platform deployment topology with engine, web apps, REST API, and process database",
+  "nodes": [
+    {
+      "unique-id": "fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment comprising engine, web applications, REST API, and process database"
+    },
+    {
+      "unique-id": "fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 process execution engine responsible for orchestrating workflows, managing process state, and executing service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All process execution events, variable changes, and task assignments are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing 200+ endpoints for process deployment, task management, variable access, and external system integration (OpenAPI documented)",
+      "interfaces": [
+        {
+          "unique-id": "rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring and operations dashboard providing real-time visibility into running process instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration, authorization configuration, and system settings",
+      "interfaces": [
+        {
+          "unique-id": "admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment and lifecycle management UI enabling human task claiming, completion, and delegation within BPMN workflows",
+      "interfaces": [
+        {
+          "unique-id": "tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing process definitions, runtime state, history, job executor data, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-engine"
+          },
+          "destination": {
+            "node": "fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists process state, history, and audit data to the process database",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries process instances, incidents, and deployments via the REST API"
+    },
+    {
+      "unique-id": "admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-admin"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages users, groups, authorizations, and system configuration via the REST API"
+    },
+    {
+      "unique-id": "tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human tasks via the REST API"
+    },
+    {
+      "unique-id": "platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fluxnova-platform",
+          "nodes": [
+            "fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-platform" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Microservices Orchestration architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-microservices.architecture.json",
+  "title": "FluxNova: Microservices Orchestration",
+  "description": "FluxNova BPM orchestrating microservices via the external task worker pattern — payment, notification, and fraud-check workers with an async event bus and API gateway",
+  "nodes": [
+    {
+      "unique-id": "ms-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the microservices orchestration process"
+    },
+    {
+      "unique-id": "ms-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating microservice workers via the external task pattern — coordinates payment, notification, and fraud-check service tasks",
+      "controls": {
+        "audit-logging": {
+          "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All worker task assignments, completions, and failures are recorded in an immutable audit log for payment traceability",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ms-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing external task fetch-and-lock, complete, and failure endpoints for worker microservices",
+      "interfaces": [
+        {
+          "unique-id": "ms-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for payment process instances, worker throughput, queue depths, and failed tasks",
+      "interfaces": [
+        {
+          "unique-id": "ms-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for worker registration, user administration, and payment platform configuration",
+      "interfaces": [
+        {
+          "unique-id": "ms-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human task UI for payment exception handling, fraud review escalations, and manual approval workflows",
+      "interfaces": [
+        {
+          "unique-id": "ms-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing payment process definitions, runtime state, external task queues, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ms-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-payment-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Payment Worker",
+      "description": "External task worker microservice that processes payment transaction tasks — polls the FluxNova engine for tasks, executes payment settlement, and reports completion",
+      "interfaces": [
+        {
+          "unique-id": "ms-payment-worker-endpoint",
+          "type": "url",
+          "value": "https://payment-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-notification-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Notification Worker",
+      "description": "External task worker microservice that handles notification delivery tasks — sends SMS, email, and push notifications based on process variables",
+      "interfaces": [
+        {
+          "unique-id": "ms-notification-worker-endpoint",
+          "type": "url",
+          "value": "https://notification-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-fraud-check-worker",
+      "node-type": "fluxnova:external-task-worker",
+      "name": "Fraud Check Worker",
+      "description": "External task worker microservice that executes fraud detection tasks — scores transactions via ML models, returns risk scores to the process engine",
+      "interfaces": [
+        {
+          "unique-id": "ms-fraud-check-worker-endpoint",
+          "type": "url",
+          "value": "https://fraud-check-worker.internal/health"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-message-broker",
+      "node-type": "service",
+      "name": "Message Broker",
+      "description": "Async event bus for worker-to-worker communication and domain event publishing — decouples workers from direct coupling and enables event-driven scaling",
+      "interfaces": [
+        {
+          "unique-id": "ms-message-broker-endpoint",
+          "type": "host-port",
+          "value": "message-broker:5672"
+        }
+      ]
+    },
+    {
+      "unique-id": "ms-api-gateway",
+      "node-type": "service",
+      "name": "API Gateway",
+      "description": "Entry point gateway for external API consumers — handles authentication, rate limiting, TLS termination, and request routing to the FluxNova REST API",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All external client connections terminate TLS at the API gateway — internal traffic uses mTLS on the service mesh",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#api-gateway"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "ms-api-gateway-endpoint",
+          "type": "url",
+          "value": "https://api-gateway.internal/v1"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ms-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ms-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists payment process state, external task queues, and audit data to the process database"
+    },
+    {
+      "unique-id": "ms-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "ms-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ms-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries payment process instances and worker metrics via the REST API"
+    },
+    {
+      "unique-id": "ms-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-admin"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages worker registration, users, and payment platform configuration via the REST API"
+    },
+    {
+      "unique-id": "ms-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human escalation and exception tasks via the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ms-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ms-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ms-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ms-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ms-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ms-fluxnova-platform",
+          "nodes": [
+            "ms-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-payment-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Payment worker polls FluxNova REST API for external tasks, locks them for execution, and submits completion or failure results"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-notification-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Notification worker polls FluxNova REST API for notification tasks, executes delivery, and reports back"
+    },
+    {
+      "unique-id": "ms-fraud-check-worker-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-fraud-check-worker"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Fraud check worker polls FluxNova REST API for fraud scoring tasks, runs ML inference, and reports risk scores"
+    },
+    {
+      "unique-id": "ms-payment-worker-to-broker",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-payment-worker"
+          },
+          "destination": {
+            "node": "ms-message-broker"
+          }
+        }
+      },
+      "protocol": "AMQP",
+      "description": "Payment worker publishes domain events (payment-completed, payment-failed) to the message broker for downstream consumption"
+    },
+    {
+      "unique-id": "ms-notification-worker-to-broker",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-notification-worker"
+          },
+          "destination": {
+            "node": "ms-message-broker"
+          }
+        }
+      },
+      "protocol": "AMQP",
+      "description": "Notification worker subscribes to payment events from the message broker to trigger customer notifications asynchronously"
+    },
+    {
+      "unique-id": "ms-api-gateway-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ms-api-gateway"
+          },
+          "destination": {
+            "node": "ms-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "API gateway proxies authenticated external requests to the FluxNova REST API after TLS termination and rate-limit checks"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-microservices" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: KYC Onboarding architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-kyc-onboarding.architecture.json",
+  "title": "FluxNova: KYC Onboarding",
+  "description": "Pre-trade KYC onboarding architecture with identity verification, sanctions screening, risk scoring, and compliance review built on FluxNova BPM platform",
+  "nodes": [
+    {
+      "unique-id": "kyc-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the KYC onboarding process"
+    },
+    {
+      "unique-id": "kyc-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine executing the Client Onboarding KYC process (Process_ClientOnboardingKYC) with boundary timers, escalation gateways, and DMN risk scoring",
+      "controls": {
+        "audit-logging": {
+          "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All process execution events, variable changes, task assignments, and decision outcomes are recorded in an immutable audit log for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing endpoints for KYC process deployment, task management, and external task worker integration",
+      "interfaces": [
+        {
+          "unique-id": "kyc-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for KYC onboarding — tracks in-flight applications, SLA breaches, and escalation incidents",
+      "interfaces": [
+        {
+          "unique-id": "kyc-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for KYC user roles, group assignments, and authorization policies",
+      "interfaces": [
+        {
+          "unique-id": "kyc-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task UI for compliance officers and operations staff to claim and complete KYC review tasks, remediation tasks, and enhanced due diligence assessments",
+      "interfaces": [
+        {
+          "unique-id": "kyc-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing KYC process definitions, runtime state, decision audit history, and escalation records",
+      "interfaces": [
+        {
+          "unique-id": "kyc-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "Prospective client submitting a KYC onboarding application, providing identity documents, proof of address, and corporate documentation"
+    },
+    {
+      "unique-id": "kyc-compliance-officer",
+      "node-type": "actor",
+      "name": "Compliance Officer",
+      "description": "Reviews medium-risk KYC applications, conducts compliance investigations on sanctions matches, and makes approval/rejection decisions"
+    },
+    {
+      "unique-id": "kyc-senior-compliance",
+      "node-type": "actor",
+      "name": "Senior Compliance Officer",
+      "description": "Conducts enhanced due diligence for high-risk KYC applications and handles escalated compliance decisions"
+    },
+    {
+      "unique-id": "kyc-ops-manager",
+      "node-type": "actor",
+      "name": "Operations Manager",
+      "description": "Receives escalations when document verification SLA (48 hours) is breached and manages operational remediation"
+    },
+    {
+      "unique-id": "kyc-identity-verification-svc",
+      "node-type": "service",
+      "name": "Identity Verification Service",
+      "description": "External task worker performing OCR, biometric verification, and identity document validation via third-party IDV provider (topic: doc-verification)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-idv-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/verify"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Processes personally identifiable information including identity documents, biometric data, and government IDs — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All verification requests, results, and third-party API calls are logged for regulatory audit trail",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-screening-svc",
+      "node-type": "service",
+      "name": "Sanctions & PEP Screening Service",
+      "description": "External task worker querying OFAC, UN, EU sanctions lists and PEP databases for compliance checks (topic: sanctions-screen)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-sanctions-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/sanctions"
+        }
+      ],
+      "controls": {
+        "audit-logging": {
+          "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All sanctions and PEP screening queries, match results, and investigation outcomes are logged for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-risk-scoring-svc",
+      "node-type": "service",
+      "name": "AML/KYC Risk Scoring Service",
+      "description": "DMN decision table evaluating client type, jurisdiction, transaction profile, PEP status, sanctions results, and beneficial ownership to produce a risk category (Low/Medium/High)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-risk-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/risk-assessment"
+        }
+      ],
+      "controls": {
+        "audit-logging": {
+          "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk scoring inputs, decision table evaluations, and output categories are logged with full decision rationale",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-document-mgmt-svc",
+      "node-type": "service",
+      "name": "Document Management Service",
+      "description": "External task worker handling secure storage and retrieval of identity documents, proof of address, and corporate documentation (topic: document-management)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-docmgmt-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/documents"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Stores and manages personally identifiable documents including passports, driving licenses, and proof of address — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-at-rest": {
+          "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-at-rest",
+                "name": "Encryption At Rest",
+                "description": "All stored documents are encrypted at rest using AES-256 to protect PII",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-notification-svc",
+      "node-type": "service",
+      "name": "Notification Service",
+      "description": "External task worker sending email and push notifications to customers, sales teams, and compliance staff for onboarding status updates (topic: notifications)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-notify-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/notifications"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-crm-sync-svc",
+      "node-type": "service",
+      "name": "CRM Sync Service",
+      "description": "External task worker persisting client data to the CRM and provisioning accounts in trading and custodian systems upon approval (topic: crm-sync, account-provisioning)",
+      "interfaces": [
+        {
+          "unique-id": "kyc-crm-api",
+          "type": "url",
+          "value": "https://kyc-services.internal/api/v1/crm"
+        }
+      ]
+    },
+    {
+      "unique-id": "kyc-kyc-database",
+      "node-type": "database",
+      "name": "KYC Database",
+      "description": "Dedicated database storing customer PII, verification results, sanctions screening outcomes, risk assessments, and compliance decisions",
+      "interfaces": [
+        {
+          "unique-id": "kyc-kyc-db-port",
+          "type": "host-port",
+          "value": "kyc-db:5432"
+        }
+      ],
+      "data-classification": "PII",
+      "controls": {
+        "data-classification": {
+          "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Contains personally identifiable information including customer identity data, verification results, and compliance decisions — classified as PII",
+                "reference-url": "https://calm.finos.org/core-concepts/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-at-rest": {
+          "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-at-rest",
+                "name": "Encryption At Rest",
+                "description": "All PII data is encrypted at rest using AES-256 with key management via HSM",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "access-control": {
+          "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-access-control",
+                "name": "Access Control",
+                "description": "Database access restricted to authorized KYC services only via role-based access control and network segmentation",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-watchlist-provider",
+      "node-type": "system",
+      "name": "Watchlist Data Provider",
+      "description": "External system providing OFAC, UN, EU sanctions lists and PEP databases for compliance screening"
+    },
+    {
+      "unique-id": "kyc-idv-provider",
+      "node-type": "system",
+      "name": "Identity Verification Provider",
+      "description": "External third-party identity verification provider performing OCR, biometric matching, and document authenticity checks"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "kyc-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists KYC process state, history, decision audit data, and escalation records",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Database connection uses TLS-encrypted JDBC to protect process data and credentials in transit",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "kyc-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries KYC process instances, SLA breach incidents, and escalation status"
+    },
+    {
+      "unique-id": "kyc-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-admin"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages KYC user roles, compliance group assignments, and authorization policies"
+    },
+    {
+      "unique-id": "kyc-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "kyc-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist enables compliance officers and ops staff to claim and complete KYC review tasks"
+    },
+    {
+      "unique-id": "kyc-customer-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-customer",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Customer submits onboarding application and uploads identity documents via the client portal"
+    },
+    {
+      "unique-id": "kyc-compliance-officer-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-compliance-officer",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Compliance officer claims and completes medium-risk review tasks, sanctions investigation tasks, and approval decisions"
+    },
+    {
+      "unique-id": "kyc-senior-compliance-to-tasklist",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-senior-compliance",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "Senior compliance officer conducts enhanced due diligence tasks for high-risk applications"
+    },
+    {
+      "unique-id": "kyc-ops-manager-to-cockpit",
+      "relationship-type": {
+        "interacts": {
+          "actor": "kyc-ops-manager",
+          "nodes": [
+            "kyc-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "Operations manager monitors SLA compliance and receives escalation alerts for document verification delays"
+    },
+    {
+      "unique-id": "kyc-engine-to-idv-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-identity-verification-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches document verification external tasks (ServiceTask_VerifyDocuments) with 48-hour SLA boundary timer",
+      "controls": {
+        "audit-logging": {
+          "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All verification task dispatches, completions, and SLA breach escalations are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-sanctions-svc",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-sanctions-screening-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches sanctions and PEP screening external tasks (ServiceTask_SanctionsPEP) after document verification passes",
+      "controls": {
+        "audit-logging": {
+          "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All screening task dispatches, match results, and routing decisions are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-risk-scoring",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-risk-scoring-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine invokes DMN risk assessment (BusinessRule_RiskAssessment) with 24-hour SLA boundary timer, producing Low/Medium/High risk category",
+      "controls": {
+        "audit-logging": {
+          "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk scoring inputs, DMN decision table evaluations, and category outputs are audit-logged with full rationale",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-doc-mgmt",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-document-mgmt-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches document storage tasks (ServiceTask_StoreDocuments) for uploaded identity documents and corporate documentation",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII document transfers use TLS 1.3 encryption in transit",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII document transfers use TLS 1.3 encryption in transit",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-engine-to-notification",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-notification-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches notification tasks (ServiceTask_NotifySalesClient) for onboarding status updates and approval/rejection notices"
+    },
+    {
+      "unique-id": "kyc-engine-to-crm-sync",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-fluxnova-engine"
+          },
+          "destination": {
+            "node": "kyc-crm-sync-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches CRM sync tasks (ServiceTask_PersistClientData) and account provisioning tasks (ServiceTask_AccountOpening) for approved clients",
+      "controls": {
+        "audit-logging": {
+          "description": "All client data persistence and account provisioning events are audit-logged",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All client data persistence and account provisioning events are audit-logged",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-idv-svc-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-identity-verification-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists identity verification results, document metadata, and biometric match scores",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII data transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII data transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-svc-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists sanctions screening results, PEP match data, and investigation outcomes",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Screening result transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Screening result transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-risk-scoring-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-risk-scoring-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists risk assessment inputs, DMN decision outputs, and risk category assignments"
+    },
+    {
+      "unique-id": "kyc-doc-mgmt-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-document-mgmt-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Persists document metadata, storage references, and verification linkages",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "PII document metadata transfers to database use TLS-encrypted JDBC",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-crm-sync-to-kyc-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-crm-sync-svc"
+          },
+          "destination": {
+            "node": "kyc-kyc-database"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Reads approved client data for CRM synchronization and account provisioning"
+    },
+    {
+      "unique-id": "kyc-idv-svc-to-idv-provider",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-identity-verification-svc"
+          },
+          "destination": {
+            "node": "kyc-idv-provider"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Calls external IDV provider API for OCR, biometric matching, and document authenticity verification",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "External API calls carrying PII use mTLS for mutual authentication and encryption",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All external IDV API calls and responses are logged for compliance audit trail",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All external IDV API calls and responses are logged for compliance audit trail",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-sanctions-svc-to-watchlist",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "kyc-sanctions-screening-svc"
+          },
+          "destination": {
+            "node": "kyc-watchlist-provider"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Queries OFAC, UN, EU sanctions lists and PEP databases for compliance screening",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "External watchlist API calls use TLS 1.3 encryption for data protection",
+                "reference-url": "https://calm.finos.org/core-concepts/controls"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All sanctions screening queries and results are logged for regulatory compliance",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All sanctions screening queries and results are logged for regulatory compliance",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "kyc-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "kyc-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "kyc-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "kyc-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "kyc-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "kyc-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "kyc-fluxnova-platform",
+          "nodes": [
+            "kyc-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-kyc-onboarding" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Post-Trade Settlement architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-settlement.architecture.json",
+  "title": "FluxNova: Post-Trade Settlement",
+  "description": "Post-trade settlement blueprint with counterparty gateway, clearing house connector, regulatory reporting, and settlement database built on FluxNova BPM platform",
+  "nodes": [
+    {
+      "unique-id": "st-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the post-trade settlement process"
+    },
+    {
+      "unique-id": "st-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating trade confirmation, netting, novation, and settlement lifecycle workflows",
+      "controls": {
+        "audit-logging": {
+          "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All settlement process events, trade state transitions, and regulatory submissions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "st-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer for trade submission, settlement status queries, and external task worker integration",
+      "interfaces": [
+        {
+          "unique-id": "st-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard providing real-time visibility into settlement process instances, failed trades, and regulatory deadlines",
+      "interfaces": [
+        {
+          "unique-id": "st-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for counterparty onboarding, user administration, and settlement platform configuration",
+      "interfaces": [
+        {
+          "unique-id": "st-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task management UI for trade exception handling, manual matching, and compliance review tasks in the settlement workflow",
+      "interfaces": [
+        {
+          "unique-id": "st-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing settlement process definitions, runtime state, trade history, and compliance audit logs",
+      "interfaces": [
+        {
+          "unique-id": "st-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-counterparty-gateway",
+      "node-type": "service",
+      "name": "Counterparty Gateway",
+      "description": "Secure gateway for counterparty trade confirmations and matching via FIX, FpML, and SWIFT message protocols",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All counterparty communications use mTLS to authenticate both parties and encrypt trade confirmation data",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#counterparty-auth"
+              }
+            }
+          ]
+        },
+        "audit-logging": {
+          "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All inbound and outbound counterparty messages are logged with timestamps for regulatory audit trails",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-counterparty-gateway-endpoint",
+          "type": "url",
+          "value": "https://counterparty-gateway.internal/confirm"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-clearing-house-connector",
+      "node-type": "service",
+      "name": "Clearing House Connector",
+      "description": "Connector to central clearing house (CCP) for trade novation, netting, and multilateral settlement instruction submission",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "Clearing house connectivity uses leased line or dedicated VPN with TLS for trade submission integrity",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#ccp-connectivity"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-clearing-house-endpoint",
+          "type": "url",
+          "value": "https://ccp-connector.internal/submit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-regulatory-reporting-svc",
+      "node-type": "service",
+      "name": "Regulatory Reporting Service",
+      "description": "Automated regulatory reporting service generating EMIR, MiFIR, and Dodd-Frank trade reports with real-time submission to trade repositories",
+      "controls": {
+        "regulatory-compliance": {
+          "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-regulatory-compliance",
+                "name": "Regulatory Compliance",
+                "description": "All trade reports are validated against ESMA and CFTC schemas before submission; submission receipts are archived for 7 years",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/regulatory-reporting"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-regulatory-reporting-endpoint",
+          "type": "url",
+          "value": "https://regulatory-reporting.internal/submit"
+        }
+      ]
+    },
+    {
+      "unique-id": "st-settlement-db",
+      "node-type": "database",
+      "name": "Settlement Database",
+      "description": "Settlement positions, obligations, and trade lifecycle data store — source of truth for net settlement positions and regulatory reporting",
+      "controls": {
+        "encryption-in-transit": {
+          "description": "All connections to the settlement database use TLS-encrypted JDBC",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All connections to the settlement database use TLS-encrypted JDBC",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#database-encryption"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "st-settlement-db-port",
+          "type": "host-port",
+          "value": "settlement-db:5432"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "st-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists settlement process state, history, and audit data to the process database"
+    },
+    {
+      "unique-id": "st-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "st-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "st-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries settlement process instances and compliance deadlines via the REST API"
+    },
+    {
+      "unique-id": "st-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-admin"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages counterparty onboarding, users, and platform configuration via the REST API"
+    },
+    {
+      "unique-id": "st-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "st-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes trade exception and compliance review tasks via the REST API"
+    },
+    {
+      "unique-id": "st-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "st-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "st-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "st-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "st-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "st-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "st-fluxnova-platform",
+          "nodes": [
+            "st-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "st-engine-to-counterparty-gateway",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-counterparty-gateway"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine invokes the counterparty gateway for trade confirmation matching and settlement instruction exchange"
+    },
+    {
+      "unique-id": "st-engine-to-clearing-house",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-clearing-house-connector"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine submits cleared trades for novation and netting via the clearing house connector"
+    },
+    {
+      "unique-id": "st-engine-to-regulatory-reporting",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-regulatory-reporting-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine triggers regulatory report generation after trade confirmation and settlement instruction creation"
+    },
+    {
+      "unique-id": "st-engine-to-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-fluxnova-engine"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine reads and writes settlement positions and obligations to the settlement database during workflow execution"
+    },
+    {
+      "unique-id": "st-regulatory-reporting-to-settlement-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "st-regulatory-reporting-svc"
+          },
+          "destination": {
+            "node": "st-settlement-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Regulatory reporting service reads consolidated settlement positions from the settlement database for report generation"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-settlement" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: Flash Risk Management architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-flash-risk.architecture.json",
+  "title": "FluxNova: Flash Risk Management",
+  "description": "Real-time flash risk management blueprint with on-premise and cloud compute, aggregation, and auto-provisioning for latency-sensitive financial risk calculations",
+  "nodes": [
+    {
+      "unique-id": "fr-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the flash risk orchestration process"
+    },
+    {
+      "unique-id": "fr-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating the flash risk calculation workflow, dispatching tasks to on-premise and cloud compute nodes",
+      "controls": {
+        "audit-logging": {
+          "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All risk calculation dispatches, results, and exceptions are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "fr-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer providing endpoints for risk process deployment, external task worker integration, and risk result retrieval",
+      "interfaces": [
+        {
+          "unique-id": "fr-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard providing real-time visibility into risk calculation instances, incidents, and batch operations",
+      "interfaces": [
+        {
+          "unique-id": "fr-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for user, group, and tenant administration for the risk management platform",
+      "interfaces": [
+        {
+          "unique-id": "fr-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Task assignment UI for human review and exception handling in risk calculation workflows",
+      "interfaces": [
+        {
+          "unique-id": "fr-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing risk process definitions, runtime state, history, and audit logs",
+      "interfaces": [
+        {
+          "unique-id": "fr-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-onprem",
+      "node-type": "service",
+      "name": "On-Premise Risk Engine",
+      "description": "On-premise risk computation engine for latency-sensitive calculations requiring sub-millisecond response times and access to co-located market data feeds",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Risk computation results are classified Confidential — position data, P&L, and risk factors must not leave the secure perimeter",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-onprem-compute-endpoint",
+          "type": "host-port",
+          "value": "risk-compute-onprem:8080"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-compute-cloud",
+      "node-type": "service",
+      "name": "Cloud Risk Engine",
+      "description": "Cloud-based risk computation engine for burst capacity scaling during high-volatility market events when on-premise capacity is exhausted",
+      "data-classification": "Confidential",
+      "controls": {
+        "data-classification": {
+          "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-data-classification",
+                "name": "Data Classification",
+                "description": "Cloud risk computations handle Confidential position data — encryption in transit and at rest is mandatory",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/data-classification"
+              }
+            }
+          ]
+        },
+        "encryption-in-transit": {
+          "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-encryption-in-transit",
+                "name": "Encryption In Transit",
+                "description": "All position data sent to cloud compute is encrypted in transit using TLS 1.3 minimum",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/security#cloud-encryption"
+              }
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "fr-cloud-compute-endpoint",
+          "type": "url",
+          "value": "https://risk-compute-cloud.internal/compute"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-risk-aggregation-svc",
+      "node-type": "service",
+      "name": "Risk Aggregation Service",
+      "description": "Aggregates risk results from on-premise and cloud compute nodes, merges partial risk vectors, and produces consolidated real-time risk reports",
+      "interfaces": [
+        {
+          "unique-id": "fr-aggregation-endpoint",
+          "type": "host-port",
+          "value": "risk-aggregation-svc:8081"
+        }
+      ]
+    },
+    {
+      "unique-id": "fr-cloud-provisioner",
+      "node-type": "service",
+      "name": "Cloud Provisioner",
+      "description": "Auto-provisions cloud compute instances based on market volatility signals, scaling out when VIX or realized volatility exceeds configured thresholds",
+      "interfaces": [
+        {
+          "unique-id": "fr-provisioner-endpoint",
+          "type": "url",
+          "value": "https://cloud-provisioner.internal/provision"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "fr-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists risk process state, history, and audit data to the process database"
+    },
+    {
+      "unique-id": "fr-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "fr-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "fr-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries risk process instances and incidents via the REST API"
+    },
+    {
+      "unique-id": "fr-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-admin"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages users, authorizations, and risk platform configuration via the REST API"
+    },
+    {
+      "unique-id": "fr-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "fr-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human exception-handling tasks via the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "fr-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "fr-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "fr-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "fr-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "fr-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "fr-fluxnova-platform",
+          "nodes": [
+            "fr-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "fr-engine-to-onprem-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-risk-compute-onprem"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches risk calculation tasks to the on-premise compute engine for low-latency position risk calculations"
+    },
+    {
+      "unique-id": "fr-engine-to-cloud-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-risk-compute-cloud"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches burst risk calculation tasks to the cloud compute engine when on-premise capacity is exceeded"
+    },
+    {
+      "unique-id": "fr-onprem-to-aggregation",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-risk-compute-onprem"
+          },
+          "destination": {
+            "node": "fr-risk-aggregation-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "On-premise compute pushes partial risk vectors to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-cloud-to-aggregation",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-risk-compute-cloud"
+          },
+          "destination": {
+            "node": "fr-risk-aggregation-svc"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cloud compute pushes burst risk results to the aggregation service for consolidation"
+    },
+    {
+      "unique-id": "fr-provisioner-to-cloud-compute",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-cloud-provisioner"
+          },
+          "destination": {
+            "node": "fr-risk-compute-cloud"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Provisioner scales cloud compute instances up or down based on real-time volatility signals"
+    },
+    {
+      "unique-id": "fr-engine-to-provisioner",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "fr-fluxnova-engine"
+          },
+          "destination": {
+            "node": "fr-cloud-provisioner"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine signals the provisioner to scale cloud capacity when market volatility triggers burst mode"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-flash-risk" "1.0.0" "$doc"
+
+    print_status "Creating FluxNova: AI Agent Orchestration architecture..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/examples/fluxnova/fluxnova-ai-agent.architecture.json",
+  "title": "FluxNova: AI Agent Orchestration",
+  "description": "FluxNova BPM platform orchestrating autonomous AI agents with LLM inference, guardrails, and callable tools — AIGF governance controls pre-applied",
+  "nodes": [
+    {
+      "unique-id": "ai-fluxnova-platform",
+      "node-type": "fluxnova:platform",
+      "name": "FluxNova Platform",
+      "description": "Full FluxNova BPM platform deployment hosting the AI agent orchestration process"
+    },
+    {
+      "unique-id": "ai-fluxnova-engine",
+      "node-type": "fluxnova:engine",
+      "name": "FluxNova BPM Engine",
+      "description": "Core BPMN 2.0 / DMN 1.3 engine orchestrating AI agent task dispatch, monitoring, and human-in-the-loop escalation workflows",
+      "controls": {
+        "audit-logging": {
+          "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-audit-logging",
+                "name": "Audit Logging",
+                "description": "All AI agent task dispatches, LLM calls, guardrail verdicts, and tool invocations are recorded in an immutable audit log",
+                "reference-url": "https://docs.fluxnova.finos.org/docs/reference/audit-log"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-fluxnova-rest-api",
+      "node-type": "fluxnova:rest-api",
+      "name": "FluxNova REST API",
+      "description": "RESTful API layer for AI process deployment, agent task polling, and result submission",
+      "interfaces": [
+        {
+          "unique-id": "ai-rest-api-endpoint",
+          "type": "url",
+          "value": "https://fluxnova.internal/engine-rest"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-cockpit",
+      "node-type": "fluxnova:cockpit",
+      "name": "FluxNova Cockpit",
+      "description": "Process monitoring dashboard for AI agent task instances, LLM latency, guardrail rejection rates, and escalation incidents",
+      "interfaces": [
+        {
+          "unique-id": "ai-cockpit-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/cockpit"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-admin",
+      "node-type": "fluxnova:admin",
+      "name": "FluxNova Admin",
+      "description": "Management console for AI agent configuration, LLM model version management, and guardrail policy administration",
+      "interfaces": [
+        {
+          "unique-id": "ai-admin-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/admin"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-tasklist",
+      "node-type": "fluxnova:tasklist",
+      "name": "FluxNova Tasklist",
+      "description": "Human-in-the-loop task UI for reviewing AI agent decisions, approving high-risk actions, and resolving guardrail rejections",
+      "interfaces": [
+        {
+          "unique-id": "ai-tasklist-url",
+          "type": "url",
+          "value": "https://fluxnova.internal/tasklist"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-fluxnova-process-db",
+      "node-type": "fluxnova:process-db",
+      "name": "Process Database",
+      "description": "Relational database storing AI agent process definitions, runtime state, LLM interaction history, and AIGF audit logs",
+      "interfaces": [
+        {
+          "unique-id": "ai-process-db-port",
+          "type": "host-port",
+          "value": "process-db:5432"
+        }
+      ]
+    },
+    {
+      "unique-id": "ai-agent",
+      "node-type": "ai:agent",
+      "name": "AI Agent",
+      "description": "Autonomous AI agent executing tasks assigned by the FluxNova process engine — uses LLM for reasoning, tools for action, and guardrails for safety",
+      "controls": {
+        "agent-least-privilege": {
+          "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-agent-least-privilege",
+                "name": "Agent Least Privilege",
+                "description": "AI agent operates with least-privilege tool access — only tools explicitly granted per process definition are callable",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-18"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-llm",
+      "node-type": "ai:llm",
+      "name": "Large Language Model",
+      "description": "Large language model providing inference and reasoning capabilities for AI agent decisions — version-pinned for reproducible behaviour",
+      "controls": {
+        "model-version-pinning": {
+          "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "fluxnova-model-version-pinning",
+                "name": "Model Version Pinning",
+                "description": "LLM model version is pinned to a specific checkpoint — no automatic model upgrades without governance review and regression testing",
+                "reference-url": "https://air-governance-framework.finos.org/mitigations/mi-10"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ai-guardrail",
+      "node-type": "ai:guardrail",
+      "name": "AI Guardrail",
+      "description": "Safety filter validating AI agent inputs and outputs against policy — rejects hallucinations, PII leakage, prompt injections, and policy violations before action"
+    },
+    {
+      "unique-id": "ai-tool",
+      "node-type": "ai:tool",
+      "name": "AI Tool",
+      "description": "Callable function exposed to the AI agent for structured external actions — wraps downstream APIs, databases, and services with typed schemas and access controls"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "ai-engine-to-process-db",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ai-fluxnova-process-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "description": "Engine persists AI agent process state, LLM interaction history, and audit data to the process database"
+    },
+    {
+      "unique-id": "ai-rest-api-to-engine",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-rest-api"
+          },
+          "destination": {
+            "node": "ai-fluxnova-engine"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "REST API delegates all requests to the embedded engine via internal Java API calls"
+    },
+    {
+      "unique-id": "ai-cockpit-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-cockpit"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Cockpit queries AI agent process instances and LLM performance metrics via the REST API"
+    },
+    {
+      "unique-id": "ai-admin-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-admin"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Admin manages AI agent configuration, model versions, and guardrail policies via the REST API"
+    },
+    {
+      "unique-id": "ai-tasklist-to-rest-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-tasklist"
+          },
+          "destination": {
+            "node": "ai-fluxnova-rest-api"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Tasklist retrieves and completes human-in-the-loop review and escalation tasks via the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-engine",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-engine"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the BPM engine"
+    },
+    {
+      "unique-id": "ai-platform-has-rest-api",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-rest-api"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the REST API"
+    },
+    {
+      "unique-id": "ai-platform-has-cockpit",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-cockpit"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Cockpit monitoring app"
+    },
+    {
+      "unique-id": "ai-platform-has-admin",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-admin"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Admin management app"
+    },
+    {
+      "unique-id": "ai-platform-has-tasklist",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-tasklist"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the Tasklist app"
+    },
+    {
+      "unique-id": "ai-platform-has-process-db",
+      "relationship-type": {
+        "composed-of": {
+          "container": "ai-fluxnova-platform",
+          "nodes": [
+            "ai-fluxnova-process-db"
+          ]
+        }
+      },
+      "description": "FluxNova platform contains the process database"
+    },
+    {
+      "unique-id": "ai-engine-to-agent",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-fluxnova-engine"
+          },
+          "destination": {
+            "node": "ai-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Engine dispatches AI agent tasks via the external task worker pattern — agent polls for tasks, executes, and submits results"
+    },
+    {
+      "unique-id": "ai-agent-to-llm",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent"
+          },
+          "destination": {
+            "node": "ai-llm"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "AI agent sends prompts and context to the LLM for reasoning and decision generation"
+    },
+    {
+      "unique-id": "ai-guardrail-to-agent",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-guardrail"
+          },
+          "destination": {
+            "node": "ai-agent"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Guardrail validates agent inputs before LLM invocation and agent outputs before tool execution — acts as a safety filter in the critical path"
+    },
+    {
+      "unique-id": "ai-agent-to-tool",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "ai-agent"
+          },
+          "destination": {
+            "node": "ai-tool"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "AI agent invokes callable tools for structured external actions after guardrail approval"
+    }
+  ]
+}
+CALMDOC
+)
+    post_named_document "finos.fluxnova" "architectures" "fluxnova-ai-agent" "1.0.0" "$doc"
 }
 
 # Function to create user access (if endpoint exists)
@@ -2160,9 +5368,9 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos workshop traderx ai-governance-v2; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating user access for namespace: $namespace"
-        curl -s -X POST "$CALM_HUB_URL/calm/namespaces/$namespace/user-access" \
+        curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
             -d "{
                 \"username\": \"admin\",
@@ -2173,31 +5381,98 @@ create_user_access() {
     done
 }
 
-# Function to create standards (if implemented)
+# Copies of the decorator standards that calm-schema publishes, with their calm.finos.org $id.
+# The name-based API needs a hub $id, so they go through the numeric API. They sit in a
+# subdirectory of mongo/standards/finos.calm/, which the name-based seed does not read.
 create_standards() {
     print_status "Creating standards..."
-    
-    # Create a sample NIST standard
-    print_status "Creating NIST standard..."
-    curl -s -X POST "$CALM_HUB_URL/calm/namespaces/finos/standards" \
-        -H "$CONTENT_TYPE" \
-        -d '{
-            "name": "NIST Cybersecurity Framework",
-            "description": "NIST Cybersecurity Framework standard",
-            "standardJson": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"title\":\"NIST Cybersecurity Framework\",\"type\":\"object\",\"properties\":{\"identify\":{\"type\":\"object\",\"description\":\"Identify function\"},\"protect\":{\"type\":\"object\",\"description\":\"Protect function\"}}}"
-        }' || print_warning "Failed to create NIST standard"
+
+    local base_path="$CALM_STANDARDS_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        base_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../mongo/standards"
+    fi
+    local namespace_dir="$base_path/finos.calm"
+    # One directory per released standard. Deployment first, so that the deployment standard
+    # keeps standard id 1.
+    local dirs=("$namespace_dir/deployment")
+    local dir
+    for dir in "$namespace_dir"/*/; do
+        dir="${dir%/}"
+        [[ -d "$dir" && "$dir" != "$namespace_dir/deployment" ]] && dirs+=("$dir")
+    done
+    local f
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            print_warning "No standards directory at $dir"
+            continue
+        fi
+        for f in "$dir"/*.json; do
+            [[ -f "$f" ]] || continue
+            local payload http_code
+            payload=$(jq '{name: .title, description: .description, standardJson: tojson}' "$f")
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
+                -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
+            if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+                print_status "Created standard $(basename "$f") in finos.calm"
+            elif [[ "$http_code" == "409" ]]; then
+                print_warning "Standard $(basename "$f") already exists, skipping"
+            else
+                print_warning "Failed to create standard $(basename "$f") (HTTP $http_code)"
+            fi
+        done
+    done
+}
+
+# Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
+# document's title. These are not CALM Standards, so the name-based API does not apply.
+create_interfaces() {
+    print_status "Creating interfaces..."
+
+    local base_path="$CALM_INTERFACES_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/../mongo/interfaces" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No interfaces directory at ${base_path:-../mongo/interfaces}, skipping interfaces"
+        return
+    fi
+
+    print_status "Loading interfaces from: $base_path"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed interfaces into namespace $namespace"
+            exit 1
+        fi
+        local f
+        for f in "$namespace_dir"*.json; do
+            [[ -f "$f" ]] || continue
+            local name
+            name=$(jq -r '.title // empty' "$f")
+            if [[ -z "$name" ]]; then
+                name=$(basename "$f" .json)
+            fi
+            post_document "$namespace" interfaces interfaceJson "$name" "CALM interface: $name" "$(cat "$f")"
+        done
+    done
 }
 
 # Map of ai-governance control IDs (as referenced in source documents) to the IDs
 # actually assigned by the API. Populated by create_domains_and_controls and consumed
-# by create_ai_governance_architecture to rewrite the architecture's control $refs.
+# by create_ai_governance_architecture to rewrite the architecture's requirement URLs.
 AI_GOVERNANCE_CONTROL_MAP="{}"
 
 # Function to create domains and their control requirements.
 # Mirrors the MongoDB init: each subdirectory under the controls path is a domain and
 # each JSON file within it is a control requirement (created at version 1.0.0).
 # The API assigns control IDs from a counter, so the ID given to each ai-governance
-# control is captured to allow the architecture's $refs to be rewritten to match.
+# control is captured to allow the architecture's requirement URLs to be rewritten to match.
 create_domains_and_controls() {
     print_status "Creating domains and controls..."
 
@@ -2220,17 +5495,24 @@ create_domains_and_controls() {
         local domain
         domain=$(basename "$domain_dir")
 
-        print_status "Creating domain: $domain"
+        # Skip the security domain
+        [[ "$domain" == "security" ]] && continue
+
+        # Rename ai-governance → finos-ai-governance (domain regex forbids dots)
+        local api_domain="$domain"
+        [[ "$domain" == "ai-governance" ]] && api_domain="finos-ai-governance"
+
+        print_status "Creating domain: $api_domain"
         local domain_code
-        domain_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/domains" \
+        domain_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/domains" \
             -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$domain\"}")
+            -d "{\"name\": \"$api_domain\"}")
         if [[ "$domain_code" == "200" || "$domain_code" == "201" ]]; then
-            print_status "Created domain $domain"
+            print_status "Created domain $api_domain"
         elif [[ "$domain_code" == "409" ]]; then
-            print_warning "Domain $domain already exists, skipping"
+            print_warning "Domain $api_domain already exists, skipping"
         else
-            print_warning "Failed to create domain $domain (HTTP $domain_code)"
+            print_warning "Failed to create domain $api_domain (HTTP $domain_code)"
         fi
 
         # Create controls in ascending controlId order so assignment is deterministic.
@@ -2249,34 +5531,37 @@ create_domains_and_controls() {
                 --arg requirementJson "$requirement" \
                 '{name: $name, description: $description, requirementJson: $requirementJson}')
 
-            local location new_id
-            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/calm/domains/$domain/controls" \
+            local headers http_code location new_id
+            headers=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
                 -H "$CONTENT_TYPE" \
-                -d "$payload" | grep -i '^location:' | tr -d '\r')
+                --data-binary @- <<< "$payload" | tr -d '\r')
+            http_code=$(echo "$headers" | head -n 1 | cut -d' ' -f2)
+            location=$(echo "$headers" | grep -i '^location:' || true)
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
 
             if [[ -n "$new_id" && "$new_id" =~ ^[0-9]+$ ]]; then
-                print_status "Created control '$name' in domain $domain (id $new_id)"
+                print_status "Created control '$name' in domain $api_domain (id $new_id)"
                 if [[ "$domain" == "ai-governance" ]]; then
                     AI_GOVERNANCE_CONTROL_MAP=$(echo "$AI_GOVERNANCE_CONTROL_MAP" \
                         | jq --arg k "$orig_id" --arg v "$new_id" '. + {($k): $v}')
                 fi
             else
-                print_warning "Failed to create control '$name' in domain $domain"
+                print_error "Failed to create control '$name' in domain $api_domain (HTTP $http_code)"
+                exit 1
             fi
         done < <(find "$domain_dir" -maxdepth 1 -name '*.json' | sort)
     done
 }
 
 # Function to create the ai-governance-v2 architecture.
-# The architecture's control $refs point at ai-governance control IDs from the source
+# The architecture's requirement URLs point at ai-governance control IDs from the source
 # data; they are rewritten to the IDs the API actually assigned before posting.
 create_ai_governance_architecture() {
     print_status "Creating ai-governance-v2 architecture..."
 
-    # The architecture's control $refs are rewritten using the IDs assigned when the
+    # The architecture's requirement URLs are rewritten using the IDs assigned when the
     # ai-governance controls were created. If that map is empty (e.g. the controls base
-    # path was missing so create_domains_and_controls bailed out), the refs cannot be
+    # path was missing so create_domains_and_controls bailed out), the URLs cannot be
     # resolved, so skip rather than post an architecture with dangling references.
     if [[ -z "$AI_GOVERNANCE_CONTROL_MAP" || "$AI_GOVERNANCE_CONTROL_MAP" == "{}" ]]; then
         print_warning "No ai-governance control map available, skipping ai-governance-v2 architecture"
@@ -2286,7 +5571,7 @@ create_ai_governance_architecture() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-    "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "unique-id": "mcp-api-pipeline",
     "name": "MCP Server API Pipeline",
     "description": "User \u2192 MCP Server (cloud-hosted) \u2192 API Service \u2192 Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
@@ -2302,35 +5587,41 @@ create_ai_governance_architecture() {
                     "name": "User Client Interface"
                 }
             ],
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/12/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-020",
-                    "name": "Reputational Risk",
+            "controls": {
+                "AIR-OP-020": {
                     "description": "The User receives all AI-generated outputs. Content filtering, output moderation, and AI disclosure must be applied to prevent harmful or misleading content reaching users at scale.",
                     "requirements": [
-                        "Implement output content filtering before responses are returned to the User.",
-                        "Display AI disclosure notices to the User at session start.",
-                        "Monitor user feedback channels for harm signals from AI outputs.",
-                        "Establish an AI incident response and user remediation process."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/12/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Reputational Risk",
+                                "requirements": [
+                                    "Implement output content filtering before responses are returned to the User.",
+                                    "Display AI disclosure notices to the User at session start.",
+                                    "Monitor user feedback channels for harm signals from AI outputs.",
+                                    "Establish an AI incident response and user remediation process."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/9/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-017",
-                    "name": "Lack of Explainability",
+                "AIR-OP-017": {
                     "description": "Users receiving AI-generated responses must be able to understand the basis of outputs, particularly for high-stakes decisions. Source citations and rationale must be surfaced in the User interface.",
                     "requirements": [
-                        "Surface citations and source document references in all AI-generated responses shown to the User.",
-                        "Provide human-readable rationales for AI recommendations in the User interface.",
-                        "Enable Users to escalate any AI-generated decision to a human agent."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/9/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Lack of Explainability",
+                                "requirements": [
+                                    "Surface citations and source document references in all AI-generated responses shown to the User.",
+                                    "Provide human-readable rationales for AI recommendations in the User interface.",
+                                    "Enable Users to escalate any AI-generated decision to a human agent."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         },
         {
             "unique-id": "mcp-server",
@@ -2352,120 +5643,144 @@ create_ai_governance_architecture() {
                     "port": 443
                 }
             ],
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/15/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-010",
-                    "name": "Prompt Injection",
+            "controls": {
+                "AIR-SEC-010": {
                     "description": "The MCP Server ingress is the primary prompt injection attack surface. All user inputs must be validated and sanitised before passing to the LLM or downstream services.",
                     "requirements": [
-                        "Deploy an AI firewall at the MCP Server ingress to detect and block prompt injection patterns.",
-                        "Sanitise all user-supplied content before inclusion in LLM prompts.",
-                        "Enforce strict system-prompt hierarchy so user messages cannot override system-level instructions.",
-                        "Monitor MCP Server outputs for data exfiltration patterns or instruction-echoing.",
-                        "Conduct regular red-team exercises targeting the MCP Server prompt injection surface."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/15/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Prompt Injection",
+                                "requirements": [
+                                    "Deploy an AI firewall at the MCP Server ingress to detect and block prompt injection patterns.",
+                                    "Sanitise all user-supplied content before inclusion in LLM prompts.",
+                                    "Enforce strict system-prompt hierarchy so user messages cannot override system-level instructions.",
+                                    "Monitor MCP Server outputs for data exfiltration patterns or instruction-echoing.",
+                                    "Conduct regular red-team exercises targeting the MCP Server prompt injection surface."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/3/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-004",
-                    "name": "Hallucination and Inaccurate Outputs",
+                "AIR-OP-004": {
                     "description": "The MCP Server is where LLM inference occurs. RAG grounding, output validation, and human-review gates must be applied before responses reach the User.",
                     "requirements": [
-                        "Implement RAG grounding using verified data sourced from the API Service.",
-                        "Apply output validation pipelines to MCP Server responses before delivery to the User.",
-                        "Route high-stakes outputs through a human-review queue prior to delivery.",
-                        "Log and monitor hallucination incidents by frequency and business impact."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/3/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Hallucination and Inaccurate Outputs",
+                                "requirements": [
+                                    "Implement RAG grounding using verified data sourced from the API Service.",
+                                    "Apply output validation pipelines to MCP Server responses before delivery to the User.",
+                                    "Route high-stakes outputs through a human-review queue prior to delivery.",
+                                    "Log and monitor hallucination incidents by frequency and business impact."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/4/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-005",
-                    "name": "Foundation Model Versioning",
+                "AIR-OP-005": {
                     "description": "The MCP Server integrates foundation models whose provider-side updates can cause silent behavioural changes propagating through the entire pipeline.",
                     "requirements": [
-                        "Pin foundation model versions; only upgrade after regression testing and sign-off.",
-                        "Maintain a model version registry covering all models used by the MCP Server.",
-                        "Obtain advance notification of model changes from providers via contractual obligation.",
-                        "Implement automated regression test suites triggered by model version changes.",
-                        "Define and test rollback procedures to prior pinned model versions."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/4/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Foundation Model Versioning",
+                                "requirements": [
+                                    "Pin foundation model versions; only upgrade after regression testing and sign-off.",
+                                    "Maintain a model version registry covering all models used by the MCP Server.",
+                                    "Obtain advance notification of model changes from providers via contractual obligation.",
+                                    "Implement automated regression test suites triggered by model version changes.",
+                                    "Define and test rollback procedures to prior pinned model versions."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/6/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-007",
-                    "name": "Availability of Foundational Model",
+                "AIR-OP-007": {
                     "description": "The MCP Server depends on GPU-backed third-party model infrastructure. Denial of Wallet attacks, TSP outages, and token exhaustion can render the MCP Server unavailable.",
                     "requirements": [
-                        "Implement API rate limiting and token budget controls at the MCP Server.",
-                        "Define SLAs with model providers and monitor compliance.",
-                        "Design failover strategies including fallback to alternative model providers.",
-                        "Apply prompt length controls and chunking strategies to prevent token exhaustion."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/6/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Availability of Foundational Model",
+                                "requirements": [
+                                    "Implement API rate limiting and token budget controls at the MCP Server.",
+                                    "Define SLAs with model providers and monitor compliance.",
+                                    "Design failover strategies including fallback to alternative model providers.",
+                                    "Apply prompt length controls and chunking strategies to prevent token exhaustion."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/16/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-024",
-                    "name": "Agent Action Authorization Bypass",
+                "AIR-SEC-024": {
                     "description": "The MCP Server acts as an AI agent invoking tools and calling the API Service. Injected instructions could trigger unauthorised operations without strict authorisation controls.",
                     "requirements": [
-                        "Assign the MCP Server least-privilege permissions scoped to required tools and operations only.",
-                        "Implement human-in-the-loop approval gates for irreversible or high-risk API actions.",
-                        "Validate all MCP-to-API requests against an authorised action policy before execution.",
-                        "Log all MCP-originated actions with full user context and authorisation decision."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/16/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Agent Action Authorization Bypass",
+                                "requirements": [
+                                    "Assign the MCP Server least-privilege permissions scoped to required tools and operations only.",
+                                    "Implement human-in-the-loop approval gates for irreversible or high-risk API actions.",
+                                    "Validate all MCP-to-API requests against an authorised action policy before execution.",
+                                    "Log all MCP-originated actions with full user context and authorisation decision."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/7/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-014",
-                    "name": "Inadequate System Alignment",
+                "AIR-OP-014": {
                     "description": "MCP Server responses must remain aligned with the system's intended scope. Misalignment can cause scope boundary violations and regulatory exposure.",
                     "requirements": [
-                        "Define the authorised scope of the MCP Server via system prompt guardrails.",
-                        "Implement continuous alignment monitoring against golden evaluation datasets.",
-                        "Perform prompt injection testing on all content retrieved and injected into prompts.",
-                        "Implement alignment drift detection to trigger re-evaluation when quality degrades."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/7/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Inadequate System Alignment",
+                                "requirements": [
+                                    "Define the authorised scope of the MCP Server via system prompt guardrails.",
+                                    "Implement continuous alignment monitoring against golden evaluation datasets.",
+                                    "Perform prompt injection testing on all content retrieved and injected into prompts.",
+                                    "Implement alignment drift detection to trigger re-evaluation when quality degrades."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/8/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-016",
-                    "name": "Bias and Discrimination",
+                "AIR-OP-016": {
                     "description": "LLM outputs generated by the MCP Server may reflect training data biases, producing discriminatory responses to users.",
                     "requirements": [
-                        "Conduct bias audits on MCP Server outputs prior to production launch and at regular intervals.",
-                        "Test for disparate impact across protected user characteristics.",
-                        "Establish a bias incident response process including user remediation procedures."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/8/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Bias and Discrimination",
+                                "requirements": [
+                                    "Conduct bias audits on MCP Server outputs prior to production launch and at regular intervals.",
+                                    "Test for disparate impact across protected user characteristics.",
+                                    "Establish a bias incident response process including user remediation procedures."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/18/versions/1-0-0"
-                    },
-                    "control-id": "AIR-RC-023",
-                    "name": "Intellectual Property and Copyright",
+                "AIR-RC-023": {
                     "description": "The MCP Server LLM may reproduce copyrighted content from training data in its outputs.",
                     "requirements": [
-                        "Implement output filters to detect and suppress reproduction of copyrighted material.",
-                        "Ensure model provider contracts include IP indemnification clauses.",
-                        "Train operators on IP risks associated with AI-generated content."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/18/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Intellectual Property and Copyright",
+                                "requirements": [
+                                    "Implement output filters to detect and suppress reproduction of copyrighted material.",
+                                    "Ensure model provider contracts include IP indemnification clauses.",
+                                    "Train operators on IP risks associated with AI-generated content."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         },
         {
             "unique-id": "api-service",
@@ -2487,49 +5802,58 @@ create_ai_governance_architecture() {
                     "port": 5432
                 }
             ],
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/17/versions/1-0-0"
-                    },
-                    "control-id": "AIR-RC-022",
-                    "name": "Regulatory Compliance and Oversight",
+            "controls": {
+                "AIR-RC-022": {
                     "description": "The API Service is the enforcement point for regulatory business rules. It must maintain audit trails and support regulatory examination of AI-assisted decisions.",
                     "requirements": [
-                        "Maintain an audit log of all MCP Server-originated requests and API Service responses.",
-                        "Enforce data classification and handling policies at the API Service layer.",
-                        "Produce decision records for all AI-assisted actions routed through the API Service.",
-                        "Retain request/response logs for the required regulatory retention period."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/17/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Regulatory Compliance and Oversight",
+                                "requirements": [
+                                    "Maintain an audit log of all MCP Server-originated requests and API Service responses.",
+                                    "Enforce data classification and handling policies at the API Service layer.",
+                                    "Produce decision records for all AI-assisted actions routed through the API Service.",
+                                    "Retain request/response logs for the required regulatory retention period."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/11/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-019",
-                    "name": "Data Quality and Drift",
+                "AIR-OP-019": {
                     "description": "The API Service is the data supply layer for the MCP Server RAG pipeline. Data quality issues or staleness here directly degrade AI output accuracy.",
                     "requirements": [
-                        "Implement automated data quality checks (accuracy, completeness, timeliness) at the API Service ingestion layer.",
-                        "Monitor statistical properties of data served to the MCP Server to detect drift.",
-                        "Define data freshness SLAs per use case and enforce scheduled refresh cycles.",
-                        "Maintain data lineage records to support auditability of AI model inputs."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/11/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Data Quality and Drift",
+                                "requirements": [
+                                    "Implement automated data quality checks (accuracy, completeness, timeliness) at the API Service ingestion layer.",
+                                    "Monitor statistical properties of data served to the MCP Server to detect drift.",
+                                    "Define data freshness SLAs per use case and enforce scheduled refresh cycles.",
+                                    "Maintain data lineage records to support auditability of AI model inputs."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/10/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-018",
-                    "name": "Model Overreach / Expanded Use",
+                "AIR-OP-018": {
                     "description": "The API Service must enforce scope boundaries, rejecting MCP Server requests that exceed the AI system's authorised use cases.",
                     "requirements": [
-                        "Validate all incoming MCP Server requests against an approved API action register.",
-                        "Reject API calls corresponding to unauthorised or out-of-scope AI operations.",
-                        "Log all scope boundary violations for review by the AI governance function."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/10/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Model Overreach / Expanded Use",
+                                "requirements": [
+                                    "Validate all incoming MCP Server requests against an approved API action register.",
+                                    "Reject API calls corresponding to unauthorised or out-of-scope AI operations.",
+                                    "Log all scope boundary violations for review by the AI governance function."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         },
         {
             "unique-id": "database",
@@ -2545,36 +5869,42 @@ create_ai_governance_architecture() {
                     "port": 5432
                 }
             ],
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/14/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-002",
-                    "name": "Information Leaked to Vector Store",
+            "controls": {
+                "AIR-SEC-002": {
                     "description": "The Database may function as a vector store for the RAG pipeline. Embeddings can expose sensitive data via inversion or inference attacks without proper security controls.",
                     "requirements": [
-                        "Enforce RBAC on the Database, scoping retrieval to the requesting user's authorisation.",
-                        "Encrypt all data at rest using AES-256 or equivalent approved standard.",
-                        "Implement comprehensive audit logging for all database queries.",
-                        "Classify all stored data and enforce classification-based retrieval policies.",
-                        "Conduct penetration testing targeting embedding inversion and membership inference attacks."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/14/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Information Leaked to Vector Store",
+                                "requirements": [
+                                    "Enforce RBAC on the Database, scoping retrieval to the requesting user's authorisation.",
+                                    "Encrypt all data at rest using AES-256 or equivalent approved standard.",
+                                    "Implement comprehensive audit logging for all database queries.",
+                                    "Classify all stored data and enforce classification-based retrieval policies.",
+                                    "Conduct penetration testing targeting embedding inversion and membership inference attacks."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/11/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-019",
-                    "name": "Data Quality and Drift",
+                "AIR-OP-019": {
                     "description": "The Database is the authoritative source of inference data for the RAG pipeline. Poor quality or stale data stored here propagates directly into AI outputs.",
                     "requirements": [
-                        "Enforce data quality standards at write time including schema validation and completeness checks.",
-                        "Implement scheduled data freshness reviews and automated stale-data flagging.",
-                        "Maintain data lineage metadata for all records used in AI inference pipelines."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/11/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Data Quality and Drift",
+                                "requirements": [
+                                    "Enforce data quality standards at write time including schema validation and completeness checks.",
+                                    "Implement scheduled data freshness reviews and automated stale-data flagging.",
+                                    "Maintain data lineage metadata for all records used in AI inference pipelines."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         }
     ],
     "relationships": [
@@ -2595,35 +5925,41 @@ create_ai_governance_architecture() {
                 }
             },
             "protocol": "HTTPS",
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/15/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-010",
-                    "name": "Prompt Injection",
+            "controls": {
+                "AIR-SEC-010": {
                     "description": "This channel carries untrusted user input directly into the AI system \u2014 the highest-risk prompt injection vector. Input must be validated and firewall-inspected before any content reaches the LLM.",
                     "requirements": [
-                        "Enforce TLS 1.2+ on the User-to-MCP channel.",
-                        "Apply AI firewall inspection on all user messages before LLM processing.",
-                        "Rate-limit user requests to prevent flooding or token-exhaustion attacks.",
-                        "Authenticate and authorise all user sessions before granting MCP Server access."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/15/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Prompt Injection",
+                                "requirements": [
+                                    "Enforce TLS 1.2+ on the User-to-MCP channel.",
+                                    "Apply AI firewall inspection on all user messages before LLM processing.",
+                                    "Rate-limit user requests to prevent flooding or token-exhaustion attacks.",
+                                    "Authenticate and authorise all user sessions before granting MCP Server access."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/13/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-028",
-                    "name": "Multi-Agent Trust Boundary Violations",
+                "AIR-OP-028": {
                     "description": "The User-to-MCP boundary is an external trust boundary. The MCP Server must treat all inbound user messages as untrusted and enforce strict session isolation.",
                     "requirements": [
-                        "Treat all user-supplied input as untrusted at the MCP Server ingress.",
-                        "Enforce strict context isolation so one user's session cannot influence another's agent context.",
-                        "Implement session-level sandboxing to limit blast radius of any injected instruction."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/13/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Multi-Agent Trust Boundary Violations",
+                                "requirements": [
+                                    "Treat all user-supplied input as untrusted at the MCP Server ingress.",
+                                    "Enforce strict context isolation so one user's session cannot influence another's agent context.",
+                                    "Implement session-level sandboxing to limit blast radius of any injected instruction."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         },
         {
             "unique-id": "mcp-to-api",
@@ -2642,36 +5978,42 @@ create_ai_governance_architecture() {
                 }
             },
             "protocol": "HTTPS",
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/16/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-024",
-                    "name": "Agent Action Authorization Bypass",
+            "controls": {
+                "AIR-SEC-024": {
                     "description": "This channel carries AI agent tool calls from the MCP Server to the API Service. Injected instructions could invoke unauthorised operations without enforcement here.",
                     "requirements": [
-                        "Authenticate all MCP Server requests to the API Service using short-lived scoped credentials (mTLS or signed tokens).",
-                        "Enforce least-privilege: MCP Server credentials must only permit specifically required API operations.",
-                        "The API Service must validate each inbound request against the authorised action policy before execution.",
-                        "Require human approval for high-risk or irreversible API operations triggered via the MCP Server.",
-                        "Log all calls on this channel with full request context and authorisation outcome."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/16/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Agent Action Authorization Bypass",
+                                "requirements": [
+                                    "Authenticate all MCP Server requests to the API Service using short-lived scoped credentials (mTLS or signed tokens).",
+                                    "Enforce least-privilege: MCP Server credentials must only permit specifically required API operations.",
+                                    "The API Service must validate each inbound request against the authorised action policy before execution.",
+                                    "Require human approval for high-risk or irreversible API operations triggered via the MCP Server.",
+                                    "Log all calls on this channel with full request context and authorisation outcome."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/13/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-028",
-                    "name": "Multi-Agent Trust Boundary Violations",
+                "AIR-OP-028": {
                     "description": "This channel crosses the internal trust boundary between AI orchestration (MCP Server) and the data/logic layer (API Service). MCP Server compromise must not propagate unchecked into the API Service.",
                     "requirements": [
-                        "Enforce mutual TLS (mTLS) on the MCP-to-API channel.",
-                        "The API Service must independently validate request authorisation \u2014 not blindly trust MCP Server-supplied context.",
-                        "Implement circuit breakers to halt MCP Server API calls during detected anomalies or security incidents."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/13/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Multi-Agent Trust Boundary Violations",
+                                "requirements": [
+                                    "Enforce mutual TLS (mTLS) on the MCP-to-API channel.",
+                                    "The API Service must independently validate request authorisation \u2014 not blindly trust MCP Server-supplied context.",
+                                    "Implement circuit breakers to halt MCP Server API calls during detected anomalies or security incidents."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         },
         {
             "unique-id": "api-to-db",
@@ -2690,35 +6032,41 @@ create_ai_governance_architecture() {
                 }
             },
             "protocol": "TCP",
-            "controls": [
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/14/versions/1-0-0"
-                    },
-                    "control-id": "AIR-SEC-002",
-                    "name": "Information Leaked to Vector Store",
+            "controls": {
+                "AIR-SEC-002": {
                     "description": "This channel carries sensitive embedding queries and raw data between the API Service and the Database. Data in transit must be encrypted and access strictly scoped.",
                     "requirements": [
-                        "Enforce TLS encryption on the API Service-to-Database connection.",
-                        "Use parameterised queries to prevent SQL and vector injection attacks.",
-                        "Scope database credentials to the minimum required tables and operations.",
-                        "Propagate and audit user context on all data retrieval operations on this channel."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/14/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Information Leaked to Vector Store",
+                                "requirements": [
+                                    "Enforce TLS encryption on the API Service-to-Database connection.",
+                                    "Use parameterised queries to prevent SQL and vector injection attacks.",
+                                    "Scope database credentials to the minimum required tables and operations.",
+                                    "Propagate and audit user context on all data retrieval operations on this channel."
+                                ]
+                            }
+                        }
                     ]
                 },
-                {
-                    "control-requirement": {
-                        "$ref": "/calm/domains/ai-governance/controls/11/versions/1-0-0"
-                    },
-                    "control-id": "AIR-OP-019",
-                    "name": "Data Quality and Drift",
+                "AIR-OP-019": {
                     "description": "Data flowing from the Database through this channel feeds the MCP Server RAG pipeline. Stale or degraded data directly impacts AI output accuracy.",
                     "requirements": [
-                        "Implement query-time data freshness checks before returning data to the API Service.",
-                        "Filter records failing quality thresholds before inclusion in RAG context.",
-                        "Monitor query patterns for anomalies indicating data drift or unexpected schema changes."
+                        {
+                            "requirement-url": "/api/calm/domains/finos-ai-governance/controls/11/requirement/versions/1.0.0",
+                            "config": {
+                                "name": "Data Quality and Drift",
+                                "requirements": [
+                                    "Implement query-time data freshness checks before returning data to the API Service.",
+                                    "Filter records failing quality thresholds before inclusion in RAG context.",
+                                    "Monitor query patterns for anomalies indicating data drift or unexpected schema changes."
+                                ]
+                            }
+                        }
                     ]
                 }
-            ]
+            }
         }
     ]
 }
@@ -2727,11 +6075,11 @@ CALMDOC
 
     doc=$(echo "$doc" | jq --argjson map "$AI_GOVERNANCE_CONTROL_MAP" '
         walk(
-            if type == "string" and test("^/calm/domains/ai-governance/controls/[0-9]+/versions/")
+            if type == "string" and test("^/api/calm/domains/finos-ai-governance/controls/[0-9]+/requirement/versions/")
             then ( . as $orig
-                   | capture("^/calm/domains/ai-governance/controls/(?<id>[0-9]+)/versions/(?<rest>.*)$")
+                   | capture("^/api/calm/domains/finos-ai-governance/controls/(?<id>[0-9]+)/requirement/versions/(?<rest>.*)$")
                    | if $map[.id] then
-                         "/calm/domains/ai-governance/controls/" + $map[.id] + "/versions/" + .rest
+                         "/api/calm/domains/finos-ai-governance/controls/" + $map[.id] + "/requirement/versions/" + .rest
                      else $orig end )
             else . end
         )')
@@ -2741,7 +6089,7 @@ CALMDOC
 
 # Main execution
 create_timeline_demo() {
-    print_status "Creating timeline-demo architectures + explicit timeline..."
+    print_status "Creating workshop timeline demo architectures + explicit timeline..."
 
     # --- Payments Service (implied timeline) ---------------------------------
     # No stored timeline; the timeline bar projects one from the version list.
@@ -2788,17 +6136,17 @@ create_timeline_demo() {
         ]
     }'
 
-    post_document "timeline-demo" "architectures" "architectureJson" \
+    post_document "workshop" "architectures" "architectureJson" \
         "Payments Service (implied timeline)" \
         "Demo architecture with no curated timeline — the bar projects one from the version list." \
         "$payments_v1"
 
     local payments_id
-    payments_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Payments Service (implied timeline)")
+    payments_id=$(get_resource_id_by_name "workshop" "architectures" "Payments Service (implied timeline)")
     if [[ -n "$payments_id" ]]; then
-        post_architecture_version "timeline-demo" "$payments_id" "1.1.0" \
+        post_architecture_version "workshop" "$payments_id" "1.1.0" \
             "Payments Service (implied timeline)" "Added idempotency cache." "$payments_v2"
-        post_architecture_version "timeline-demo" "$payments_id" "1.2.0" \
+        post_architecture_version "workshop" "$payments_id" "1.2.0" \
             "Payments Service (implied timeline)" "Added async settlement worker." "$payments_v3"
     else
         print_warning "Could not resolve Payments Service id; skipping additional versions"
@@ -2871,23 +6219,23 @@ create_timeline_demo() {
         ]
     }'
 
-    post_document "timeline-demo" "architectures" "architectureJson" \
+    post_document "workshop" "architectures" "architectureJson" \
         "Trading Platform (explicit timeline)" \
         "Demo architecture with a curated timeline. Has four versions; the explicit timeline marks the third as current." \
         "$trading_v1"
 
     local trading_id
-    trading_id=$(get_resource_id_by_name "timeline-demo" "architectures" "Trading Platform (explicit timeline)")
+    trading_id=$(get_resource_id_by_name "workshop" "architectures" "Trading Platform (explicit timeline)")
     if [[ -z "$trading_id" ]]; then
         print_warning "Could not resolve Trading Platform id; skipping additional versions + timeline"
         return
     fi
 
-    post_architecture_version "timeline-demo" "$trading_id" "1.1.0" \
+    post_architecture_version "workshop" "$trading_id" "1.1.0" \
         "Trading Platform (explicit timeline)" "Added centralised order book." "$trading_v2"
-    post_architecture_version "timeline-demo" "$trading_id" "2.0.0" \
+    post_architecture_version "workshop" "$trading_id" "2.0.0" \
         "Trading Platform (explicit timeline)" "Added pre-trade risk engine." "$trading_v3"
-    post_architecture_version "timeline-demo" "$trading_id" "3.0.0" \
+    post_architecture_version "workshop" "$trading_id" "3.0.0" \
         "Trading Platform (explicit timeline)" "Added post-trade settlement." "$trading_v4"
 
     # Explicit stored timeline: 4 curated moments referencing the 4 versions
@@ -2902,19 +6250,19 @@ create_timeline_demo() {
         "moments": [
             { "unique-id": "initial-launch", "node-type": "moment", "name": "Initial launch",
               "description": "Order gateway + matching engine", "valid-from": "2024-01-15",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/1.0.0") },
               "adrs": ["https://example.com/adr/0001-initial-trading-architecture"] },
             { "unique-id": "order-book-rollout", "node-type": "moment", "name": "Order book rollout",
               "description": "Centralised order book", "valid-from": "2024-04-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/1.1.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/1.1.0") },
               "adrs": ["https://example.com/adr/0002-order-book"] },
             { "unique-id": "risk-controls", "node-type": "moment", "name": "Risk controls go-live",
               "description": "Added pre-trade risk engine", "valid-from": "2024-09-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/2.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/2.0.0") },
               "adrs": ["https://example.com/adr/0003-pre-trade-risk"] },
             { "unique-id": "settlement-go-live", "node-type": "moment", "name": "Settlement go-live",
               "description": "Added post-trade settlement", "valid-from": "2025-02-01",
-              "details": { "detailed-architecture": ("/calm/namespaces/timeline-demo/architectures/" + $id + "/versions/3.0.0") },
+              "details": { "detailed-architecture": ("/calm/namespaces/workshop/architectures/" + $id + "/versions/3.0.0") },
               "adrs": ["https://example.com/adr/0004-settlement"] }
         ]
     }')
@@ -2928,10 +6276,10 @@ create_timeline_demo() {
 
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        "$CALM_HUB_URL/calm/namespaces/timeline-demo/timelines" \
-        -H "$CONTENT_TYPE" -d "$tl_payload")
+        "$CALM_HUB_URL/api/calm/namespaces/workshop/timelines" \
+        -H "$CONTENT_TYPE" --data-binary @- <<< "$tl_payload")
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-        print_status "Created explicit timeline for Trading Platform in timeline-demo"
+        print_status "Created explicit timeline for Trading Platform in workshop"
     elif [[ "$http_code" == "409" ]]; then
         print_warning "Trading Platform timeline already exists, skipping"
     else
@@ -2942,7 +6290,7 @@ create_timeline_demo() {
     # Patterns have no explicit timeline, so the bar always shows the implied
     # projection — useful for testing the pattern path of the timeline UI.
     local pattern_v1='{
-        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
         "title": "Demo Pattern",
         "type": "object",
         "properties": {
@@ -2964,7 +6312,7 @@ create_timeline_demo() {
         }
     }'
     local pattern_v2='{
-        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
         "title": "Demo Pattern",
         "type": "object",
         "properties": {
@@ -2995,7 +6343,7 @@ create_timeline_demo() {
         }
     }'
     local pattern_v3='{
-        "$schema": "https://calm.finos.org/calm/schemas/2025-03/meta/calm.json",
+        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
         "title": "Demo Pattern",
         "type": "object",
         "properties": {
@@ -3047,62 +6395,93 @@ create_timeline_demo() {
         }
     }'
 
-    post_document "timeline-demo" "patterns" "patternJson" \
+    post_document "workshop" "patterns" "patternJson" \
         "Demo Pattern (implied timeline)" \
         "Demo pattern with three versions to exercise the pattern path of the timeline bar." \
         "$pattern_v1"
 
     local pattern_id
-    pattern_id=$(get_resource_id_by_name "timeline-demo" "patterns" "Demo Pattern (implied timeline)")
+    pattern_id=$(get_resource_id_by_name "workshop" "patterns" "Demo Pattern (implied timeline)")
     if [[ -n "$pattern_id" ]]; then
-        # Post extra pattern versions with the {name, description, patternJson}
-        # envelope (the shared post_pattern_version helper still sends the raw
-        # doc, which the current endpoint rejects with 400 — see calm-hub
-        # PatternResource.createVersionedPattern).
-        post_demo_pattern_version() {
-            local version="$1" desc="$2" doc="$3"
-            local payload
-            payload=$(jq -n \
-                --arg n "Demo Pattern (implied timeline)" \
-                --arg d "$desc" \
-                --argjson doc "$doc" \
-                '{name: $n, description: $d, patternJson: ($doc | tojson)}')
-            local code
-            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-                "$CALM_HUB_URL/calm/namespaces/timeline-demo/patterns/$pattern_id/versions/$version" \
-                -H "$CONTENT_TYPE" -d "$payload")
-            if [[ "$code" == "200" || "$code" == "201" ]]; then
-                print_status "Created Demo Pattern version $version in timeline-demo"
-            elif [[ "$code" == "409" ]]; then
-                print_warning "Demo Pattern version $version already exists, skipping"
-            else
-                print_warning "Failed to create Demo Pattern version $version (HTTP $code)"
-            fi
-        }
-        post_demo_pattern_version "1.1.0" "Added downstream service node." "$pattern_v2"
-        post_demo_pattern_version "2.0.0" "Added gateway→service interacts relationship." "$pattern_v3"
+        post_pattern_version "workshop" "$pattern_id" "1.1.0" \
+            "Demo Pattern (implied timeline)" "Added downstream service node." "$pattern_v2"
+        post_pattern_version "workshop" "$pattern_id" "2.0.0" \
+            "Demo Pattern (implied timeline)" "Added gateway→service interacts relationship." "$pattern_v3"
     else
         print_warning "Could not resolve Demo Pattern id; skipping additional versions"
     fi
 }
 
+create_layouts() {
+    print_status "Creating default layouts..."
+
+    # Seed a layout for the Conference Signup Architecture using the new nodes-map format.
+    # The architecture is created in create_architectures() under the "workshop" namespace;
+    # its id is resolved dynamically the same way version-seeding does.
+    local conf_arch_id
+    conf_arch_id=$(get_resource_id_by_name "workshop" "architectures" "Conference Signup Architecture")
+
+    if [[ -z "$conf_arch_id" ]]; then
+        print_warning "Could not resolve Conference Signup Architecture id; skipping layout seed"
+        return
+    fi
+
+    local layout_json
+    layout_json=$(cat <<'CALMDOC'
+{
+    "for": "/api/calm/namespaces/workshop/architectures/__ARCH_ID__",
+    "name": "Default",
+    "description": "Seeded demo layout for the Conference Signup Architecture",
+    "nodes": {
+        "conference-website":  { "x": 50,  "y": 30,  "w": 180, "h": 60 },
+        "load-balancer":       { "x": 300, "y": 30,  "w": 160, "h": 50 },
+        "attendees":           { "x": 300, "y": 150, "w": 160, "h": 60 },
+        "attendees-store":     { "x": 150, "y": 300, "w": 170, "h": 60 },
+        "attendees-cache":     { "x": 450, "y": 300, "w": 160, "h": 60 },
+        "k8s-cluster":         { "x": 100, "y": 100, "w": 560, "h": 300 }
+    }
+}
+CALMDOC
+)
+    # Replace the placeholder with the actual architecture id
+    layout_json="${layout_json//__ARCH_ID__/$conf_arch_id}"
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+        "$CALM_HUB_URL/api/calm/namespaces/workshop/architectures/$conf_arch_id/layout" \
+        -H "Content-Type: application/json" \
+        --data-binary @- <<< "$layout_json")
+
+    if [[ "$http_code" == "204" ]]; then
+        print_status "Created default layout for Conference Signup Architecture (id=$conf_arch_id)"
+    else
+        print_warning "Failed to create layout for Conference Signup Architecture (HTTP $http_code)"
+    fi
+}
+
 main() {
+    resolve_calm_hub_base_url
     print_status "Starting CalmHub NitriteDB initialization..."
     print_status "Target URL: $CALM_HUB_URL"
+    print_status "Name-based \$id base: $CALM_HUB_BASE_URL (must equal calm.hub.base-url)"
 
     # Check if CalmHub is running
     check_calmhub_status
 
     # Initialize data in order
+    resolve_release_schema_path
     create_namespaces
     create_core_schemas
     create_domains_and_controls
     create_patterns
+    create_namespace_patterns
     create_flows
     create_architectures
-    create_ai_governance_architecture
+    create_layouts
     create_user_access
     create_standards
+    create_namespace_standards
+    create_interfaces
     create_timeline_demo
 
     print_status "CalmHub NitriteDB initialization completed!"
@@ -3118,50 +6497,94 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  -h, --help               Show this help message"
-    echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
-    echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
+    echo "  -u, --url URL            Set the URL this script calls (default: http://localhost:8080)."
+    echo "                           Also used as the name-based \$id base unless -b or"
+    echo "                           CALM_HUB_BASE_URL is set."
+    echo "  -b, --base-url URL       Set the base URL written into name-based document \$id"
+    echo "                           values. Must equal the server's calm.hub.base-url"
+    echo "                           (default: the URL from -u or CALM_HUB_URL)."
+    echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
+    echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
+    echo "  -t, --standards-path PATH Set the base path for namespace standards"
+    echo "  -p, --patterns-path PATH Set the base path for namespace patterns"
     echo ""
     echo "Environment Variables:"
-    echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
-    echo "                          (default: auto-detected relative to this script)"
+    echo "  CALM_HUB_URL            URL this script calls (default: http://localhost:8080)"
+    echo "  CALM_HUB_BASE_URL       Base URL for name-based document \$id values. Must equal"
+    echo "                          the server's calm.hub.base-url. When unset, defaults to"
+    echo "                          CALM_HUB_URL after -u/--url is applied."
+    echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
+    echo "                          (default: ../target/calm-schemas/release relative to this script,"
+    echo "                          which './mvnw package' copies from the @finos/calm-schema npm packages)"
+    echo "  CALM_INTERFACES_BASE_PATH Path to the interfaces directory containing one subdirectory per namespace,"
+    echo "                          each holding one interface JSON file per document"
+    echo "                          (default: auto-detected as ../mongo/interfaces relative to this script)"
     echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
     echo "                          each holding control requirement JSON files"
     echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
+    echo "  CALM_STANDARDS_BASE_PATH Path to the standards directory containing one subdirectory per namespace,"
+    echo "                          each holding one Standard JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/standards relative to this script)"
+    echo "  CALM_PATTERNS_BASE_PATH Path to the patterns directory containing one subdirectory per namespace,"
+    echo "                          each holding one pattern JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/patterns relative to this script)"
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
-    echo "  $0 -u http://localhost:9090          # Use custom URL"
-    echo "  CALM_HUB_URL=http://calm.local $0    # Use environment variable"
+    echo "  $0 -u http://localhost:18091          # Call that URL; \$id uses it too"
+    echo "  $0 -u http://localhost:18091 -b http://localhost:8080"
+    echo "                                        # Call 18091; \$id uses calm.hub.base-url"
+    echo "  CALM_HUB_URL=http://calm.local $0     # Use environment variable"
 }
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -u|--url)
-            CALM_HUB_URL="$2"
-            shift 2
-            ;;
-        -s|--schema-path)
-            CALM_SCHEMA_BASE_PATH="$2"
-            shift 2
-            ;;
-        -c|--controls-path)
-            CALM_CONTROLS_BASE_PATH="$2"
-            shift 2
-            ;;
-        *)
-            print_error "Unknown option: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-done
+# Parse command line arguments. Kept as a function so a regression test can
+# source this script and inspect CALM_HUB_BASE_URL without starting a seed.
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -u|--url)
+                CALM_HUB_URL="$2"
+                shift 2
+                ;;
+            -b|--base-url)
+                CALM_HUB_BASE_URL="$2"
+                shift 2
+                ;;
+            -r|--release-schema-path)
+                CALM_RELEASE_SCHEMA_PATH="$2"
+                shift 2
+                ;;
+            -i|--interfaces-path)
+                CALM_INTERFACES_BASE_PATH="$2"
+                shift 2
+                ;;
+            -c|--controls-path)
+                CALM_CONTROLS_BASE_PATH="$2"
+                shift 2
+                ;;
+            -t|--standards-path)
+                CALM_STANDARDS_BASE_PATH="$2"
+                shift 2
+                ;;
+            -p|--patterns-path)
+                CALM_PATTERNS_BASE_PATH="$2"
+                shift 2
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
-# Run main function
-main
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    parse_args "$@"
+    main
+fi

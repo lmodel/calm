@@ -3,19 +3,22 @@ package integration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import io.quarkus.arc.Arc;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import jakarta.inject.Inject;
+
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -26,17 +29,35 @@ public class MongoPatternIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoPatternIntegration.class);
     public static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeAll
     public static void resetPatterns() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        // Static JUnit lifecycle method — no instance to inject into, so look the bean up via Arc directly.
+        MongoTestConnection mongoTestConnection = Arc.container().instance(MongoTestConnection.class).get();
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering
+            // Drop patterns and resource_mappings to ensure clean state regardless of test ordering.
+            // patternVersions goes too — version documents now live outside the header
+            // collection, so dropping only that would leave them behind for the next test.
             database.getCollection("patterns").drop();
+            database.getCollection("patternVersions").drop();
             database.getCollection("resource_mappings").drop();
+
+            // A drop takes the collection's indexes with it, and EndToEndResource creates
+            // them once per container — so without this the rest of the JVM runs with no
+            // unique index on patternVersions. That is newly load-bearing: the old store
+            // rejected duplicate versions with an $elemMatch/$exists conditional update and
+            // needed no index, whereas createVersion now reports duplicates by catching
+            // DUPLICATE_KEY. With the index gone it never fires, so re-POSTing an existing
+            // version returns 201 and writes a second document instead of 409 — and every
+            // later class touching patterns runs with the constraint silently absent.
+            new MongoPatternVersionSplitStep(database).transitionIndexes();
 
             // Reset pattern counter to 0
             database.getCollection("counters").updateOne(
@@ -48,8 +69,8 @@ public class MongoPatternIntegration {
 
     @BeforeEach
     public void setupPatterns() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -60,12 +81,7 @@ public class MongoPatternIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
-                database.createCollection("patterns");
-                database.getCollection("patterns").insertOne(
-                        new Document("namespace", "finos").append("patterns", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "patterns");
 
             counterSetup(database);
             namespaceSetup(database);
@@ -76,7 +92,7 @@ public class MongoPatternIntegration {
     @Order(1)
     void end_to_end_get_with_no_patterns() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -96,7 +112,7 @@ public class MongoPatternIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/patterns/1"));
@@ -106,7 +122,7 @@ public class MongoPatternIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -117,7 +133,7 @@ public class MongoPatternIntegration {
     @Order(4)
     void end_to_end_verify_pattern() {
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(PATTERN));
@@ -129,7 +145,7 @@ public class MongoPatternIntegration {
     @Order(5)
     void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -145,17 +161,17 @@ public class MongoPatternIntegration {
         given()
                 .body(versionBody)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/2.0.0")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/finos/patterns/1/versions/2.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/finos/patterns/1/versions/2.0.0"));
     }
 
     @Test
     @Order(7)
     void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -172,20 +188,20 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/3.0.0")
                 .then()
                 .statusCode(201);
 
         // Stored content must be the inner patternJson verbatim, not the envelope
         given()
-                .when().get("/calm/namespaces/finos/patterns/1/versions/3.0.0")
+                .when().get("/api/calm/namespaces/finos/patterns/1/versions/3.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(inner));
 
         // Wrapper reflects the latest envelope name/description
         given()
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("third-name"))
@@ -200,7 +216,7 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns/1/versions/9.0.0")
+                .when().post("/api/calm/namespaces/finos/patterns/1/versions/9.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
@@ -214,7 +230,7 @@ public class MongoPatternIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/patterns/1/versions/1.0.0")
+                .when().put("/api/calm/namespaces/finos/patterns/1/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));

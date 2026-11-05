@@ -1,5 +1,6 @@
 package org.finos.calm.store.nitrite;
 
+import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,8 +51,9 @@ class NitriteDecoratorStoreTest {
     private NitriteDecoratorStore decoratorStore;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
         MockitoAnnotations.openMocks(this);
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(db.getCollection(anyString())).thenReturn(decoratorCollection);
         decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
     }
@@ -262,6 +265,25 @@ class NitriteDecoratorStoreTest {
         Document result = decoratorStore.parseJsonToNitriteDocument("{}");
 
         assertNotNull(result);
+    }
+
+    @Test
+    void testParseJsonToNitriteDocument_InvalidJson() {
+        assertThrows(JsonParseException.class, () -> decoratorStore.parseJsonToNitriteDocument("not-valid-json"));
+    }
+
+    @Test
+    void testParseJsonToNitriteDocument_NonObjectJson() {
+        assertThrows(JsonParseException.class, () -> decoratorStore.parseJsonToNitriteDocument("[1, 2]"));
+        assertThrows(JsonParseException.class, () -> decoratorStore.parseJsonToNitriteDocument("null"));
+    }
+
+    @Test
+    void testParseJsonToNitriteDocument_KeepsExtendedJsonAsPlainData() {
+        Document result = decoratorStore.parseJsonToNitriteDocument("{\"data\":{\"amount\":{\"$numberDecimal\":\"1.5\"}}}");
+
+        Document amount = result.get("data", Document.class).get("amount", Document.class);
+        assertEquals("1.5", amount.get("$numberDecimal", String.class));
     }
 
     @Test

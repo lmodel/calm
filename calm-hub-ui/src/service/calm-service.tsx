@@ -1,12 +1,55 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import type { CalmTimelineSchema } from '@finos/calm-models/types';
-import { Data, ResourceSummary, ResourceMapping } from '../model/calm.js';
+import { Data, ResourceSummary, ResourceMapping, isSlug } from '../model/calm.js';
 import { getAuthHeaders } from '../authService.js';
 import { Decorator } from '../visualizer/contracts/decorator-contracts.js';
+import { apiClient } from './utils/api-client.js';
+
+/**
+ * Build the optional `limit`/`offset` query string for the namespace summary endpoints.
+ * Returns an empty string when no `limit` is supplied so the request URL is unchanged (and the
+ * backend returns the full list) — preserving backward-compatible behaviour.
+ *
+ * `offset` is only included alongside a `limit`: the backend applies it only with a limit
+ * ($slice can't express offset-without-limit) and ignores an offset-only request, so sending
+ * one would be a silent no-op that misleads callers into thinking paging is happening.
+ *
+ * Mirrors the `URLSearchParams` pattern used by `fetchDecoratorValues`.
+ */
+function summaryPageQuery(limit?: number, offset?: number): string {
+    if (limit === undefined) {
+        return '';
+    }
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (offset !== undefined) {
+        params.set('offset', String(offset));
+    }
+    return `?${params.toString()}`;
+}
+
+/**
+ * Extracts a server-provided error message from a failed request, falling back to
+ * `fallback` when the response body doesn't carry one. Namespace/domain mutation
+ * endpoints return either a plain-text body (e.g. "Invalid namespace provided: x")
+ * or a `{"error": "..."}` JSON body, depending on the failure — this normalizes both
+ * so the UI can surface the specific reason instead of one generic message for
+ * every failure.
+ */
+function extractServerErrorMessage(error: unknown, fallback: string): string {
+    const data = (error as { response?: { data?: unknown } })?.response?.data;
+    if (typeof data === 'string' && data.trim()) {
+        return data;
+    }
+    if (data && typeof data === 'object' && typeof (data as { error?: unknown }).error === 'string') {
+        return (data as { error: string }).error;
+    }
+    return fallback;
+}
 
 /**
  * Service for interacting with CALM API endpoints.
- * 
+ *
  * TODO: Add type safety for API responses by:
  * - Defining response interfaces (e.g., NamespacesResponse, PatternIDsResponse)
  * - Validating responses at runtime (e.g., with Zod or similar validation library)
@@ -19,19 +62,19 @@ export class CalmService {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
-            this.ax = axios.create();
+            this.ax = apiClient;
         }
     }
 
     public async fetchNamespaces(): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get('/calm/namespaces', { headers })
+            .get('/api/calm/namespaces', { headers })
             .then((res) => {
                 const namespaces = (res.data?.values ?? [])
                     .map((v: { name?: string }) => v?.name)
                     .filter((name: string | undefined): name is string => !!name);
-                return namespaces;
+                return namespaces.sort((a: string, b: string) => a.localeCompare(b));
             })
             .catch((error) => {
                 const errorMessage = 'Error fetching namespaces:';
@@ -40,10 +83,108 @@ export class CalmService {
             });
     }
 
-    public async fetchPatternSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchNamespaceDetails(): Promise<{ name: string; description: string }[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/patterns`, { headers })
+            .get('/api/calm/namespaces', { headers })
+            .then((res) => {
+                const namespaces: { name: string; description: string }[] =
+                    Array.isArray(res.data?.values) ? res.data.values : [];
+                return namespaces.sort((a, b) => a.name.localeCompare(b.name));
+            })
+            .catch((error) => {
+                const errorMessage = 'Error fetching namespaces:';
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchDomains(): Promise<string[]> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get('/api/calm/domains', { headers })
+            .then((res) => {
+                const domains: string[] = Array.isArray(res.data?.values) ? res.data.values : [];
+                return domains.sort((a, b) => a.localeCompare(b));
+            })
+            .catch((error) => {
+                const errorMessage = 'Error fetching domains:';
+                console.error(errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async createNamespace(name: string, description: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/namespaces', { name, description }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = extractServerErrorMessage(error, `Error creating namespace ${name}:`);
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async updateNamespace(name: string, description: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .put(`/api/calm/namespaces/${encodeURIComponent(name)}`, { description }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = extractServerErrorMessage(error, `Error updating namespace ${name}:`);
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async deleteNamespace(name: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .delete(`/api/calm/namespaces/${encodeURIComponent(name)}`, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = extractServerErrorMessage(error, `Error deleting namespace ${name}:`);
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async createDomain(name: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .post('/api/calm/domains', { name }, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = extractServerErrorMessage(error, `Error creating domain ${name}:`);
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async deleteDomain(name: string): Promise<void> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .delete(`/api/calm/domains/${encodeURIComponent(name)}`, { headers })
+            .then(() => undefined)
+            .catch((error) => {
+                const errorMessage = extractServerErrorMessage(error, `Error deleting domain ${name}:`);
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
+    }
+
+    public async fetchPatternSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
+        const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
+        return this.ax
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/patterns${query}`, {
+                headers,
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -58,7 +199,7 @@ export class CalmService {
     public async fetchFlowSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/flows`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/flows`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -70,10 +211,17 @@ export class CalmService {
             });
     }
 
-    public async fetchArchitectureSummaries(namespace: string): Promise<ResourceSummary[]> {
+    public async fetchArchitectureSummaries(
+        namespace: string,
+        limit?: number,
+        offset?: number
+    ): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
+        const query = summaryPageQuery(limit, offset);
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/architectures`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures${query}`, {
+                headers,
+            })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -88,7 +236,7 @@ export class CalmService {
     public async fetchPatternVersions(namespace: string, patternID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions`, { headers })
+            .get(`/api/calm/namespaces/${namespace}/patterns/${patternID}/versions`, { headers })
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for pattern ID ${patternID}:`;
@@ -101,7 +249,7 @@ export class CalmService {
     public async fetchFlowVersions(namespace: string, flowID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
+            .get(`/api/calm/namespaces/${namespace}/flows/${flowID}/versions`, { headers })
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for flow ID ${flowID}:`;
@@ -114,7 +262,7 @@ export class CalmService {
     public async fetchArchitectureVersions(namespace: string, architectureID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/architectures/${architectureID}/versions`, {
+            .get(`/api/calm/namespaces/${namespace}/architectures/${architectureID}/versions`, {
                 headers,
             })
             .then((res) => res.data.values)
@@ -129,7 +277,7 @@ export class CalmService {
     public async fetchPattern(namespace: string, patternID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`, {
+            .get(`/api/calm/namespaces/${namespace}/patterns/${patternID}/versions/${version}`, {
                 headers,
             })
             .then((res) => ({
@@ -150,7 +298,7 @@ export class CalmService {
     public async fetchFlow(namespace: string, flowID: string, version: string): Promise<Data> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`, {
+            .get(`/api/calm/namespaces/${namespace}/flows/${flowID}/versions/${version}`, {
                 headers,
             })
             .then((res) => ({
@@ -176,7 +324,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(
-                `/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
+                `/api/calm/namespaces/${namespace}/architectures/${architectureID}/versions/${version}`,
                 { headers }
             )
             .then((res) => ({
@@ -197,7 +345,7 @@ export class CalmService {
     public async fetchStandardSummaries(namespace: string): Promise<ResourceSummary[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/standards`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -212,7 +360,7 @@ export class CalmService {
     public async fetchStandardVersions(namespace: string, standardID: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions`, { headers })
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions`, { headers })
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for standard ID ${standardID}:`;
@@ -226,7 +374,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions/${version}`,
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/standards/${standardID}/versions/${version}`,
                 { headers }
             )
             .then((res) => ({
@@ -260,7 +408,7 @@ export class CalmService {
         const headers = await getAuthHeaders();
         return this.ax
             .get(
-                `/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(architectureID)}/timeline`,
+                `/api/calm/namespaces/${encodeURIComponent(namespace)}/architectures/${encodeURIComponent(architectureID)}/timeline`,
                 { headers }
             )
             .then((res) => res.data)
@@ -274,35 +422,101 @@ export class CalmService {
 
     /**
      * Fetch decorator values for a given namespace with optional target and type filters.
+     * Returns an empty array when the fetch fails.
     */
     public async fetchDecoratorValues(
         namespace: string,
         target?: string,
         type?: string
     ): Promise<Decorator[]> {
+        return this.requestDecoratorValues(namespace, target, type).catch((error) => {
+            const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
+            // arg1 is %s to prevent format string injection from `namespace`.
+            console.error('%s', errorMessage, error);
+            return [];
+        });
+    }
+
+    /** Requests decorator values, rejecting when the request fails. */
+    private async requestDecoratorValues(namespace: string, target?: string, type?: string): Promise<Decorator[]> {
         const headers = await getAuthHeaders();
         const params = new URLSearchParams();
         if (target) params.set('target', target);
         if (type) params.set('type', type);
         const query = params.toString() ? `?${params.toString()}` : '';
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
-            .then((res) => res.data.values ?? [])
-            .catch((error) => {
-                const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
-                // arg1 is %s to prevent format string injection from `namespace`.
-                console.error('%s', errorMessage, error);
-                return [];
-            });
+            .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
+            .then((res) => res.data.values ?? []);
     }
 
-    // --- Front Controller API (custom ID / slug-based access) ---
+    /**
+     * Builds the exact-match decorator target for one architecture version.
+     *
+     * Resolves a slug identifier to its numeric ID via the mapping API. Returns undefined when the slug cannot be
+     * resolved (including when the mappings cannot be fetched).
+     */
+    public async resolveArchitectureVersionTarget(namespace: string, id: string, version: string): Promise<string | undefined> {
+        const versionPath = version.replace(/\./g, '-');
+        let numericId = id;
+        if (isSlug(id)) {
+            const mappings = await this.fetchMappings(namespace, 'Architectures');
+            const match = mappings.find((m) => m.customId === id);
+            if (!match) return undefined;
+            numericId = String(match.numericId);
+        }
+        return `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+    }
 
+    /**
+     * Fetches the deployment decorators recorded against one architecture version.
+     *
+     * Resolves a slug id to its numeric id first. Returns an empty array when the slug cannot be resolved or the
+     * fetch fails.
+     */
+    public async fetchDeploymentDecoratorsForArchitecture(namespace: string, id: string, version: string): Promise<Decorator[]> {
+        const target = await this.resolveArchitectureVersionTarget(namespace, id, version);
+        if (!target) return []; // cannot resolve slug — skip decorator fetch
+        return this.fetchDecoratorValues(namespace, target, 'deployment');
+    }
+
+    /**
+     * Fetches the control-evaluation decorators recorded against one architecture version, given the target from
+     * `resolveArchitectureVersionTarget`.
+     *
+     * Unlike `fetchDecoratorValues` this rejects when the request fails, so a caller that refreshes can tell a failed
+     * refresh from a version with no evaluations and keep what it last showed. It does not log: a caller polling an
+     * unreachable hub would otherwise log every few seconds, so logging is left to the caller.
+     */
+    public async fetchControlEvaluationDecorators(namespace: string, target: string): Promise<Decorator[]> {
+        return this.requestDecoratorValues(namespace, target, 'control-evaluation').catch(() =>
+            Promise.reject(new Error(`Error fetching control-evaluation decorators for namespace ${namespace}`))
+        );
+    }
+
+    // --- Front Controller API (name-based / slug-based access) ---
+
+    /** Maps a calmType (e.g. 'Patterns') or a resource-type enum value (e.g. 'PATTERN')
+     *  to the plural URL path segment used by the name-based API. */
+    private calmTypeToPath(calmType: string): string {
+        switch (calmType.toUpperCase()) {
+            case 'ARCHITECTURE': case 'ARCHITECTURES': return 'architectures';
+            case 'PATTERN':      case 'PATTERNS':      return 'patterns';
+            case 'FLOW':         case 'FLOWS':         return 'flows';
+            case 'STANDARD':     case 'STANDARDS':     return 'standards';
+            case 'INTERFACE':    case 'INTERFACES':    return 'interfaces';
+            default: return calmType.toLowerCase();
+        }
+    }
+
+    /** Fetches all named resources of a given type from the name-based namespace API. */
     public async fetchMappings(namespace: string, type?: string): Promise<ResourceMapping[]> {
         const headers = await getAuthHeaders();
-        const query = type ? `?type=${encodeURIComponent(type)}` : '';
+        if (!type) {
+            return [];
+        }
+        const pluralType = this.calmTypeToPath(type);
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/mappings${query}`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${pluralType}`, { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -313,10 +527,12 @@ export class CalmService {
             });
     }
 
-    public async fetchVersionsByCustomId(namespace: string, customId: string): Promise<string[]> {
+    /** Fetches the list of versions for a named (slug) resource. */
+    public async fetchVersionsByCustomId(namespace: string, customId: string, calmType: string): Promise<string[]> {
         const headers = await getAuthHeaders();
+        const typePath = this.calmTypeToPath(calmType);
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${typePath}/${encodeURIComponent(customId)}/versions`, { headers })
             .then((res) => res.data.values)
             .catch((error) => {
                 const errorMessage = `Error fetching versions for custom ID ${customId}:`;
@@ -325,10 +541,12 @@ export class CalmService {
             });
     }
 
+    /** Fetches a specific version of a named (slug) resource. */
     public async fetchResourceByCustomId(namespace: string, customId: string, version: string, calmType: string): Promise<Data> {
         const headers = await getAuthHeaders();
+        const typePath = this.calmTypeToPath(calmType);
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(customId)}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${typePath}/${encodeURIComponent(customId)}/versions/${encodeURIComponent(version)}`, { headers })
             .then((res) => ({
                 id: customId,
                 version: version,

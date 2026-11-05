@@ -4,6 +4,7 @@ import {
     createTopLevelLayout,
     calculateChildBounds,
     sortContainersDeepestFirst,
+    sortNodesParentsBeforeChildren,
 } from './layoutUtils';
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
@@ -15,30 +16,54 @@ import { THEME } from '../theme';
 export interface ParsedPatternData {
     nodes: Node[];
     edges: Edge[];
+    /** Set when parsing threw, so a broken pattern is not mistaken for an empty one. */
+    failed?: true;
 }
 
 /** A loosely-typed JSON Schema object for pattern traversal */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SchemaObject = Record<string, any>;
+export type SchemaObject = Record<string, any>;
 
 // ---- Schema traversal helpers ----
 
 /**
- * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
- * from a pattern, handling allOf structures.
+ * A pattern may declare its nodes and relationships directly, or inside an allOf branch.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
-    if (pattern['properties']?.[key]?.['prefixItems']) {
-        return pattern['properties'][key]['prefixItems'];
+function findDeclarations(pattern: SchemaObject, key: string, member: string): SchemaObject | undefined {
+    if (pattern['properties']?.[key]?.[member]) {
+        return pattern['properties'][key];
     }
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
+    if (Array.isArray(pattern['allOf'])) {
         for (const schema of pattern['allOf']) {
-            if (schema['properties']?.[key]?.['prefixItems']) {
-                return schema['properties'][key]['prefixItems'];
+            if (schema['properties']?.[key]?.[member]) {
+                return schema['properties'][key];
             }
         }
     }
-    return [];
+    return undefined;
+}
+
+function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+    return findDeclarations(pattern, key, 'prefixItems')?.['prefixItems'] ?? [];
+}
+
+function getItems(pattern: SchemaObject, key: string): SchemaObject | undefined {
+    return findDeclarations(pattern, key, 'items')?.['items'];
+}
+
+interface Choice {
+    groupType: 'oneOf' | 'anyOf';
+    alternatives: SchemaObject[];
+}
+
+function readChoice(schema: SchemaObject | undefined): Choice | undefined {
+    if (Array.isArray(schema?.['oneOf'])) {
+        return { groupType: 'oneOf', alternatives: schema['oneOf'] };
+    }
+    if (Array.isArray(schema?.['anyOf'])) {
+        return { groupType: 'anyOf', alternatives: schema['anyOf'] };
+    }
+    return undefined;
 }
 
 /**
@@ -50,6 +75,9 @@ function readSchemaValue(obj: SchemaObject | undefined, key: string): string | u
     if (prop['const'] !== undefined) return String(prop['const']);
     return undefined;
 }
+
+// These generic definitions do not name an interface type. From CALM 1.3, an interface can refer only to them.
+const GENERIC_INTERFACE_DEFINITIONS = new Set(['interface-type', 'interface-definition']);
 
 /**
  * Extracts interfaces from a pattern node's schema item.
@@ -66,7 +94,8 @@ function extractInterfaces(item: SchemaObject): SchemaObject[] | undefined {
         const uniqueId = iface['properties']?.['unique-id']?.['const'];
         const ref = iface['$ref'] as string | undefined;
         // Extract the interface type from the $ref (e.g., "url-interface" from ".../defs/url-interface")
-        const interfaceType = ref?.split('/').pop();
+        const definition = ref?.split('/').pop();
+        const interfaceType = definition && !GENERIC_INTERFACE_DEFINITIONS.has(definition) ? definition : undefined;
         return {
             'unique-id': uniqueId || '',
             ...(interfaceType && { type: interfaceType }),
@@ -126,6 +155,14 @@ function extractPatternControls(item: SchemaObject): SchemaObject | undefined {
 
 // ---- Node extraction ----
 
+function extractPatternDetails(item: SchemaObject): { 'detailed-architecture': string } | undefined {
+    const detailsSchema = item['properties']?.['details'];
+    if (!detailsSchema) return undefined;
+    const detailedArch = detailsSchema['properties']?.['detailed-architecture']?.['const'];
+    if (!detailedArch) return undefined;
+    return { 'detailed-architecture': String(detailedArch) };
+}
+
 interface ExtractedNode {
     uniqueId: string;
     name: string;
@@ -133,6 +170,7 @@ interface ExtractedNode {
     description: string;
     interfaces?: SchemaObject[];
     controls?: SchemaObject;
+    details?: { 'detailed-architecture': string };
     decisionGroupId?: string;
 }
 
@@ -146,8 +184,12 @@ function extractNodeFromSchemaItem(item: SchemaObject): ExtractedNode | null {
         description: readSchemaValue(item, 'description') || '',
         interfaces: extractInterfaces(item),
         controls: extractPatternControls(item),
+        details: extractPatternDetails(item),
     };
 }
+
+const NODE_ITEMS_GROUP = 'node-decision-items';
+const RELATIONSHIP_ITEMS_GROUP = 'rel-decision-items';
 
 interface DecisionGroup {
     groupId: string;
@@ -156,39 +198,43 @@ interface DecisionGroup {
 }
 
 function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[]; decisionGroups: DecisionGroup[] } {
-    const prefixItems = getPrefixItems(pattern, 'nodes');
     const nodes: ExtractedNode[] = [];
     const decisionGroups: DecisionGroup[] = [];
 
-    prefixItems.forEach((item: SchemaObject, index: number) => {
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
+    function addChoice(groupId: string, choice: Choice): void {
+        const groupNodeIds: string[] = [];
 
-        if (hasOneOf || hasAnyOf) {
-            const groupType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            const groupId = `node-decision-${index}`;
-            const groupNodeIds: string[] = [];
-
-            alternatives.forEach((alt: SchemaObject) => {
-                const node = extractNodeFromSchemaItem(alt);
-                if (node) {
-                    node.decisionGroupId = groupId;
-                    nodes.push(node);
-                    groupNodeIds.push(node.uniqueId);
-                }
-            });
-
-            if (groupNodeIds.length > 0) {
-                decisionGroups.push({ groupId, groupType, nodeIds: groupNodeIds });
-            }
-        } else {
-            const node = extractNodeFromSchemaItem(item);
+        choice.alternatives.forEach((alt: SchemaObject) => {
+            const node = extractNodeFromSchemaItem(alt);
             if (node) {
+                node.decisionGroupId = groupId;
                 nodes.push(node);
+                groupNodeIds.push(node.uniqueId);
             }
+        });
+
+        if (groupNodeIds.length > 0) {
+            decisionGroups.push({ groupId, groupType: choice.groupType, nodeIds: groupNodeIds });
+        }
+    }
+
+    getPrefixItems(pattern, 'nodes').forEach((item: SchemaObject, index: number) => {
+        const choice = readChoice(item);
+        if (choice) {
+            addChoice(`node-decision-${index}`, choice);
+            return;
+        }
+
+        const node = extractNodeFromSchemaItem(item);
+        if (node) {
+            nodes.push(node);
         }
     });
+
+    const catalogue = readChoice(getItems(pattern, 'nodes'));
+    if (catalogue) {
+        addChoice(NODE_ITEMS_GROUP, catalogue);
+    }
 
     return { nodes, decisionGroups };
 }
@@ -316,6 +362,16 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
     const relationships: ExtractedRelationship[] = [];
     const optionsMetadata: OptionsMetadata[] = [];
 
+    function addAlternatives(groupId: string, choice: Choice): void {
+        choice.alternatives.forEach((alt: SchemaObject) => {
+            const rel = extractSingleRelationship(alt);
+            if (rel) {
+                rel.decisionGroupId = groupId;
+                relationships.push(rel);
+            }
+        });
+    }
+
     prefixItems.forEach((item: SchemaObject, index: number) => {
         // Check for options relationship first
         if (isOptionsRelationship(item)) {
@@ -326,21 +382,9 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
             return;
         }
 
-        // Check for oneOf/anyOf wrapped relationships
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            const groupId = `rel-decision-${index}`;
-
-            alternatives.forEach((alt: SchemaObject) => {
-                const rel = extractSingleRelationship(alt);
-                if (rel) {
-                    rel.decisionGroupId = groupId;
-                    relationships.push(rel);
-                }
-            });
+        const choice = readChoice(item);
+        if (choice) {
+            addAlternatives(`rel-decision-${index}`, choice);
             return;
         }
 
@@ -350,6 +394,12 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
             relationships.push(rel);
         }
     });
+
+    // A decision is always positional, so items is read for relationships but never for decisions.
+    const catalogue = readChoice(getItems(pattern, 'relationships'));
+    if (catalogue) {
+        addAlternatives(RELATIONSHIP_ITEMS_GROUP, catalogue);
+    }
 
     return { relationships, optionsMetadata };
 }
@@ -419,6 +469,7 @@ function createReactFlowNodes(
         };
         if (node.interfaces) data['interfaces'] = node.interfaces;
         if (node.controls) data['controls'] = node.controls;
+        if (node.details) data['details'] = node.details;
         return data;
     }
 
@@ -600,11 +651,11 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
         if (pos) node.position = pos;
     });
 
-    const allNodes = [
+    const allNodes = sortNodesParentsBeforeChildren([
         ...topLevelGroupNodes,
         ...nodesWithoutParents.filter((n) => !groupNodes.includes(n)),
         ...nodesWithParents,
-    ];
+    ]);
 
     return { nodes: allNodes, edges };
 }
@@ -653,6 +704,6 @@ export function parsePatternData(pattern: SchemaObject): ParsedPatternData {
         return applyPatternLayout(regularNodes, groupNodes, edges);
     } catch (error) {
         console.error('Error parsing pattern data:', error);
-        return { nodes: [], edges: [] };
+        return { nodes: [], edges: [], failed: true };
     }
 }

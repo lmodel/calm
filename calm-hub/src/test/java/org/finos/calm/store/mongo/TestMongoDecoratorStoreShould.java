@@ -1,9 +1,14 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.MongoWriteException;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
@@ -26,8 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,7 +60,8 @@ class TestMongoDecoratorStoreShould {
     private MongoDecoratorStore decoratorStore;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(database.getCollection("decorators")).thenReturn(decoratorCollection);
         decoratorStore = new MongoDecoratorStore(database, namespaceStore, counterStore);
     }
@@ -287,7 +296,7 @@ class TestMongoDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-deployment-1")
                 .append("type", "deployment")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
@@ -308,7 +317,7 @@ class TestMongoDecoratorStoreShould {
         // Then
         assertTrue(result.isPresent());
         Decorator decorator = result.get();
-        assertEquals("https://calm.finos.org/draft/2025-03/meta/decorator.json", decorator.getSchema());
+        assertEquals("https://calm.finos.org/release/1.3/meta/decorators.json", decorator.getSchema());
         assertEquals("finos-deployment-1", decorator.getUniqueId());
         assertEquals("deployment", decorator.getType());
         assertEquals(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"), decorator.getTarget());
@@ -372,11 +381,11 @@ class TestMongoDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc1 = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc1 = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-deployment-1")
                 .append("type", "deployment")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        Document decoratorDoc2 = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc2 = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-observability-1")
                 .append("type", "observability")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
@@ -582,6 +591,32 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
+    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(42);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
+                .thenReturn(null);
+
+        decoratorStore.createDecorator(namespace, "{\"unique-id\": \"test-decorator\", \"type\": \"deployment\"}");
+
+        verify(decoratorCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+    }
+
+    @Test
+    void propagate_non_duplicate_key_errors_when_creating_a_decorator() {
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(42);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
+
+        assertThrows(MongoWriteException.class,
+                () -> decoratorStore.createDecorator(namespace, "{\"unique-id\": \"test-decorator\", \"type\": \"deployment\"}"));
+    }
+
+    @Test
     void should_skip_decorator_values_with_null_decorator_id() throws NamespaceNotFoundException {
         // Given
         String namespace = "finos";
@@ -689,6 +724,60 @@ class TestMongoDecoratorStoreShould {
         // When & Then
         assertThrows(NamespaceNotFoundException.class,
                 () -> decoratorStore.updateDecorator(namespace, 1, decoratorJson));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_delete_decorator_successfully() throws Exception {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 1;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(1L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When
+        decoratorStore.deleteDecorator(namespace, decoratorId);
+
+        // Then
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_delete_matches_nothing() {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 99;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(0L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class,
+                () -> decoratorStore.deleteDecorator(namespace, decoratorId));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_deleting_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class,
+                () -> decoratorStore.deleteDecorator(namespace, 1));
 
         verify(namespaceStore).namespaceExists(namespace);
         verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));

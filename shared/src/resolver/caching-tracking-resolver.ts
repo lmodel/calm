@@ -1,0 +1,115 @@
+import type { CalmReferenceResolver } from './calm-reference-resolver.js';
+
+/**
+ * A caching, tracking {@link CalmReferenceResolver} decorator.
+ *
+ * The CALM model is lazily dereferenced — callers choose which references to resolve. This resolver
+ * wraps any inner {@link CalmReferenceResolver} and centralises the two concerns that would
+ * otherwise be re-implemented per caller:
+ *  - **caching**: a reference is fetched at most once; repeat requests return the cached document;
+ *  - **tracking**: every attempted reference is recorded, so callers can dedupe work
+ *    (e.g. "validate each detailed-architecture once") and detect cycles without their own set.
+ *
+ * A reference is marked as *seen* before the underlying load is awaited, so a failed load still
+ * counts as seen (a sibling referencing the same failing URL is not retried) matching the
+ * historical `visitedUrls` semantics. Successful loads populate the value cache; failed loads cache
+ * the rejection instead, so a repeat {@link resolve} for a known-bad reference re-throws the cached
+ * error without re-hitting the delegate. Callers can tell the two apart via {@link hasFailed}.
+ */
+export class CachingTrackingResolver implements CalmReferenceResolver {
+    private readonly cache = new Map<string, unknown>();
+    private readonly failures = new Map<string, unknown>();
+    private readonly seen = new Set<string>();
+    private readonly activePath: string[] = [];
+
+    constructor(private readonly delegate: CalmReferenceResolver) {}
+
+    /** Delegates to the wrapped resolver. */
+    canResolve(reference: string): boolean {
+        return this.delegate.canResolve(reference);
+    }
+
+    /** Whether the reference has been resolved or attempted (used for dedupe checks). */
+    has(reference: string): boolean {
+        return this.seen.has(reference);
+    }
+
+    /** Whether a previous {@link resolve} for this reference failed to load. */
+    hasFailed(reference: string): boolean {
+        return this.failures.has(reference);
+    }
+
+    /** The cached raw document for a reference, or undefined if never successfully loaded. */
+    get(reference: string): unknown {
+        return this.cache.get(reference);
+    }
+
+    /** Mark a reference as already seen without loading it (e.g. to seed dedupe state). */
+    markSeen(reference: string): void {
+        this.seen.add(reference);
+    }
+
+    /** All references that have been resolved or attempted. */
+    get resolvedReferences(): ReadonlySet<string> {
+        return this.seen;
+    }
+
+    /** The active traversal stack (ancestry) in entry order. */
+    get ancestry(): readonly string[] {
+        return this.activePath;
+    }
+
+    /** Whether the reference is on the current active traversal path (indicating a cycle). */
+    isInAncestry(reference: string): boolean {
+        return this.activePath.includes(reference);
+    }
+
+    /** Push a reference onto the active traversal stack. */
+    enter(reference: string): void {
+        this.activePath.push(reference);
+    }
+
+    /** Pop a reference from the active traversal stack. */
+    leave(reference: string): void {
+        const idx = this.activePath.lastIndexOf(reference);
+        if (idx !== -1) {
+            this.activePath.splice(idx, 1);
+        }
+    }
+
+    /** Run `fn` with `reference` pushed onto the active traversal stack, popping it on completion. */
+    async withAncestry<T>(reference: string, fn: () => Promise<T>): Promise<T> {
+        this.enter(reference);
+        try {
+            return await fn();
+        } finally {
+            this.leave(reference);
+        }
+    }
+
+    /** Format the cycle path from the first occurrence of `reference` in the active ancestry back to `reference`. */
+    formatCycle(reference: string): string {
+        const startIdx = this.activePath.indexOf(reference);
+        const chain = startIdx >= 0 ? this.activePath.slice(startIdx) : this.activePath;
+        return [...chain, reference].join(' -> ');
+    }
+
+    /** Resolve a reference, returning the cached document if already loaded. */
+    async resolve(reference: string): Promise<unknown> {
+        if (this.cache.has(reference)) {
+            return this.cache.get(reference);
+        }
+        if (this.failures.has(reference)) {
+            throw this.failures.get(reference);
+        }
+        this.seen.add(reference);
+        try {
+            const document = await this.delegate.resolve(reference);
+            this.cache.set(reference, document);
+            return document;
+        } catch (err) {
+            this.failures.set(reference, err);
+            throw err;
+        }
+    }
+}

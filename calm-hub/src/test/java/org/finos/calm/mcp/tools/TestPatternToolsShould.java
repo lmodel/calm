@@ -7,7 +7,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class TestPatternToolsShould {
     @Test
     void return_patterns_when_namespace_has_entries() throws NamespaceNotFoundException {
         when(patternStore.getPatternsForNamespace("workshop"))
-                .thenReturn(List.of(new NamespacePatternSummary("Conference Pattern", "A conference signup pattern", 1)));
+                .thenReturn(List.of(new NamespaceResourceSummary("Conference Pattern", "A conference signup pattern", 1, 0)));
 
         ToolResponse result = patternTools.listPatterns("workshop");
 
@@ -227,7 +227,7 @@ class TestPatternToolsShould {
                 .setId(42)
                 .setVersion("1.0.0")
                 .build();
-        when(patternStore.createPatternForNamespace(any(), anyString())).thenReturn(returnedPattern);
+        when(patternStore.createPatternForNamespace(any(), anyString(), anyString())).thenReturn(returnedPattern);
 
         ToolResponse result = patternTools.createPattern("workshop", "My Pattern", "A description", "{\"nodes\":[]}");
 
@@ -239,7 +239,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_creating_pattern_in_missing_namespace() throws NamespaceNotFoundException {
-        when(patternStore.createPatternForNamespace(any(), anyString())).thenThrow(new NamespaceNotFoundException());
+        when(patternStore.createPatternForNamespace(any(), anyString(), anyString())).thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = patternTools.createPattern("missing", "My Pattern", "desc", "{}");
 

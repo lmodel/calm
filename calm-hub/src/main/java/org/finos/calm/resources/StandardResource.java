@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -13,6 +15,8 @@ import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +26,20 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class StandardResource {
 
     private final StandardStore standardStore;
+    private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(StandardResource.class);
 
-    public StandardResource(StandardStore standardStore) {
+    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.standardStore = standardStore;
+        this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -41,7 +50,8 @@ public class StandardResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(standardStore.getStandardsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.STANDARD,
+                    standardStore.getStandardsForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -58,8 +68,8 @@ public class StandardResource {
             CreateStandardRequest standard
     ) throws URISyntaxException {
         try {
-            Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
+            Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace, "1.0.0");
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating standard", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -92,7 +102,7 @@ public class StandardResource {
     public Response getStandardForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("standardId") Integer standardId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         try {
             return Response.ok(standardStore.getStandardForVersion(namespace, standardId, version)).build();
@@ -122,7 +132,7 @@ public class StandardResource {
 
         try {
             standardStore.createStandardForVersion(createStandardRequest, namespace, standardId, version);
-            return Response.created(new URI("/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
+            return Response.created(new URI("/api/calm/namespaces/" + namespace + "/standards/" + standardId + "/versions/" + version)).build();
         } catch (StandardVersionExistsException e) {
             logger.error("Standard Version [{}] already exists", version, e);
             return Response.status(Response.Status.CONFLICT).entity("Standard version already exists: " + version).build();
@@ -133,6 +143,27 @@ public class StandardResource {
             logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/standards/{standardId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteStandard(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("standardId") Integer standardId
+    ) {
+        try {
+            standardStore.deleteStandard(namespace, standardId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting standard", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (StandardNotFoundException e) {
+            logger.error("Invalid standard [{}] when deleting standard", standardId, e);
+            return invalidStandardResponse(standardId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.STANDARD, standardId);
+        return Response.noContent().build();
     }
 
     private Response invalidStandardResponse(int standardId) {

@@ -1,250 +1,197 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IoShieldCheckmarkOutline } from 'react-icons/io5';
-import { ControlData } from '../../../model/control.js';
+import { useMemo, useState } from 'react';
+import { ViewToggle } from './ViewToggle.js';
+import { OptionSelect } from './OptionSelect.js';
+import { ReadableControlDoc } from './ReadableControlDoc.js';
+import { ControlSectionColumn } from './ControlSectionColumn.js';
+import { ControlConfigurationDoc, ControlData, ControlRequirementDoc } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
-import { ReadableJsonView } from './ReadableJsonView.js';
 import { ControlService } from '../../../service/control-service.js';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useControlDocuments } from './useControlDocuments.js';
 
-type ViewMode = 'readable' | 'raw';
+export type ViewMode = 'readable' | 'raw';
+type ActivePanel = 'requirement' | 'configuration';
 
 interface ControlDetailSectionProps {
     controlData: ControlData;
+    /**
+     * When provided, the readable/raw view is controlled by the parent (the
+     * ControlPanel renders a single toggle in its header) and the per-section
+     * toggles are hidden. When omitted, each section manages its own toggle
+     * (standalone use).
+     */
+    viewMode?: ViewMode;
 }
 
-export function ControlDetailSection({ controlData }: ControlDetailSectionProps) {
+/**
+ * Requirement and Configuration for a selected control. Desktop shows the two
+ * side by side; mobile shows them as tabs. Each keeps its own version pickers and
+ * its own readable/raw state.
+ */
+export function ControlDetailSection({ controlData, viewMode }: ControlDetailSectionProps) {
     const controlService = useMemo(() => new ControlService(), []);
+    const isMobile = useIsMobile();
 
-    // Requirement state
-    const [requirementVersions, setRequirementVersions] = useState<string[]>([]);
-    const [selectedReqVersion, setSelectedReqVersion] = useState<string>('');
-    const [requirementJson, setRequirementJson] = useState<object | undefined>();
+    const {
+        controlKey,
+        requirementVersions,
+        selectedReqVersion,
+        requirementJson,
+        configs,
+        selectedConfigId,
+        configVersions,
+        selectedConfigVersion,
+        configJson,
+        selectReqVersion: handleReqVersionClick,
+        selectConfig: handleConfigClick,
+        selectConfigVersion: handleConfigVersionClick,
+    } = useControlDocuments(controlService, controlData);
 
-    // Configuration state
-    const [configIds, setConfigIds] = useState<number[]>([]);
-    const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
-    const [configVersions, setConfigVersions] = useState<string[]>([]);
-    const [selectedConfigVersion, setSelectedConfigVersion] = useState<string>('');
-    const [configJson, setConfigJson] = useState<object | undefined>();
-
-    // View mode state (readable is the primary/default view)
+    // Each section keeps its own readable/raw choice (used only when uncontrolled).
     const [reqViewMode, setReqViewMode] = useState<ViewMode>('readable');
     const [cfgViewMode, setCfgViewMode] = useState<ViewMode>('readable');
 
-    const handleReqVersionClick = useCallback((version: string) => {
-        setSelectedReqVersion(version);
-        controlService.fetchRequirementForVersion(
-            controlData.domain,
-            controlData.controlId,
-            version
-        ).then((data) => {
-            setRequirementJson(data as object | undefined);
-        });
-    }, [controlService, controlData.domain, controlData.controlId]);
+    // Mobile only: which of the two sections the tab bar is showing. A new control
+    // opens on the requirement.
+    const [chosenPanel, setChosenPanel] = useState<{ key: string; panel: ActivePanel } | null>(null);
+    const activePanel = chosenPanel?.key === controlKey ? chosenPanel.panel : 'requirement';
+    const setActivePanel = (panel: ActivePanel) => setChosenPanel({ key: controlKey, panel });
 
-    // When control changes, load requirement versions and configurations
-    useEffect(() => {
-        setRequirementVersions([]);
-        setSelectedReqVersion('');
-        setRequirementJson(undefined);
-        setConfigIds([]);
-        setSelectedConfigId(null);
-        setConfigVersions([]);
-        setSelectedConfigVersion('');
-        setConfigJson(undefined);
+    const reqVersionOptions = requirementVersions.map((v) => ({ value: v, label: v }));
+    const configOptions = configs.map((c) => ({
+        value: String(c.id),
+        label: c.title ?? c.name ?? `Config ${c.id}`,
+    }));
+    const configVersionOptions = configVersions.map((v) => ({ value: v, label: v }));
+    const showConfig = configs.length > 0;
 
-        controlService.fetchRequirementVersions(
-            controlData.domain,
-            controlData.controlId,
-        ).then(setRequirementVersions);
-        controlService.fetchConfigurationsForControl(
-            controlData.domain,
-            controlData.controlId,
-        ).then(setConfigIds);
-    }, [controlService, controlData.domain, controlData.controlId]);
+    const renderBody = (
+        doc: ControlRequirementDoc | ControlConfigurationDoc | undefined,
+        mode: ViewMode,
+    ) =>
+        mode === 'readable' ? (
+            <ReadableControlDoc doc={doc} />
+        ) : (
+            <div className="h-full">
+                <JsonRenderer json={doc} />
+            </div>
+        );
 
-    // Auto-select first requirement version when versions load
-    useEffect(() => {
-        if (requirementVersions.length > 0 && !selectedReqVersion) {
-            handleReqVersionClick(requirementVersions[0]);
-        }
-    }, [requirementVersions, selectedReqVersion, handleReqVersionClick]);
+    const reqPicker =
+        reqVersionOptions.length > 1 ? (
+            <OptionSelect
+                label="Requirement version"
+                className="w-full sm:w-auto"
+                options={reqVersionOptions}
+                value={selectedReqVersion}
+                onChange={handleReqVersionClick}
+            />
+        ) : null;
 
-    const handleConfigClick = (configId: number) => {
-        setSelectedConfigId(configId);
-        setSelectedConfigVersion('');
-        setConfigJson(undefined);
-        controlService.fetchConfigurationVersions(
-            controlData.domain,
-            controlData.controlId,
-            configId,
-        ).then(setConfigVersions);
-    };
+    const configPicker =
+        configOptions.length > 1 || configVersionOptions.length > 1 ? (
+            <>
+                <OptionSelect
+                    label="Configuration"
+                    className="w-full sm:w-auto"
+                    options={configOptions}
+                    value={selectedConfigId !== null ? String(selectedConfigId) : ''}
+                    onChange={(v) => handleConfigClick(Number(v))}
+                />
+                <OptionSelect
+                    label="Configuration version"
+                    className="w-full sm:w-auto"
+                    options={configVersionOptions}
+                    value={selectedConfigVersion}
+                    onChange={handleConfigVersionClick}
+                />
+            </>
+        ) : null;
 
-    const handleConfigVersionClick = (version: string) => {
-        if (selectedConfigId === null) return;
-        setSelectedConfigVersion(version);
-        controlService.fetchConfigurationForVersion(
-            controlData.domain,
-            controlData.controlId,
-            selectedConfigId,
-            version
-        ).then((data) => {
-            setConfigJson(data as object | undefined);
-        });
-    };
+    // ── Mobile: Requirement / Configuration as tabs ─────────────────────────
+    if (isMobile) {
+        const panel: ActivePanel =
+            activePanel === 'configuration' && showConfig ? 'configuration' : 'requirement';
+        const activeViewMode =
+            viewMode ?? (panel === 'requirement' ? reqViewMode : cfgViewMode);
+        const setActiveViewMode = panel === 'requirement' ? setReqViewMode : setCfgViewMode;
 
-    return (
-        <div className="w-full h-full py-4 pl-2 pr-4 flex flex-col gap-4">
-            {/* Top section: Requirement */}
-            <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
-                {/* Requirement breadcrumb header */}
-                <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-sm font-bold flex items-center gap-2 text-primary">
-                        <IoShieldCheckmarkOutline className="text-primary" />
-                        <span>{controlData.controlName}</span>
-                        <span className="text-gray-400">/</span>
-                        <span>Requirement</span>
-                        {selectedReqVersion && (
-                            <>
-                                <span className="text-gray-400">/</span>
-                                <span>{selectedReqVersion}</span>
-                            </>
+        return (
+            <div className="w-full h-full flex flex-col bg-base-100">
+                <div className="flex items-center justify-between pr-2">
+                    <div role="tablist" className="tabs tabs-bordered">
+                        <button
+                            type="button"
+                            role="tab"
+                            className={`tab ${panel === 'requirement' ? 'tab-active text-primary font-semibold' : ''}`}
+                            onClick={() => setActivePanel('requirement')}
+                        >
+                            Requirement
+                        </button>
+                        {showConfig && (
+                            <button
+                                type="button"
+                                role="tab"
+                                className={`tab ${panel === 'configuration' ? 'tab-active text-primary font-semibold' : ''}`}
+                                onClick={() => setActivePanel('configuration')}
+                            >
+                                Configuration
+                            </button>
                         )}
-                    </h2>
-                    {/* Readable / Raw toggle */}
-                    <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
-                        <button
-                            role="tab"
-                            className={`tab ${reqViewMode === 'readable' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                            onClick={() => setReqViewMode('readable')}
-                        >
-                            Readable
-                        </button>
-                        <button
-                            role="tab"
-                            className={`tab ${reqViewMode === 'raw' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                            onClick={() => setReqViewMode('raw')}
-                        >
-                            Raw JSON
-                        </button>
                     </div>
+                    {viewMode === undefined && (
+                        <ViewToggle mode={activeViewMode} onChange={setActiveViewMode} />
+                    )}
                 </div>
 
-                {/* Requirement version tabs */}
-                {requirementVersions.length > 1 && (
-                    <div className="bg-base-200 px-6 pb-2 border-b border-base-300">
-                        <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
-                            {requirementVersions.map((v) => (
-                                <button
-                                    key={v}
-                                    role="tab"
-                                    className={`tab gap-1 rounded-lg ${selectedReqVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                                    onClick={() => handleReqVersionClick(v)}
-                                >
-                                    {v}
-                                </button>
-                            ))}
+                {panel === 'requirement' ? (
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        {reqPicker && <div className="px-4 pb-2">{reqPicker}</div>}
+                        <div className="flex-1 min-h-0 overflow-auto bg-base-100">
+                            {renderBody(requirementJson, activeViewMode)}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        {configPicker && (
+                            <div className="px-4 pb-2 flex flex-col gap-2">{configPicker}</div>
+                        )}
+                        <div className="flex-1 min-h-0 overflow-auto bg-base-100">
+                            {renderBody(configJson, activeViewMode)}
                         </div>
                     </div>
                 )}
-
-                {/* Requirement content */}
-                <div className="flex-1 min-h-0 overflow-auto bg-base-200">
-                    {reqViewMode === 'readable' ? (
-                        <ReadableJsonView json={requirementJson} />
-                    ) : (
-                        <JsonRenderer json={requirementJson} />
-                    )}
-                </div>
             </div>
+        );
+    }
 
-            {/* Bottom section: Configurations (only shown if any exist) */}
-            {configIds.length > 0 && (
-                <div className="flex-1 min-h-0 bg-base-100 rounded-2xl overflow-hidden flex flex-col shadow-xl">
-                {/* Configuration breadcrumb header */}
-                <div className="bg-base-200 px-6 py-2 flex items-center justify-between border-b border-base-300">
-                    <h2 className="text-sm font-bold flex items-center gap-2">
-                        <IoShieldCheckmarkOutline className="text-accent" />
-                        <span>{controlData.controlName}</span>
-                        <span className="text-gray-400">/</span>
-                        <span>Configurations</span>
-                        {selectedConfigId !== null && (
-                            <>
-                                <span className="text-gray-400">/</span>
-                                <span>{selectedConfigId}</span>
-                            </>
-                        )}
-                        {selectedConfigVersion && (
-                            <>
-                                <span className="text-gray-400">/</span>
-                                <span>{selectedConfigVersion}</span>
-                            </>
-                        )}
-                    </h2>
-                    {/* Readable / Raw toggle */}
-                    <div role="tablist" className="tabs tabs-boxed tabs-xs bg-base-100">
-                        <button
-                            role="tab"
-                            className={`tab ${cfgViewMode === 'readable' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                            onClick={() => setCfgViewMode('readable')}
-                        >
-                            Readable
-                        </button>
-                        <button
-                            role="tab"
-                            className={`tab ${cfgViewMode === 'raw' ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                            onClick={() => setCfgViewMode('raw')}
-                        >
-                            Raw JSON
-                        </button>
-                    </div>
-                </div>
+    // ── Desktop: Requirement and Configuration side by side ─────────────────
+    return (
+        <div className="w-full h-full flex gap-4 bg-base-100">
+            <ControlSectionColumn
+                label="Requirement"
+                picker={reqPicker}
+                toggle={
+                    viewMode === undefined ? (
+                        <ViewToggle mode={reqViewMode} onChange={setReqViewMode} />
+                    ) : null
+                }
+            >
+                {renderBody(requirementJson, viewMode ?? reqViewMode)}
+            </ControlSectionColumn>
 
-                {/* Configuration breadcrumb navigation */}
-                <div className="bg-base-200 px-6 pb-2 border-b border-base-300 flex gap-2 flex-wrap">
-                    {/* Config ID tabs */}
-                    <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
-                        {configIds.map((cid) => (
-                            <button
-                                key={cid}
-                                role="tab"
-                                className={`tab gap-1 rounded-lg ${selectedConfigId === cid ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                                onClick={() => handleConfigClick(cid)}
-                            >
-                                Config {cid}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Config version tabs (shown when a config is selected) */}
-                    {selectedConfigId !== null && configVersions.length > 0 && (
-                        <>
-                            <span className="text-gray-400 self-center">/</span>
-                            <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
-                                {configVersions.map((v) => (
-                                    <button
-                                        key={v}
-                                        role="tab"
-                                        className={`tab gap-1 rounded-lg ${selectedConfigVersion === v ? 'tab-active !bg-primary !text-primary-content' : ''}`}
-                                        onClick={() => handleConfigVersionClick(v)}
-                                    >
-                                        {v}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Configuration content */}
-                <div className="flex-1 min-h-0 overflow-auto bg-base-200">
-                    {cfgViewMode === 'readable' ? (
-                        <ReadableJsonView json={configJson} />
-                    ) : (
-                        <JsonRenderer json={configJson} />
-                    )}
-                </div>
-                </div>
+            {showConfig && (
+                <ControlSectionColumn
+                    label="Configuration"
+                    picker={configPicker}
+                    toggle={
+                        viewMode === undefined ? (
+                            <ViewToggle mode={cfgViewMode} onChange={setCfgViewMode} />
+                        ) : null
+                    }
+                >
+                    {renderBody(configJson, viewMode ?? cfgViewMode)}
+                </ControlSectionColumn>
             )}
         </div>
     );

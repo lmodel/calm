@@ -5,8 +5,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,10 +26,13 @@ public class MongoArchitectureIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoArchitectureIntegration.class);
     public static final String ARCHITECTURE = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupArchitectures() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -42,9 +45,9 @@ public class MongoArchitectureIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
                 database.createCollection("architectures");
-                database.getCollection("architectures").insertOne(
-                        new Document("namespace", "finos").append("architectures", new ArrayList<>())
-                );
+                // Collection only — no per-namespace document. That priming belonged to the old
+                // one-document-per-namespace shape; under the header/version shape it has no id
+                // field, so the header reader surfaces it as a resource named "<Type> null".
             }
 
             counterSetup(database);
@@ -56,7 +59,7 @@ public class MongoArchitectureIntegration {
     @Order(1)
     void end_to_end_get_with_no_architecture() {
         given()
-                .when().get("/calm/namespaces/finos/architectures")
+                .when().get("/api/calm/namespaces/finos/architectures")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -76,7 +79,7 @@ public class MongoArchitectureIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/architectures")
+                .when().post("/api/calm/namespaces/finos/architectures")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/architectures/1"));
@@ -86,7 +89,7 @@ public class MongoArchitectureIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/architectures/1/versions")
+                .when().get("/api/calm/namespaces/finos/architectures/1/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -97,7 +100,7 @@ public class MongoArchitectureIntegration {
     @Order(4)
     void end_to_end_verify_architecture() {
         given()
-                .when().get("/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/architectures/1/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(ARCHITECTURE));
@@ -117,7 +120,7 @@ public class MongoArchitectureIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/architectures/1/versions/9.0.0")
+                .when().post("/api/calm/namespaces/finos/architectures/1/versions/9.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
@@ -137,9 +140,78 @@ public class MongoArchitectureIntegration {
         given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .when().put("/api/calm/namespaces/finos/architectures/1/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_create_a_second_architecture() {
+        String payload = """
+                {
+                     "name": "second",
+                     "description": "second architecture",
+                     "architectureJson": "{\\"name\\": \\"demo-pattern\\"}"
+                }
+                """;
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("calm/namespaces/finos/architectures/2"));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_limit_slices_the_summary_list() {
+        // With two architectures stored, limit=1 must return exactly one via the Mongo $slice
+        // projection, while no limit returns the full list.
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures?limit=1")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    @Order(9)
+    void end_to_end_delete_an_architecture() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/1")
+                .then()
+                .statusCode(204);
+
+        // Deleting removes the whole resource, all versions included — not just the latest.
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .then()
+                .statusCode(404);
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].id", equalTo(2));
+    }
+
+    @Test
+    @Order(10)
+    void end_to_end_delete_a_missing_architecture_returns_404() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/999")
+                .then()
+                .statusCode(404);
     }
 }

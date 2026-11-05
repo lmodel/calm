@@ -1,6 +1,6 @@
 import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
-import { FileSystemDocumentLoader } from './file-system-document-loader';
+import { FileSystemDocumentLoader, isLocalPath, isRelativePath } from './file-system-document-loader';
 import { DocumentLoadError } from './document-loader';
 
 vi.mock('fs/promises', async () => {
@@ -73,5 +73,82 @@ describe('file-system-document-loader', () => {
     it('resolves absolute path when resolvePath is called with relative path and basePath', () => {
         const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
         expect(loader.resolvePath('subdir/file.json')).toBe('/project/subdir/file.json');
+    });
+
+    it('reports a missing local file as a non-recoverable ENOENT error', async () => {
+        const thrown = await fileSystemDocumentLoader.loadMissingDocument('missing.json', 'architecture').catch((e) => e);
+        expect(thrown).toBeInstanceOf(DocumentLoadError);
+        expect(thrown).toMatchObject({ recoverable: false });
+        expect(thrown.message).toMatch(/^ENOENT: no such file or directory, open '\/missing\.json'$/);
+    });
+
+    it('reports a missing file under the base path with its resolved path', async () => {
+        const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
+        const thrown = await loader.loadMissingDocument('standards/missing.json', 'standard').catch((e) => e);
+        expect(thrown).toMatchObject({ recoverable: false });
+        expect(thrown.message).toContain('\'/project/standards/missing.json\'');
+    });
+
+    it('reports invalid JSON in a local file as non-recoverable and names the file', async () => {
+        vol.fromJSON({ '/broken.json': '{ nope' });
+        const thrown = await fileSystemDocumentLoader.loadMissingDocument('broken.json', 'architecture').catch((e) => e);
+        expect(thrown).toBeInstanceOf(DocumentLoadError);
+        expect(thrown).toMatchObject({ recoverable: false });
+        expect(thrown.message).toMatch(/^\/broken\.json is not valid JSON: /);
+        expect(thrown.cause).toBeInstanceOf(SyntaxError);
+    });
+
+    it('keeps a missing URL reference recoverable so other loaders can try it', async () => {
+        const thrown = await fileSystemDocumentLoader.loadMissingDocument('https://example.com/missing_schema.json', 'schema').catch((e) => e);
+        expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+    });
+
+    it.each(['HTTPS://example.com/missing_schema.json', 'urn:example:missing-schema'])(
+        'keeps a missing %s reference recoverable so other loaders can try it', async (reference) => {
+            const thrown = await fileSystemDocumentLoader.loadMissingDocument(reference, 'schema').catch((e) => e);
+            expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+        });
+
+    it.each(['urn:example:schema', 'HTTPS://example.com/schema.json', 'calm:/namespaces/x'])(
+        'does not resolve %s against the base path', (reference) => {
+            const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
+            expect(loader.resolvePath(reference)).toBeUndefined();
+        });
+
+    it('keeps the no-$id schema fallback recoverable', async () => {
+        vol.fromJSON({ '/no-id.json': JSON.stringify({ type: 'object' }) });
+        const thrown = await fileSystemDocumentLoader.loadMissingDocument('no-id.json', 'schema').catch((e) => e);
+        expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+    });
+
+    describe('isRelativePath', () => {
+        it('returns true for relative paths', () => {
+            expect(isRelativePath('foo/bar.json')).toBe(true);
+            expect(isRelativePath('./foo/bar.json')).toBe(true);
+            expect(isRelativePath('../foo/bar.json')).toBe(true);
+        });
+
+        it('returns false for absolute paths', () => {
+            expect(isRelativePath('/foo/bar.json')).toBe(false);
+        });
+
+        it('returns false for URLs', () => {
+            expect(isRelativePath('https://example.com/foo.json')).toBe(false);
+            expect(isRelativePath('file:///foo/bar.json')).toBe(false);
+            expect(isRelativePath('calm:/namespaces/x')).toBe(false);
+        });
+    });
+
+    describe('isLocalPath', () => {
+        it('returns true for relative and absolute paths', () => {
+            expect(isLocalPath('foo/bar.json')).toBe(true);
+            expect(isLocalPath('/foo/bar.json')).toBe(true);
+        });
+
+        it('returns false for URLs', () => {
+            expect(isLocalPath('https://example.com/foo.json')).toBe(false);
+            expect(isLocalPath('file:///foo/bar.json')).toBe(false);
+            expect(isLocalPath('calm:/namespaces/x')).toBe(false);
+        });
     });
 });

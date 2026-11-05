@@ -11,7 +11,10 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
@@ -19,7 +22,9 @@ import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,12 +36,17 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class FlowResource {
 
     private final FlowStore store;
+    private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(FlowResource.class);
 
@@ -44,8 +54,10 @@ public class FlowResource {
     Boolean allowPutOperations;
 
     @Inject
-    public FlowResource(FlowStore store) {
+    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
+        this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -60,7 +72,8 @@ public class FlowResource {
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getFlowsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.FLOW,
+                    store.getFlowsForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving flows", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -81,7 +94,7 @@ public class FlowResource {
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         try {
-            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);
+            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace, "1.0.0");
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);
@@ -111,7 +124,7 @@ public class FlowResource {
 
         try {
             List<String> versions =  store.getFlowVersions(flow);
-            String lastVersion = versions.getLast();
+            String lastVersion = ResourceVersion.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
@@ -162,7 +175,7 @@ public class FlowResource {
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         return getFlowInternal(namespace, flowId, version);
     }
@@ -267,8 +280,33 @@ public class FlowResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/flows/{flowId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a flow",
+            description = "Deletes a flow and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId
+    ) {
+        try {
+            store.deleteFlow(namespace, flowId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting flow", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (FlowNotFoundException e) {
+            logger.error("Invalid flow [{}] when deleting flow", flowId, e);
+            return invalidFlowResponse(flowId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.FLOW, flowId);
+        return Response.noContent().build();
+    }
+
     private Response flowWithLocationResponse(Flow flow) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
     }
 
     private Response invalidFlowJsonResponse(String flowJson) {

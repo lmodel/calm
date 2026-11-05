@@ -5,13 +5,15 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
-import org.finos.calm.domain.flow.NamespaceFlowSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -22,7 +24,9 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,13 +40,16 @@ public class TestFlowResourceShould {
     @InjectMock
     FlowStore mockFlowStore;
 
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
+
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_flows() throws NamespaceNotFoundException {
         when(mockFlowStore.getFlowsForNamespace(anyString())).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
-                .get("/calm/namespaces/invalid/flows")
+                .get("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(404);
 
@@ -51,23 +58,25 @@ public class TestFlowResourceShould {
 
     @Test
     void return_list_of_flow_summaries_when_valid_namespace_provided_on_get_flows() throws NamespaceNotFoundException {
-        List<NamespaceFlowSummary> summaries = Arrays.asList(
-                new NamespaceFlowSummary("Flow One", "First", 12345),
-                new NamespaceFlowSummary("Flow Two", "Second", 54321)
+        List<NamespaceResourceSummary> summaries = Arrays.asList(
+                new NamespaceResourceSummary("Flow One", "First", 12345, 3),
+                new NamespaceResourceSummary("Flow Two", "Second", 54321, 1)
         );
         when(mockFlowStore.getFlowsForNamespace(anyString())).thenReturn(summaries);
 
         given()
                 .when()
-                .get("/calm/namespaces/valid/flows")
+                .get("/api/calm/namespaces/valid/flows")
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Flow One"))
                 .body("values[0].description", equalTo("First"))
                 .body("values[0].id", equalTo(12345))
+                .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Flow Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].versionCount", equalTo(1));
 
         verify(mockFlowStore, times(1)).getFlowsForNamespace("valid");
     }
@@ -83,11 +92,48 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/validNamespace/flows/1")
+                .get("/api/calm/namespaces/validNamespace/flows/1")
                 .then()
                 .statusCode(200);
 
         verify(mockFlowStore, times(1)).getFlowVersions(flowWithoutVersion);
+        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+    }
+
+    @Test
+    void return_the_latest_release_rather_than_a_snapshot_ranked_higher() throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        // A 1.1.0-SNAPSHOT past the published 1.0.0 must not shadow it as "latest".
+        String flowJson = "{ \"test\": \"json\" }";
+        Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("1.0.0", "1.1.0-SNAPSHOT"));
+        Flow expectedFlow = mockFlowBuilder.setVersion("1.0.0").build();
+        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/validNamespace/flows/1")
+                .then()
+                .statusCode(200);
+
+        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+    }
+
+    @Test
+    void return_the_newest_commit_as_latest_for_a_sha_history() throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        // GitHub storage returns SHAs oldest first; the largest SHA string is not the newest.
+        String flowJson = "{ \"test\": \"json\" }";
+        Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("f00dbab", "1a2b3c4", "0cafe12"));
+        Flow expectedFlow = mockFlowBuilder.setVersion("0cafe12").build();
+        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/validNamespace/flows/1")
+                .then()
+                .statusCode(200)
+                .body(equalTo(flowJson));
+
         verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
     }
 
@@ -104,7 +150,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/" + invalidNamespace + "/flows/" + validFlowId)
+                .get("/api/calm/namespaces/" + invalidNamespace + "/flows/" + validFlowId)
                 .then()
                 .statusCode(404);
 
@@ -125,7 +171,7 @@ public class TestFlowResourceShould {
 
         given()
                 .when()
-                .get("/calm/namespaces/" + validNamespace + "/flows/" + invalidFlowId)
+                .get("/api/calm/namespaces/" + validNamespace + "/flows/" + invalidFlowId)
                 .then()
                 .statusCode(404);
 
@@ -135,7 +181,7 @@ public class TestFlowResourceShould {
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_flow() throws NamespaceNotFoundException {
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), anyString()))
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"flowJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
@@ -144,16 +190,16 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/flows")
+                .post("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(404);
 
-        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq("invalid"));
+        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
     void return_a_400_when_invalid_flow_json_is_provided_on_create_flow() throws NamespaceNotFoundException {
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), anyString()))
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), anyString(), anyString()))
                 .thenThrow(new JsonParseException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"flowJson\": \"invalid json\" }";
@@ -162,11 +208,11 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/invalid/flows")
+                .post("/api/calm/namespaces/invalid/flows")
                 .then()
                 .statusCode(400);
 
-        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq("invalid"));
+        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
@@ -181,7 +227,7 @@ public class TestFlowResourceShould {
                 .setNamespace(namespace)
                 .build();
 
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq(namespace))).thenReturn(stubbedReturnFlow);
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq(namespace), eq("1.0.0"))).thenReturn(stubbedReturnFlow);
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"flowJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
 
@@ -189,12 +235,12 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(requestBody)
                 .when()
-                .post("/calm/namespaces/valid/flows")
+                .post("/api/calm/namespaces/valid/flows")
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/calm/namespaces/valid/flows/12/versions/1.0.0"));
+                .header("Location", containsString("/api/calm/namespaces/valid/flows/12/versions/1.0.0"));
 
-        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq(namespace));
+        verify(mockFlowStore, times(1)).createFlowForNamespace(any(CreateFlowRequest.class), eq(namespace), eq("1.0.0"));
     }
 
     static Stream<Arguments> provideParametersForFlowVersionTests() {
@@ -219,14 +265,14 @@ public class TestFlowResourceShould {
             String expectedBody = "{\"values\":[\"1.0.0\",\"1.0.1\"]}";
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo(expectedBody));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -243,10 +289,20 @@ public class TestFlowResourceShould {
     void return_400_error_when_version_is_not_valid_when_getting_flow_version() {
         given()
                 .when()
-                .get("/calm/namespaces/finos/flows/12/versions/invalid-version")
+                .get("/api/calm/namespaces/finos/flows/12/versions/invalid-version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_when_getting_flow_version() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/flows/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetFlowTests() {
@@ -271,14 +327,14 @@ public class TestFlowResourceShould {
         if (expectedStatusCode == 200) {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode)
                     .body(equalTo("{ \"test\": \"json\" }"));
         } else {
             given()
                     .when()
-                    .get("/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
+                    .get("/api/calm/namespaces/" + namespace + "/flows/12/versions/1.0.0")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -300,7 +356,7 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .post("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .post("/api/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -338,16 +394,16 @@ public class TestFlowResourceShould {
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/flows/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/flows/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body(envelopeBody)
                     .when()
-                    .post("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .post("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }
@@ -361,8 +417,66 @@ public class TestFlowResourceShould {
                 .header("Content-Type", "application/json")
                 .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                 .when()
-                .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_flow() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/flows/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteFlowTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new FlowNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteFlowTests")
+    void respond_correctly_to_delete_flow(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws FlowNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockFlowStore).deleteFlow(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/flows/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockFlowStore, times(1)).deleteFlow(namespace, 12);
+    }
+
+    @Test
+    void delete_flow_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/flows/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.FLOW, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_flow() throws Exception {
+        doThrow(new FlowNotFoundException()).when(mockFlowStore).deleteFlow("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/flows/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

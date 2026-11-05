@@ -3,7 +3,7 @@ export type Direction = 'both' | 'in' | 'out';
 export type IncludeContainers = 'none' | 'parents' | 'all';
 export type IncludeChildren = 'none' | 'direct' | 'all';
 export type Edges = 'connected' | 'seeded' | 'all' | 'none';
-export type EdgeLabels = 'description' | 'none';
+export type EdgeLabels = 'description' | 'unique-id' | 'none';
 export type LayoutEngine = 'dagre' | 'elk';
 
 /** -----------------------------
@@ -49,7 +49,7 @@ export interface BlockArchOptions {
     ['focus-controls']?: string;
     ['focus-interfaces']?: string;
     ['highlight-nodes']?: string;
-    ['render-interfaces']?: boolean;
+    ['render-interfaces']?: boolean | 'related';
     ['render-node-type-shapes']?: boolean;
     ['include-containers']?: IncludeContainers;
     ['include-children']?: IncludeChildren;
@@ -69,9 +69,10 @@ export interface BlockArchOptions {
 /** -----------------------------
  * VM Types
  * ------------------------------ */
-export type VMInterface = { id: string; label: string };
-export type VMLeafNode = { id: string; label: string; nodeType?: string; interfaces?: VMInterface[] };
-export type VMContainer = { id: string; label: string; nodeType?: string; nodes: VMLeafNode[]; containers: VMContainer[] };
+/** `sourceId` is the id of the original when `id` is a copy of a node drawn in several containers. */
+export type VMInterface = { id: string; sourceId?: string; label: string };
+export type VMLeafNode = { id: string; sourceId?: string; label: string; nodeType?: string; interfaces?: VMInterface[] };
+export type VMContainer = { id: string; sourceId?: string; label: string; nodeType?: string; nodes: VMLeafNode[]; containers: VMContainer[] };
 export type VMEdge = { id: string; source: string; target: string; label?: string };
 export type VMAttach = { from: string; to: string };
 
@@ -105,7 +106,7 @@ export type NormalizedOptions = {
     edges: Edges;
     nodeTypes?: string[];
     direction: Direction;
-    renderInterfaces: boolean;
+    renderInterfaces: boolean | 'related';
     renderNodeTypeShapes: boolean;
     edgeLabels: EdgeLabels;
     collapseRelationships: boolean;

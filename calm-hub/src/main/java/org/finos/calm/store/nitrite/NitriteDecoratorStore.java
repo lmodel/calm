@@ -1,8 +1,11 @@
 package org.finos.calm.store.nitrite;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
@@ -18,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
@@ -47,6 +51,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
     private final Lock lock = new ReentrantLock();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public NitriteDecoratorStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -58,8 +63,8 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
-        
+        namespaceStore.requireNamespace(namespace);
+
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
             LOG.debug("No decorators found for namespace '{}'", namespace);
@@ -80,7 +85,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -102,7 +107,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -124,7 +129,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document decoratorDoc = parseJsonToNitriteDocument(decoratorJson);
         lock.lock();
@@ -156,7 +161,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     @Override
     public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
-        validateNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document namespaceDoc = fetchNamespaceDocument(namespace);
         if (namespaceDoc == null) {
@@ -182,13 +187,35 @@ public class NitriteDecoratorStore implements DecoratorStore {
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
-    /**
-     * Validates that the namespace exists, throwing an exception if it doesn't
-     */
-    private void validateNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving decorators", namespace);
-            throw new NamespaceNotFoundException();
+    @Override
+    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        lock.lock();
+        try {
+            Document namespaceDoc = fetchNamespaceDocument(namespace);
+            if (namespaceDoc == null) {
+                throw new DecoratorNotFoundException();
+            }
+
+            TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
+            List<Document> decorators = typeSafeDoc.getList(DECORATORS_FIELD);
+            if (decorators == null) {
+                throw new DecoratorNotFoundException();
+            }
+
+            List<Document> mutableDecorators = new ArrayList<>(decorators);
+            boolean removed = mutableDecorators.removeIf(
+                    decoratorEntry -> Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class)));
+            if (!removed) {
+                throw new DecoratorNotFoundException();
+            }
+
+            namespaceDoc.put(DECORATORS_FIELD, mutableDecorators);
+            decoratorCollection.update(namespaceDoc);
+            LOG.debug("Deleted decorator with ID {} in namespace '{}'", id, namespace);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -257,11 +284,37 @@ public class NitriteDecoratorStore implements DecoratorStore {
         return decoratorType != null && decoratorType.equals(type);
     }
 
+    // Nitrite only deserializes its own and JDK types, so no org.bson value may reach the store.
+    // Jackson gives only JDK types and keeps extended-JSON keys such as $numberDecimal as plain data.
     Document parseJsonToNitriteDocument(String json) {
-        return org.bson.Document.parse(json).entrySet().stream()
-                .reduce(Document.createDocument(),
-                        (doc, entry) -> doc.put(entry.getKey(), entry.getValue()),
-                        (d1, d2) -> d1);
+        Map<?, ?> map;
+        try {
+            map = objectMapper.readValue(json, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new JsonParseException(e.getOriginalMessage());
+        }
+        if (map == null) {
+            throw new JsonParseException("Decorator JSON must be an object");
+        }
+        return toNitriteDocument(map);
+    }
+
+    private static Document toNitriteDocument(Map<?, ?> map) {
+        Document doc = Document.createDocument();
+        map.forEach((key, value) -> doc.put(key.toString(), toNitriteValue(value)));
+        return doc;
+    }
+
+    private static Object toNitriteValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return toNitriteDocument(map);
+        }
+        if (value instanceof List<?> list) {
+            List<Object> values = new ArrayList<>(list.size());
+            list.forEach(item -> values.add(toNitriteValue(item)));
+            return values;
+        }
+        return value;
     }
 
     Decorator documentToDecorator(Document doc) {

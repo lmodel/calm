@@ -1,0 +1,299 @@
+import { readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
+import { REFERENCE_PROPERTIES, WorkspaceManifest, resolveFilePath } from './bundle';
+import { initLogger, isSnapshotVersion, Logger } from '@finos/calm-shared';
+import { getJsonReferenceWorkspaceManifest } from './document-kind';
+
+const logger: Logger = initLogger(false, 'workspace');
+
+/**
+ * A rewrite rule for a single tracked document. References pointing at this document — by bare id,
+ * by any versioned CalmHub path, or by full URL — are repointed to `targetPath` (the document's
+ * current `$id`).
+ */
+export type RefRule = {
+    bareId: string;
+    targetPath: string;
+    basePath: string | null;
+};
+
+export type RefUpdateResult = {
+    docId: string;
+    filePath: string;
+    changeCount: number;
+};
+
+/**
+ * Strip the `/versions/<version>` suffix from a CalmHub path.
+ * Returns the base path, or null if the input has no version segment.
+ */
+export function stripVersionSuffix(ref: string): string | null {
+    const m = ref.match(/^(.+?)\/versions\/[^/#]+/);
+    return m ? m[1] : null;
+}
+
+export function stripFragment(ref: string): string {
+    const fragmentIdx = ref.indexOf('#');
+    return fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
+}
+
+/** The version segment at the end of a ref, ignoring any fragment, or null if it has none. */
+export function extractRefVersion(ref: string): string | null {
+    const m = stripFragment(ref).match(/\/versions\/([^/#]+)$/);
+    return m ? m[1] : null;
+}
+
+function isSnapshotPath(path: string): boolean {
+    const version = extractRefVersion(path);
+    return version !== null && isSnapshotVersion(version);
+}
+
+/** Whether `rule` repoints references at a `-SNAPSHOT` version of its document. */
+export function isSnapshotRule(rule: RefRule): boolean {
+    return isSnapshotPath(rule.targetPath);
+}
+
+/**
+ * Splits tracked documents by whether their on-disk `$id` is at a `-SNAPSHOT` version. A document
+ * with no readable versioned `$id` counts as a release, since it cannot be a snapshot.
+ */
+export async function partitionBySnapshot(
+    bundlePath: string,
+    manifest: WorkspaceManifest
+): Promise<{ snapshots: WorkspaceManifest; releases: WorkspaceManifest }> {
+    const snapshots: WorkspaceManifest = {};
+    const releases: WorkspaceManifest = {};
+    for (const [id, entry] of Object.entries(manifest)) {
+        let documentId: unknown;
+        try {
+            documentId = JSON.parse(await readFile(resolveFilePath(bundlePath, entry.path), 'utf8'))?.['$id'];
+        } catch {
+            documentId = undefined;
+        }
+        if (typeof documentId === 'string' && isSnapshotPath(documentId)) {
+            snapshots[id] = entry;
+        } else {
+            releases[id] = entry;
+        }
+    }
+    return { snapshots, releases };
+}
+
+/**
+ * Whether `baseRef` (already fragment-stripped) refers to `rule`'s document, via its CalmHub
+ * path or full URL form. Shared with `findRuleForRef` so rewriting and dependency detection
+ * can't drift on what counts as a reference.
+ */
+function matchesRuleBasePath(baseRef: string, rule: RefRule): boolean {
+    if (!rule.basePath) return false;
+
+    const stripped = stripVersionSuffix(baseRef);
+    if (stripped !== null && stripped === rule.basePath) return true;
+    if (stripped === null && baseRef === rule.basePath) return true;
+
+    if (baseRef.startsWith('http://') || baseRef.startsWith('https://')) {
+        try {
+            const url = new URL(baseRef);
+            const pathBase = stripVersionSuffix(url.pathname);
+            if (rule.basePath.startsWith('http://') || rule.basePath.startsWith('https://')) {
+                const ruleBase = new URL(rule.basePath);
+                return url.origin === ruleBase.origin &&
+                    ((pathBase !== null && pathBase === ruleBase.pathname) || url.pathname === ruleBase.pathname);
+            }
+            return (pathBase !== null && pathBase === rule.basePath) || url.pathname === rule.basePath;
+        } catch {
+            return false;
+        }
+    }
+    return false;
+}
+
+/**
+ * Finds which rule (if any) `ref` currently targets — bare id, exact target path, or the same
+ * document at a different version (path or full-URL form). Used by dependency detection; ignores
+ * fragments.
+ */
+export function findRuleForRef(ref: string, rules: RefRule[]): RefRule | null {
+    const baseRef = stripFragment(ref);
+
+    for (const rule of rules) {
+        if (baseRef === rule.bareId || baseRef === rule.targetPath) return rule;
+        if (matchesRuleBasePath(baseRef, rule)) return rule;
+    }
+    return null;
+}
+
+/**
+ * Decide what a single ref string should be replaced with.
+ * Returns the replacement string, or null if no change is needed.
+ *
+ * Handles three forms, preserving any `#/...` fragment:
+ *  1. Bare ID (e.g. "workshop-pattern") matching a rule's bareId
+ *  2. CalmHub path with a different version (e.g. /calm/namespaces/ns/type/doc/versions/1.0.0)
+ *  3. Full CalmHub URL with a different version (same but prefixed with https://host)
+ */
+export function resolveNewRef(ref: string, rules: RefRule[]): string | null {
+    const fragmentIdx = ref.indexOf('#');
+    const baseRef = fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
+    const fragment = fragmentIdx >= 0 ? ref.slice(fragmentIdx) : '';
+
+    for (const rule of rules) {
+        // Bare ID match
+        if (baseRef === rule.bareId) {
+            return rule.targetPath + fragment;
+        }
+
+        // Already at the target path — no change needed
+        if (baseRef === rule.targetPath) return null;
+
+        if (!matchesRuleBasePath(baseRef, rule)) continue;
+
+        // Full URL form — keep the same origin, replace only the path.
+        if (baseRef.startsWith('http://') || baseRef.startsWith('https://')) {
+            try {
+                const url = new URL(baseRef);
+                const targetPathname = rule.targetPath.startsWith('http://') || rule.targetPath.startsWith('https://')
+                    ? new URL(rule.targetPath).pathname
+                    : rule.targetPath;
+                url.pathname = targetPathname;
+                const replacement = url.toString() + fragment;
+                return replacement !== ref ? replacement : null;
+            } catch {
+                continue;
+            }
+        }
+
+        return rule.targetPath + fragment;
+    }
+    return null;
+}
+
+function replaceRefValue(
+    value: unknown,
+    rules: RefRule[],
+    replacements: Array<{ oldRef: string; newRef: string }>
+): unknown {
+    if (typeof value === 'string') {
+        const newRef = resolveNewRef(value, rules);
+        if (newRef !== null) {
+            replacements.push({ oldRef: value, newRef });
+            return newRef;
+        }
+        return value;
+    }
+    // JSON Schema const form: { "const": "url" }
+    if (value && typeof value === 'object' && 'const' in value) {
+        const constVal = (value as { const: unknown }).const;
+        if (typeof constVal === 'string') {
+            const newRef = resolveNewRef(constVal, rules);
+            if (newRef !== null) {
+                replacements.push({ oldRef: constVal, newRef });
+                return { ...(value as object), const: newRef };
+            }
+        }
+    }
+    return value;
+}
+
+/**
+ * Recursively walk a JSON value, rewriting only the values of REFERENCE_PROPERTIES keys.
+ */
+export function replaceRefsInObject(
+    obj: unknown,
+    rules: RefRule[],
+    replacements: Array<{ oldRef: string; newRef: string }>
+): unknown {
+    if (Array.isArray(obj)) {
+        return obj.map(item => replaceRefsInObject(item, rules, replacements));
+    }
+    if (obj && typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+            if ((REFERENCE_PROPERTIES as readonly string[]).includes(key)) {
+                result[key] = replaceRefValue(value, rules, replacements);
+            } else {
+                result[key] = replaceRefsInObject(value, rules, replacements);
+            }
+        }
+        return result;
+    }
+    return obj;
+}
+
+/**
+ * Build rewrite rules from the *current on-disk* `$id` of each tracked JSON document. Any reference
+ * to a tracked JSON document (bare id, stale versioned path, or full URL) is mapped to that
+ * document's current `$id`. Documents without a usable `$id` are skipped as targets (they can still
+ * contain references that get rewritten). Non-JSON handlers are excluded by document-kind policy.
+ */
+export async function buildRefRulesFromDiskIds(
+    manifest: WorkspaceManifest,
+    bundlePath: string
+): Promise<RefRule[]> {
+    const rules: RefRule[] = [];
+    const jsonManifest = getJsonReferenceWorkspaceManifest(manifest);
+    for (const [id, entry] of Object.entries(jsonManifest)) {
+        const filePath = resolveFilePath(bundlePath, entry.path);
+        if (!existsSync(filePath)) continue;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            const json = JSON.parse(raw);
+            const documentId = json?.['$id'];
+            if (typeof documentId !== 'string' || !documentId.trim()) continue;
+            rules.push({
+                bareId: id,
+                targetPath: documentId,
+                basePath: stripVersionSuffix(documentId),
+            });
+        } catch {
+            // unreadable / invalid JSON — cannot be a rule target
+            continue;
+        }
+    }
+    return rules;
+}
+
+/**
+ * Rewrite references across tracked JSON documents according to the given rules, writing back any
+ * file that changed. Non-JSON handlers are excluded by document-kind policy. Idempotent: a second
+ * run finds references already at their target and is a no-op.
+ */
+export async function syncReferences(
+    bundlePath: string,
+    manifest: WorkspaceManifest,
+    rules: RefRule[]
+): Promise<RefUpdateResult[]> {
+    const results: RefUpdateResult[] = [];
+
+    const jsonManifest = getJsonReferenceWorkspaceManifest(manifest);
+    for (const [id, entry] of Object.entries(jsonManifest)) {
+        const filePath = resolveFilePath(bundlePath, entry.path);
+        if (!existsSync(filePath)) {
+            logger.warn(`File not found for '${id}': ${filePath}`);
+            continue;
+        }
+
+        let json: unknown;
+        try {
+            json = JSON.parse(await readFile(filePath, 'utf8'));
+        } catch (e) {
+            logger.warn(`Could not parse '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+        }
+
+        const replacements: Array<{ oldRef: string; newRef: string }> = [];
+        const updated = replaceRefsInObject(json, rules, replacements);
+
+        if (replacements.length > 0) {
+            logger.info(`${id}:`);
+            for (const r of replacements) {
+                logger.info(`  ${r.oldRef} -> ${r.newRef}`);
+            }
+            await writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
+        }
+
+        results.push({ docId: id, filePath, changeCount: replacements.length });
+    }
+
+    return results;
+}

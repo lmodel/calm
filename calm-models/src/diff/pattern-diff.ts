@@ -1,5 +1,5 @@
 import type { CalmNodeSchema, CalmRelationshipSchema } from '../types/index.js';
-import type { DiffResult } from './diff-types.js';
+import type { NodesAndRelationshipsDiffResult } from './diff-types.js';
 import { canonicalKey, diffNodesAndRelationships } from './diff.js';
 
 type SchemaObject = Record<string, unknown>;
@@ -39,29 +39,54 @@ function collapseSchema(schema: unknown): unknown {
     return undefined;
 }
 
+function alternativesOf(schema: unknown): SchemaObject[] | undefined {
+    if (!isObject(schema)) return undefined;
+    if (Array.isArray(schema['oneOf'])) return schema['oneOf'] as SchemaObject[];
+    if (Array.isArray(schema['anyOf'])) return schema['anyOf'] as SchemaObject[];
+    return undefined;
+}
+
 /**
- * Reads the `prefixItems` for a top-level pattern field (e.g. `nodes`,
- * `relationships`), handling both direct `properties` and `allOf` wrapping.
+ * A pattern may declare a field directly or inside an `allOf` branch, so the
+ * first branch carrying what the caller wants is the one that counts.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+function findField(
+    pattern: SchemaObject,
+    key: string,
+    carries: (field: SchemaObject) => boolean,
+): SchemaObject | undefined {
     const direct = isObject(pattern['properties'])
         ? pattern['properties'][key]
         : undefined;
-    if (isObject(direct) && Array.isArray(direct['prefixItems'])) {
-        return direct['prefixItems'] as SchemaObject[];
+    if (isObject(direct) && carries(direct)) {
+        return direct;
     }
 
     if (Array.isArray(pattern['allOf'])) {
         for (const sub of pattern['allOf']) {
             if (!isObject(sub) || !isObject(sub['properties'])) continue;
             const field = sub['properties'][key];
-            if (isObject(field) && Array.isArray(field['prefixItems'])) {
-                return field['prefixItems'] as SchemaObject[];
+            if (isObject(field) && carries(field)) {
+                return field;
             }
         }
     }
 
-    return [];
+    return undefined;
+}
+
+function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+    const field = findField(pattern, key, (f) => Array.isArray(f['prefixItems']));
+    return (field?.['prefixItems'] as SchemaObject[]) ?? [];
+}
+
+/**
+ * A catalogue declares its members under `items`. Returned as one more choice
+ * block so expandAlternatives flattens it like any other.
+ */
+function getCatalogue(pattern: SchemaObject, key: string): SchemaObject[] {
+    const field = findField(pattern, key, (f) => alternativesOf(f['items']) !== undefined);
+    return field ? [field['items'] as SchemaObject] : [];
 }
 
 /**
@@ -71,11 +96,7 @@ function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
 function expandAlternatives(prefixItems: SchemaObject[]): SchemaObject[] {
     const expanded: SchemaObject[] = [];
     for (const item of prefixItems) {
-        const alternatives = Array.isArray(item['oneOf'])
-            ? item['oneOf']
-            : Array.isArray(item['anyOf'])
-                ? item['anyOf']
-                : null;
+        const alternatives = alternativesOf(item);
         if (alternatives) {
             for (const alt of alternatives) {
                 if (isObject(alt)) expanded.push(alt);
@@ -114,18 +135,23 @@ interface PatternPartition {
     undiffable: unknown[];
 }
 
+
+function declarationsFor(pattern: SchemaObject, key: string): SchemaObject[] {
+    return [...getPrefixItems(pattern, key), ...getCatalogue(pattern, key)];
+}
+
 /**
- * Collapses each (already alternative-expanded) prefix item and sorts it into:
+ * Collapses each (already alternative-expanded) declaration and sorts it into:
  * `pinned` (has a `const` `unique-id` → diff by id), `content` (no pinned id but
  * still constrains fields → diff by content), or `undiffable` (declares a
  * node/relationship but pins nothing comparable). Unconstrained decision/options
  * constructs that don't declare a `unique-id` are skipped entirely.
  */
-function partitionPrefixItems(prefixItems: SchemaObject[]): PatternPartition {
+function partitionDeclarations(declarations: SchemaObject[]): PatternPartition {
     const pinned: Record<string, unknown>[] = [];
     const content: Record<string, unknown>[] = [];
     const undiffable: unknown[] = [];
-    for (const item of expandAlternatives(prefixItems)) {
+    for (const item of expandAlternatives(declarations)) {
         const collapsed = collapseSchema(item);
         if (hasUniqueId(collapsed)) {
             pinned.push(collapsed);
@@ -146,8 +172,8 @@ function partitionPattern(pattern: unknown): { nodes: PatternPartition; relation
         };
     }
     return {
-        nodes: partitionPrefixItems(getPrefixItems(pattern, 'nodes')),
-        relationships: partitionPrefixItems(getPrefixItems(pattern, 'relationships')),
+        nodes: partitionDeclarations(declarationsFor(pattern, 'nodes')),
+        relationships: partitionDeclarations(declarationsFor(pattern, 'relationships')),
     };
 }
 
@@ -221,10 +247,10 @@ export function normalisePatternToInstance(pattern: unknown): {
  * that still constrain content are diffed by content as an order-insensitive
  * multiset (add/remove/same — never modified). Items that pin nothing comparable
  * are reported under `undiffableItems` and contribute to `hasChanges` so
- * `--exit-code` doesn't pass on them silently. Returns the same `DiffResult`
- * shape as {@link diffArchitectures}.
+ * `--exit-code` doesn't pass on them silently. Returns the same `NodesAndRelationshipsDiffResult`
+ * shape as {@link diffNodesAndRelationships}.
  */
-export function diffPatterns(patternA: unknown, patternB: unknown): DiffResult {
+export function diffPatterns(patternA: unknown, patternB: unknown): NodesAndRelationshipsDiffResult {
     const a = partitionPattern(patternA);
     const b = partitionPattern(patternB);
 

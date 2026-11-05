@@ -124,25 +124,26 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 - For `relationship-id`: The specified relationship must exist in the `relationships` array.
 
 **Supported relationship types:**
-- **Interacts**: Actor-to-node interactions (e.g., "User -- Interacts --> Frontend")
-- **Connects**: Direct connections between services (e.g., "API -- Connects --> Database")
-- **Composed-of**: Container composition relationships (e.g., "System -- Composed Of --> Service")
-- **Deployed-in**: Deployment relationships (e.g., "Cluster -- Deployed In --> Service")
+- **Interacts**: Actor-to-node interactions (e.g., "User[User] -- Interacts --> Frontend[Frontend App]")
+- **Connects**: Direct connections between services (e.g., "api[API] -- Connects --> db[Database]")
+- **Composed-of**: Container composition relationships (e.g., "sys[System] -- Composed Of --> svc[Service]")
+- **Deployed-in**: Deployment relationships (e.g., "svc[Service] -- Deployed In --> cluster[Cluster]")
 
 **Output behavior:**
 - **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
 - **Relationship perspective**: When using `relationship-id`, shows just that specific relationship
 - **Container filtering**: Automatically filters relationships based on the focus node (container vs. service perspective)
+- **Labels**: Every node reference is labeled with its `name`
 
 **Example outputs:**
 
 *Node view (`node-id="load-balancer"`)* - Shows the load balancer and all its connections:
 ```mermaid
 graph TD;
-load-balancer[load-balancer]:::highlight;
-conference-website -- Connects --> load-balancer;
-load-balancer -- Connects --> attendees;
-k8s-cluster -- Deployed In --> load-balancer;
+load-balancer[Load Balancer]:::highlight;
+conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
+load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
+load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
 classDef highlight fill:#f2bbae;
 ```
 
@@ -200,6 +201,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 **What it shows**
 - **Containers (systems)** as Mermaid subgraphs, with contained **nodes (services, dbs, etc.)** inside.
+- A node in more than one container (for example a namespace `deployed-in` several clusters) is drawn in each container, with everything nested in it. Edges connect the copies that are in the same container, and links go to the original node.
 - Optional **interfaces** as dotted attachments to their parent node.
 - **Edges** for `connects`/`interacts` relationships, using the relationship **`description`** as the label when present.
 - **Highlights** for any nodes listed in `highlight-nodes`.
@@ -220,13 +222,13 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 | `highlight-nodes`     | string (CSV) | — | Nodes to visually highlight. |
 | `render-node-type-shapes` | boolean | `false` | If `true`, render nodes with different Mermaid shapes based on their `node-type`. Supports built-in CALM types: `actor`, `database`, `webclient`, `service`, `system`, `messagebus`. |
 | `node-type-map`       | stringified JSON map | — | Custom mapping of node types to built-in shapes, e.g. `{"cache": "database", "queue": "messagebus"}`. Only used when `render-node-type-shapes` is `true`. |
-| `render-interfaces`   | boolean | `false` | If `true`, render each node’s `interfaces` as small interface boxes connected by dotted lines. |
+| `render-interfaces`   | `false \| true \| ‘related’` | `false` | Controls interface rendering. `true` renders all interfaces as small boxes connected by dotted lines. `related` renders only interfaces that appear in the active (filtered) relationships — hiding all others, including unrelated interfaces on seed nodes. Useful with `focus-interfaces` + `edges=connected` to show only the relevant interface endpoints. |
 | `include-containers`  | `'none' \| 'parents' \| 'all'` | `'all'` | Which containers (systems) to draw. |
 | `include-children`    | `'none' \| 'direct' \| 'all'` | `'all'` | When focusing container nodes, include their direct/all descendants. |
 | `edges`               | `'connected' \| 'seeded' \| 'all' \| 'none'` | `'connected'` | For non-flow views, expand visible set with directly connected neighbors. When flows are focused, only flow edges are shown. |
 | `node-types`          | string (CSV) | — | Only include nodes whose `node-type` is in this list. |
 | `direction`           | `'both' \| 'in' \| 'out'` | `'both'` | Reserved (currently not used by the renderer). |
-| `edge-labels`         | `'description' \| 'none'` | `'description'` | Use the relationship `description` for edge labels; or hide labels entirely. |
+| `edge-labels`         | `'description' \| 'unique-id' \| 'none'` | `'description'` | Edge label source: the relationship `description`, its `unique-id`, or no label. |
 | `collapse-relationships` | boolean                                      |         `false` | If `true`, multiple relationships between same source and destination are collapsed into single edge with combined labels.                                                           |
 | `link-prefix`         | string | — | Prefix for clickable `click` links in Mermaid (e.g., `/docs/` makes `/docs/<node-id>`). |
 | `link-map`            | stringified JSON map | — | Explicit per-id links, e.g. `{"trade-svc": "/svc/trade"}`. Map entries override `link-prefix`. |
@@ -329,6 +331,7 @@ For more examples, see the test fixtures:
 - [Basic structures](./test-fixtures/block-architecture-widget/basic-structures/)
 - [Enterprise trading system](./test-fixtures/block-architecture-widget/enterprise-bank-trading/)
 - [Interface variations](./test-fixtures/block-architecture-widget/interface-variations/)
+- [Render related interfaces only](./test-fixtures/block-architecture-widget/render-interfaces-related/)
 - [Focus flows](./test-fixtures/block-architecture-widget/focus-flows/)
 - [Domain interaction](./test-fixtures/block-architecture-widget/domain-interaction/)
 - [Node type shapes](./test-fixtures/block-architecture-widget/node-type-shapes/)

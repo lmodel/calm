@@ -1,0 +1,1345 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Command } from 'commander';
+import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST } from '@finos/calm-models/types';
+import { setupWorkspaceCommands } from './commands';
+
+const mocks = vi.hoisted(() => {
+    return {
+        ensureWorkspaceBundle: vi.fn(async () => '/fake/bundle'),
+        getActiveWorkspace: vi.fn<() => Promise<string | null>>(async () => 'default'),
+        listWorkspaces: vi.fn(async () => ['default', 'other']),
+        setActiveWorkspace: vi.fn(async () => { }),
+        cleanWorkspaceBundle: vi.fn(async () => { }),
+        cleanAllWorkspaces: vi.fn(async () => { }),
+        addFileToBundle: vi.fn(async () => ({ id: 'test-doc', destPath: '/fake/bundle/files/test.json', rel: 'files/test.json' })),
+        printBundleTree: vi.fn(async () => { }),
+        createNewDocument: vi.fn(async () => '/fake/repo/com.example-architecture-my-arch.json'),
+        getTemplatesForType: vi.fn(async () => ['empty']),
+        pushWorkspaceToHub: vi.fn(async () => { }),
+        detectChangedResources: vi.fn(async () => []),
+        loggerError: vi.fn(),
+        loggerWarn: vi.fn(),
+        bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
+        markAsSnapshot: vi.fn(async () => ({ id: 'doc-a', fromVersion: '1.0.0', toVersion: '1.1.0-SNAPSHOT' })),
+        releaseSnapshot: vi.fn(async () => ({ id: 'doc-a', fromVersion: '1.1.0-SNAPSHOT', toVersion: '1.1.0' })),
+        findSnapshotDependencyViolations: vi.fn(async () => []),
+        listSnapshotCandidates: vi.fn(async () => ({ releases: ['doc-a'], snapshots: ['doc-b'] })),
+        runPostBumpValidation: vi.fn(async () => []),
+        loadPostBumpValidationOptions: vi.fn<() => Promise<object | undefined>>(async () => ({})),
+        loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
+        findWorkspaceManifestPath: vi.fn<() => string | null>(() => '/fake/bundle'),
+        findProjectRoot: vi.fn<() => string>(() => '/fake/repo'),
+        loadManifest: vi.fn(async () => ({})),
+        removeDocumentFromManifest: vi.fn(async () => true),
+        loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
+        loadAuthPlugin: vi.fn(async () => ({ getAuthHeaders: vi.fn(async () => ({})) })),
+        CalmHubClient: vi.fn().mockImplementation(function() {
+            return {
+                isMockClient: true,
+                getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '---\ntitle: Payments SAD\n---\n# Payments\n' })),
+                createNarrativeDocument: vi.fn(),
+                createNarrativeDocumentVersion: vi.fn(),
+            };
+        }),
+        select: vi.fn(async () => 'architecture'),
+        input: vi.fn(async () => 'prompted-name'),
+        readFile: vi.fn(async () => JSON.stringify({ title: 'My Architecture' })),
+        writeFile: vi.fn(async () => { }),
+        promptForDocumentId: vi.fn(async () => ({
+            id: 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0',
+            namespace: 'ns',
+            slug: 'my-arch',
+        })),
+        isConformantDocumentId: vi.fn(() => true),
+        namespaceFromDocumentId: vi.fn(() => 'ns'),
+    };
+});
+
+vi.mock('./workspace', () => ({
+    ensureWorkspaceBundle: mocks.ensureWorkspaceBundle,
+    getActiveWorkspace: mocks.getActiveWorkspace,
+    listWorkspaces: mocks.listWorkspaces,
+    setActiveWorkspace: mocks.setActiveWorkspace,
+    cleanWorkspaceBundle: mocks.cleanWorkspaceBundle,
+    cleanAllWorkspaces: mocks.cleanAllWorkspaces,
+}));
+
+vi.mock('./bundle', () => ({
+    addFileToBundle: mocks.addFileToBundle,
+    loadManifest: mocks.loadManifest,
+}));
+
+vi.mock('./tree', () => ({
+    printBundleTree: mocks.printBundleTree,
+}));
+
+vi.mock('./rm', () => ({
+    removeDocumentFromManifest: mocks.removeDocumentFromManifest,
+}));
+
+vi.mock('./new', () => ({
+    createNewDocument: mocks.createNewDocument,
+    getTemplatesForType: mocks.getTemplatesForType,
+}));
+
+vi.mock('./push', () => ({
+    pushWorkspaceToHub: mocks.pushWorkspaceToHub,
+}));
+
+vi.mock('./bump', () => ({
+    detectChangedResources: mocks.detectChangedResources,
+    bumpWorkspace: mocks.bumpWorkspace,
+}));
+
+vi.mock('./snapshot', () => ({
+    markAsSnapshot: mocks.markAsSnapshot,
+    releaseSnapshot: mocks.releaseSnapshot,
+    findSnapshotDependencyViolations: mocks.findSnapshotDependencyViolations,
+    listSnapshotCandidates: mocks.listSnapshotCandidates,
+}));
+
+vi.mock('./post-bump-validate', () => ({
+    runPostBumpValidation: mocks.runPostBumpValidation,
+    loadPostBumpValidationOptions: mocks.loadPostBumpValidationOptions,
+}));
+
+vi.mock('./config', () => ({
+    loadWorkspaceConfig: mocks.loadWorkspaceConfig,
+}));
+
+vi.mock('../../workspace-resolver', () => ({
+    findWorkspaceManifestPath: mocks.findWorkspaceManifestPath,
+    findProjectRoot: mocks.findProjectRoot,
+}));
+
+vi.mock('../../cli-config', () => ({
+    loadCliConfig: mocks.loadCliConfig,
+    loadAuthPlugin: mocks.loadAuthPlugin,
+}));
+
+vi.mock('./document-id-prompt', () => ({
+    promptForDocumentId: mocks.promptForDocumentId,
+}));
+
+vi.mock('fs/promises', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('fs/promises')>();
+    return { ...actual, readFile: mocks.readFile, writeFile: mocks.writeFile };
+});
+
+vi.mock('@inquirer/prompts', () => ({
+    select: mocks.select,
+    input: mocks.input,
+}));
+
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
+    CalmHubClient: mocks.CalmHubClient,
+    isConformantDocumentId: mocks.isConformantDocumentId,
+    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
+    initLogger: () => ({
+        info: vi.fn(),
+        warn: mocks.loggerWarn,
+        error: mocks.loggerError,
+        debug: vi.fn(),
+    }),
+}));
+
+describe('setupWorkspaceCommands', () => {
+    let program: Command;
+    let exitSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+        program = new Command();
+        program.exitOverride();
+        setupWorkspaceCommands(program);
+        vi.clearAllMocks();
+        exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
+    });
+
+    afterEach(() => {
+        exitSpy.mockRestore();
+    });
+
+    describe('workspace init', () => {
+        it('should call ensureWorkspaceBundle with the given name', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'init', 'my-ws']);
+            expect(mocks.ensureWorkspaceBundle).toHaveBeenCalledWith(
+                expect.any(String),
+                'my-ws'
+            );
+        });
+
+        it('should call ensureWorkspaceBundle with custom dir', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'init', 'my-ws', '--dir', '/custom/dir']);
+            expect(mocks.ensureWorkspaceBundle).toHaveBeenCalledWith(
+                '/custom/dir',
+                'my-ws'
+            );
+        });
+
+        it('should exit on error', async () => {
+            mocks.ensureWorkspaceBundle.mockRejectedValueOnce(new Error('init failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'init', 'ws'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    const CONFORMANT_ID = 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0';
+
+    describe('workspace add', () => {
+        it('describes the actual --id default behavior in help text', () => {
+            const add = program.commands.find(command => command.name() === 'workspace')!.commands
+                .find(command => command.name() === 'add')!;
+            const idOption = add.options.find(option => option.flags.includes('--id'));
+            expect(idOption?.description).toBe(
+                'Document ID to register for this file (defaults to document title or flow name, else prompts)'
+            );
+            const normalizedHelp = add.helpInformation().replace(/\s+/g, ' ');
+            expect(normalizedHelp).toContain(
+                'Document ID to register for this file (defaults to document title or flow name, else prompts)'
+            );
+            expect(normalizedHelp).not.toContain('filename without extension');
+        });
+        it('derives narrative Commander choices from the canonical list', () => {
+            const add = program.commands.find(command => command.name() === 'workspace')!.commands
+                .find(command => command.name() === 'add')!;
+            const typeOption = add.options.find(option => option.flags.includes('--type')) as unknown as { argChoices: string[] };
+            expect(typeOption.argChoices).toEqual(expect.arrayContaining(CALM_NARRATIVE_DOCUMENT_TYPES_LIST));
+        });
+        it('builds a $id when the file has none, writes it back, and adds with the derived namespace', async () => {
+            // readFile mock returns JSON with title 'My Architecture' and no $id.
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalledWith(expect.objectContaining({ documentType: 'architecture' }));
+            expect(mocks.writeFile).toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'My Architecture', type: 'architecture', namespace: 'ns' })
+            );
+        });
+
+        it('leaves a conformant $id untouched and adds with the namespace derived from it', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'My Architecture', type: 'architecture', namespace: 'ns' })
+            );
+        });
+
+        it('warns about a non-conformant $id but still adds the file to the bundle', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: 'not-conformant', title: 'My Architecture' }));
+            mocks.isConformantDocumentId.mockReturnValueOnce(false);
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.stringContaining('is not a conformant CalmHub id'));
+            expect(mocks.addFileToBundle).toHaveBeenCalled();
+        });
+
+        it('treats a flow $id as conformant and derives its namespace', async () => {
+            const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
+            mocks.isConformantDocumentId.mockImplementationOnce(actual.isConformantDocumentId);
+            mocks.namespaceFromDocumentId.mockImplementationOnce(actual.namespaceFromDocumentId);
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'A flow',
+                transitions: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--type', 'flow', '--id', 'my-flow']);
+
+            expect(mocks.loggerWarn).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'my-flow', type: 'flow', namespace: 'finos' })
+            );
+        });
+
+        it('uses the name of a flow with no title as the manifest name', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                transitions: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--type', 'flow']);
+
+            expect(mocks.input).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'My Flow', type: 'flow' })
+            );
+        });
+
+        it('prompts for a manifest name when an architecture has a name and no title', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, name: 'Named' }));
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.input).toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'prompted-name', type: 'architecture' })
+            );
+        });
+
+        it('takes the document type from a conformant $id when --type is omitted', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/ns/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'A flow',
+                transitions: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--id', 'my-flow']);
+
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.readFile).toHaveBeenCalledTimes(1);
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'my-flow', type: 'flow' })
+            );
+        });
+
+        it('takes the control type from a control requirement $id when --type is omitted', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0',
+                title: 'Access Control',
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'ac.json']);
+
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('ac.json'),
+                expect.objectContaining({ id: 'Access Control', type: 'control' })
+            );
+        });
+
+        it('rejects a --type that does not match the $id, without adding the file', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'arch.json', '--type', 'flow', '--id', 'my-arch'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'flow' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('rejects a --type that does not match a control requirement $id', async () => {
+            const requirementId = 'https://calmhub.example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0';
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: requirementId, title: 'Access Control' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'ac.json', '--type', 'schema'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'schema' does not match the $id '${requirementId}', which needs document type 'control'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('rejects --type control for a namespace resource $id', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'arch.json', '--type', 'control'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'control' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it.each(['timeline', 'adr'])('rejects --type %s for a conformant CalmHub $id, without adding the file', async (type) => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Doc' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', `${type}.json`, '--type', type])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type '${type}' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('fails before prompting for a type when the file cannot be read', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('EACCES: permission denied'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'locked.json'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('EACCES: permission denied'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('fails when the file cannot be read, even with --type', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('ENOENT: no such file'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'missing.json', '--type', 'architecture', '--id', 'x'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('ENOENT: no such file'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('accepts --type control for a control configuration $id', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/domains/security/controls/ac/configurations/prod/versions/1.0.0',
+                title: 'Access Control (prod)',
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'ac-prod.json', '--type', 'control']);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('ac-prod.json'),
+                expect.objectContaining({ type: 'control' })
+            );
+        });
+
+        it('should prompt for a manifest name when the file has no title field', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID }));
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.input).toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'prompted-name', type: 'architecture' })
+            );
+        });
+
+        it('should use --id and --type when provided, skipping prompts', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--id', 'custom-id', '--type', 'pattern', '--copy']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'custom-id', copy: true, type: 'pattern' })
+            );
+        });
+
+        it('registers Markdown using its frontmatter title without rewriting it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            mocks.readFile.mockResolvedValueOnce(markdown);
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos']);
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('payments.md'),
+                expect.objectContaining({ id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it.each([
+            ['1', 1],
+            ['42', 42],
+            ['123456', 123456],
+        ])('recovers a verified narrative document with canonical ID %s', async (rawDocumentId, documentId) => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            mocks.readFile.mockResolvedValueOnce(markdown);
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', rawDocumentId, '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'https://explicit.example.com' }));
+            const client = mocks.CalmHubClient.mock.results[0].value;
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', documentId, '1.2.0');
+            expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+            expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith('/fake/bundle', expect.stringContaining('payments.md'), expect.objectContaining({
+                id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.2.0', calmHubDocumentId: documentId,
+                calmHubId: `/api/calm/namespaces/finos/documents/sad/${documentId}/versions/1.2.0`,
+            }));
+        });
+
+        it.each(['local LF', 'local CRLF'])('recovers equivalent narrative line endings (%s)', async (direction) => {
+            const lf = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            const crlf = lf.replace(/\n/g, '\r\n');
+            mocks.readFile.mockResolvedValueOnce(direction === 'local LF' ? lf : crlf);
+            const client = { getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: direction === 'local LF' ? crlf : lf }) };
+            mocks.CalmHubClient.mockImplementationOnce(function() { return client; });
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', 42, '1.2.0');
+            expect(mocks.addFileToBundle).toHaveBeenCalledOnce();
+        });
+
+        it('uses configured CalmHub URL and authentication for recovery', async () => {
+            const authPlugin = { getAuthHeaders: vi.fn(async () => ({})) };
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://configured.example.com', authPluginPath: 'auth.ts' });
+            mocks.loadAuthPlugin.mockResolvedValueOnce(authPlugin);
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ]);
+
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith({ calmHubUrl: 'https://configured.example.com', authPlugin });
+        });
+
+        it('rejects recovery when neither an explicit nor configured Hub URL exists', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce(null);
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.loadCliConfig).toHaveBeenCalled();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it.each(['0', '-1', '1.5', '1e2', ' 42', '42 ', '01', '+42', '9007199254740992'])(
+            'rejects non-canonical or unsafe narrative recovery ID %j', async (documentId) => {
+                await expect(program.parseAsync([
+                    'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                    '--calm-hub-document-id', documentId, '--ver', '1.2.0'
+                ])).rejects.toThrow();
+                expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+                expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+            }
+        );
+
+        it('rejects an invalid recovery version', async () => {
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', 'invalid'
+            ])).rejects.toThrow();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('preserves --id as the recovery manifest key', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--id', 'payments-archive', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith('/fake/bundle', expect.any(String), expect.objectContaining({ id: 'payments-archive' }));
+        });
+
+        it.each([
+            ['--calm-hub-document-id', '42'],
+            ['--ver', '1.2.0'],
+            ['--calm-hub-url', 'https://explicit.example.com'],
+        ])('rejects incomplete narrative recovery options (%s)', async (option, value) => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', option, value])).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+        });
+
+        it('rejects recovery without a narrative type or namespace before Hub calls', async () => {
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'architecture', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('does not change the manifest when recovered Markdown differs', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Local\n');
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('requires a namespace when adding a narrative document', async () => {
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'knowledge'])
+            ).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('does not mutate or register Markdown with malformed frontmatter', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: [\n---\n# Payments\n');
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos'])
+            ).rejects.toThrow();
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('should exit when no workspace bundle found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'architecture', '--id', 'test'])
+            ).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('should exit on addFileToBundle error', async () => {
+            mocks.addFileToBundle.mockRejectedValueOnce(new Error('add failed'));
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'architecture', '--id', 'test'])
+            ).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('should exit on an invalid --type without adding to the bundle', async () => {
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json', '--type', 'not-a-type', '--id', 'test'])
+            ).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('workspace tree', () => {
+        it('should call printBundleTree', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'tree']);
+            expect(mocks.printBundleTree).toHaveBeenCalledWith('/fake/bundle');
+        });
+
+        it('should exit when no workspace bundle found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'tree'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('should exit on error', async () => {
+            mocks.printBundleTree.mockRejectedValueOnce(new Error('tree failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'tree'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace list', () => {
+        it('should call listWorkspaces and getActiveWorkspace', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'list']);
+            expect(mocks.listWorkspaces).toHaveBeenCalledWith('/fake/repo');
+            expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/repo');
+        });
+
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'list']);
+            expect(mocks.listWorkspaces).toHaveBeenCalledWith('/fake/cwd-no-git');
+        });
+
+        it('should handle empty workspace list', async () => {
+            mocks.listWorkspaces.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'list']);
+            expect(mocks.listWorkspaces).toHaveBeenCalled();
+        });
+
+        it('should exit on error', async () => {
+            mocks.listWorkspaces.mockRejectedValueOnce(new Error('list failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'list'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace show', () => {
+        it('should call getActiveWorkspace and load the manifest', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/repo');
+            expect(mocks.loadManifest).toHaveBeenCalledWith('/fake/bundle');
+        });
+
+        it('should handle no active workspace', async () => {
+            mocks.getActiveWorkspace.mockResolvedValueOnce(null);
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.loadManifest).not.toHaveBeenCalled();
+        });
+
+        it('should skip manifest when no bundle path is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.loadManifest).not.toHaveBeenCalled();
+        });
+
+        it('logs "no documents" when manifest is empty', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({});
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.loadManifest).toHaveBeenCalled();
+        });
+
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/cwd-no-git');
+        });
+
+        it('should exit on error', async () => {
+            mocks.getActiveWorkspace.mockRejectedValueOnce(new Error('show failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'show'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace rm', () => {
+        it('removes a document by ID when provided', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            await program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a']);
+            expect(mocks.removeDocumentFromManifest).toHaveBeenCalledWith('/fake/bundle', 'doc-a');
+        });
+
+        it('prompts for ID when not provided', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            mocks.select.mockResolvedValueOnce('doc-a');
+            await program.parseAsync(['node', 'test', 'workspace', 'rm']);
+            expect(mocks.select).toHaveBeenCalled();
+            expect(mocks.removeDocumentFromManifest).toHaveBeenCalledWith('/fake/bundle', 'doc-a');
+        });
+
+        it('does nothing when the bundle is empty', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({});
+            await program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a']);
+            expect(mocks.removeDocumentFromManifest).not.toHaveBeenCalled();
+        });
+
+        it('exits when no workspace bundle found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on error', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            mocks.removeDocumentFromManifest.mockRejectedValueOnce(new Error('rm failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'rm', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace switch', () => {
+        it('should call setActiveWorkspace', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'switch', 'other']);
+            expect(mocks.setActiveWorkspace).toHaveBeenCalledWith('/fake/repo', 'other');
+        });
+
+        it('should exit when workspace not found', async () => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'switch', 'nonexistent'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'switch', 'other']);
+            expect(mocks.setActiveWorkspace).toHaveBeenCalledWith('/fake/cwd-no-git', 'other');
+        });
+
+        it('should exit on error', async () => {
+            mocks.listWorkspaces.mockRejectedValueOnce(new Error('switch failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'switch', 'other'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace clean', () => {
+        it('should call cleanWorkspaceBundle for active workspace', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'clean']);
+            expect(mocks.cleanWorkspaceBundle).toHaveBeenCalledWith('/fake/repo', 'default');
+        });
+
+        it('should call cleanAllWorkspaces with --all flag', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'clean', '--all']);
+            expect(mocks.cleanAllWorkspaces).toHaveBeenCalledWith('/fake/repo');
+        });
+
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'clean']);
+            expect(mocks.cleanWorkspaceBundle).toHaveBeenCalledWith('/fake/cwd-no-git', 'default');
+        });
+
+        it('should exit when no active workspace and no --all flag', async () => {
+            mocks.getActiveWorkspace.mockResolvedValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'clean'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('should exit on error', async () => {
+            mocks.cleanWorkspaceBundle.mockRejectedValueOnce(new Error('clean failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'clean'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace new', () => {
+        it('builds the $id interactively and registers the document under the mapping slug', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalled();
+            expect(mocks.createNewDocument).toHaveBeenCalledWith(
+                'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0',
+                'my-arch',
+                'architecture',
+                'my-arch',
+                'empty'
+            );
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                '/fake/repo/com.example-architecture-my-arch.json',
+                { id: 'my-arch', type: 'architecture', namespace: 'ns' }
+            );
+        });
+
+        it('passes the document type to the $id prompt, so a new flow gets a flows $id', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'new', 'flow', 'My Flow']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalledWith(expect.objectContaining({ documentType: 'flow' }));
+        });
+
+        it('exits when no workspace bundle is found, before prompting', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch'])
+            ).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
+        });
+
+        it('exits on createNewDocument error', async () => {
+            mocks.createNewDocument.mockRejectedValueOnce(new Error('create failed'));
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'new', 'architecture', 'my-arch'])
+            ).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace push', () => {
+        it('calls pushWorkspaceToHub with a CalmHubClient instance', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith({
+                calmHubUrl: 'https://calmhub.example.com',
+            });
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { failIfModified: false }
+            );
+        });
+
+        it('passes failIfModified: true from --fail-if-modified', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'push', '--fail-if-modified']);
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { failIfModified: true }
+            );
+        });
+
+        it('passes failIfModified from the central workspace config', async () => {
+            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { failIfModified: true }, bump: { defaultIncrement: 'MINOR' } } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { failIfModified: true }
+            );
+        });
+
+        it('still loads workspace config, falling back to the resolved project root, when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.loadWorkspaceConfig).toHaveBeenCalledWith('/fake/cwd-no-git');
+            expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                { failIfModified: false }
+            );
+        });
+
+        it('uses --calm-hub-url over the value from config', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'push', '--calm-hub-url', 'https://override.example.com']);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith({
+                calmHubUrl: 'https://override.example.com',
+            });
+        });
+
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
+        });
+
+        it('exits when no workspace bundle is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits when no CalmHub URL is configured', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({} as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on pushWorkspaceToHub error', async () => {
+            mocks.pushWorkspaceToHub.mockRejectedValueOnce(new Error('push failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace check', () => {
+        it('reports up to date and does not exit when nothing changed', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.detectChangedResources).toHaveBeenCalledWith('/fake/bundle', expect.objectContaining({ isMockClient: true }));
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
+        });
+
+        it('exits 1 when changed documents need bumping', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/x', metadata: {}, currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+            ] as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on detectChangedResources error', async () => {
+            mocks.detectChangedResources.mockRejectedValueOnce(new Error('boom'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('reports an unsupported manifest entry in the check result', async () => {
+            mocks.detectChangedResources.mockRejectedValueOnce(
+                new Error('Unsupported workspace entry/entries: invalid: Unsupported workspace document type \'undefined\'.')
+            );
+
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.loggerError).toHaveBeenCalledWith(
+                'Failed to check workspace: Unsupported workspace entry/entries: invalid: Unsupported workspace document type \'undefined\'.'
+            );
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('sets up validation with the resolved CalmHub options and the loaded auth plugin', async () => {
+            const authPlugin = { getAuthHeaders: vi.fn(async () => ({})) };
+            const validationOptions = { calmHubUrl: 'https://hub.example.com' };
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/fake/plugin.js' } as never);
+            mocks.loadAuthPlugin.mockResolvedValueOnce(authPlugin);
+            mocks.loadPostBumpValidationOptions.mockResolvedValueOnce(validationOptions);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check', '--calm-hub-url', 'https://hub.example.com']);
+            expect(mocks.loadPostBumpValidationOptions).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.anything(),
+                expect.objectContaining({ calmHubUrl: 'https://hub.example.com', authPlugin })
+            );
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), validationOptions);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledTimes(1);
+        });
+
+        it('stops before it compares with CalmHub when the validation config cannot be set up', async () => {
+            mocks.loadPostBumpValidationOptions.mockRejectedValueOnce(new Error('Direct URL authentication setup failed: bad config'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.detectChangedResources).not.toHaveBeenCalled();
+            expect(mocks.loggerError).toHaveBeenCalledWith('Failed to check workspace: Direct URL authentication setup failed: bad config');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('does not validate when the workspace has nothing to validate', async () => {
+            mocks.loadPostBumpValidationOptions.mockResolvedValueOnce(undefined);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.runPostBumpValidation).not.toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('fails when validation cannot run, because check is a CI gate', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.runPostBumpValidation.mockRejectedValueOnce(new Error('schema load failure'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.loggerError).toHaveBeenCalledWith('Failed to check workspace: schema load failure');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('runs post-bump validation and reports all passed when workspace is up to date', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'architecture', passed: true, errorCount: 0 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('exits 1 when validation fails even if no documents need bumping', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'architecture', passed: false, errorCount: 2 },
+            ] as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits 1 when both bump and validation failures are present', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/x', metadata: {}, currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+            ] as never);
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'architecture', passed: false, errorCount: 2 },
+            ] as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits 1 and reports "(could not validate)" when errorCount is -1', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'pattern', passed: false, errorCount: -1 },
+            ] as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits 1 when a document depends on a snapshot version of another tracked document', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([
+                { id: 'doc-b', dependsOn: ['doc-a'] },
+            ]);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.findSnapshotDependencyViolations).toHaveBeenCalledWith('/fake/bundle');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('does not exit when there are no snapshot dependency violations', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('workspace snapshot', () => {
+        it('marks a document as a snapshot using the config default increment', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a']);
+            expect(mocks.markAsSnapshot).toHaveBeenCalledWith(
+                '/fake/bundle', 'doc-a', expect.objectContaining({ isMockClient: true }), { increment: 'MINOR' }
+            );
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('prompts for an id from the documents that are not yet snapshots', async () => {
+            mocks.select.mockResolvedValueOnce('doc-a');
+            await program.parseAsync(['node', 'test', 'workspace', 'snapshot']);
+            expect(mocks.select).toHaveBeenCalledWith(expect.objectContaining({ choices: [expect.objectContaining({ value: 'doc-a' })] }));
+            expect(mocks.markAsSnapshot).toHaveBeenCalledWith(
+                '/fake/bundle', 'doc-a', expect.anything(), { increment: 'MINOR' }
+            );
+        });
+
+        it('does nothing when no tracked document can be snapshotted', async () => {
+            mocks.listSnapshotCandidates.mockResolvedValueOnce({ releases: [], snapshots: ['doc-b'] });
+            await program.parseAsync(['node', 'test', 'workspace', 'snapshot']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.markAsSnapshot).not.toHaveBeenCalled();
+        });
+
+        it('--major overrides the config default increment', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a', '--major']);
+            expect(mocks.markAsSnapshot).toHaveBeenCalledWith(
+                '/fake/bundle', 'doc-a', expect.anything(), { increment: 'MAJOR' }
+            );
+        });
+
+        it('exits when --major and --minor are combined', async () => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a', '--major', '--minor'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.markAsSnapshot).not.toHaveBeenCalled();
+        });
+
+        it('exits when no workspace bundle is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on markAsSnapshot error', async () => {
+            mocks.markAsSnapshot.mockRejectedValueOnce(new Error('already a snapshot'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace release', () => {
+        it('releases a snapshotted document', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'release', 'doc-a']);
+            expect(mocks.releaseSnapshot).toHaveBeenCalledWith('/fake/bundle', 'doc-a', expect.objectContaining({ isMockClient: true }));
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('prompts for an id from the documents that are snapshots', async () => {
+            mocks.select.mockResolvedValueOnce('doc-b');
+            await program.parseAsync(['node', 'test', 'workspace', 'release']);
+            expect(mocks.select).toHaveBeenCalledWith(expect.objectContaining({ choices: [expect.objectContaining({ value: 'doc-b' })] }));
+            expect(mocks.releaseSnapshot).toHaveBeenCalledWith('/fake/bundle', 'doc-b', expect.anything());
+        });
+
+        it('does nothing when no tracked document is a snapshot', async () => {
+            mocks.listSnapshotCandidates.mockResolvedValueOnce({ releases: ['doc-a'], snapshots: [] });
+            await program.parseAsync(['node', 'test', 'workspace', 'release']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.releaseSnapshot).not.toHaveBeenCalled();
+        });
+
+        it('exits when no workspace bundle is found', async () => {
+            mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'release', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('exits on releaseSnapshot error (e.g. blocked by a snapshot dependency)', async () => {
+            mocks.releaseSnapshot.mockRejectedValueOnce(new Error('depends on snapshot version(s) of doc-c'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'release', 'doc-a'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+    });
+
+    describe('workspace bump', () => {
+        // Minimal ChangedResource for tests that need detectChangedResources to return something.
+        const fakeChanged = [{ id: 'test-doc', currentVersion: '1.0.0', latestHubVersion: '1.0.0', filePath: '/fake/path.json', metadata: {} }];
+
+        it('prompts for bump type per document and passes perDocIncrements to bumpWorkspace', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'MINOR', perDocIncrements: expect.any(Map) })
+            );
+        });
+
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
+        });
+
+        it('uses the config default increment as the select default', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.select).toHaveBeenCalledWith(
+                expect.objectContaining({ default: 'MINOR' })
+            );
+        });
+
+        it('--major skips prompts and applies MAJOR to all docs', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--major']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'MAJOR' })
+            );
+        });
+
+        it('--minor skips prompts and applies MINOR to all docs', async () => {
+            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { failIfModified: false }, bump: { defaultIncrement: 'MAJOR' } } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--minor']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'MINOR' })
+            );
+        });
+
+        it('still loads workspace config, falling back to the resolved project root, when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.loadWorkspaceConfig).toHaveBeenCalledWith('/fake/cwd-no-git');
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'MINOR' })
+            );
+        });
+
+        it('logs a summary of bumped documents and reference updates', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.bumpWorkspace.mockResolvedValueOnce({
+                bumped: [{ id: 'doc-a', filePath: '/x', fromVersion: '1.0.0', toVersion: '1.1.0', increment: 'MINOR' }],
+                refUpdates: [{ docId: 'doc-b', filePath: '/y', changeCount: 2 }],
+            } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('--patch skips prompts and applies PATCH to all docs', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--patch']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'PATCH' })
+            );
+        });
+
+        it('exits when --major and --patch are combined', async () => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump', '--major', '--patch'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('logs "no documents" and skips prompts when nothing changed', async () => {
+            // detectChangedResources returns [] by default after vi.clearAllMocks
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).not.toHaveBeenCalled();
+        });
+
+        it('exits on bumpWorkspace error', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.bumpWorkspace.mockRejectedValueOnce(new Error('bump failed'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('sets up validation with the resolved CalmHub options', async () => {
+            const validationOptions = { calmHubUrl: 'https://hub.example.com' };
+            mocks.loadPostBumpValidationOptions.mockResolvedValueOnce(validationOptions);
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--calm-hub-url', 'https://hub.example.com']);
+            expect(mocks.loadPostBumpValidationOptions).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.anything(),
+                expect.objectContaining({ calmHubUrl: 'https://hub.example.com' })
+            );
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), validationOptions);
+        });
+
+        it('stops before it prompts or bumps when the validation config cannot be set up', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.loadPostBumpValidationOptions.mockRejectedValueOnce(new Error('Direct URL authentication setup failed: bad config'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump'])).rejects.toThrow();
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).not.toHaveBeenCalled();
+            expect(mocks.loggerError).toHaveBeenCalledWith('Failed to bump workspace: Direct URL authentication setup failed: bad config');
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('does not set up validation when nothing needs bumping', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.loadPostBumpValidationOptions).not.toHaveBeenCalled();
+        });
+
+        it('runs post-bump validation and completes without error when all documents pass', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'architecture', passed: true, errorCount: 0 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('runs post-bump validation and completes without error when a document fails with errors', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'architecture', passed: false, errorCount: 3 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('runs post-bump validation and completes without error when a document could not be validated', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.runPostBumpValidation.mockResolvedValueOnce([
+                { id: 'doc-a', filePath: '/a.json', type: 'pattern', passed: false, errorCount: -1 },
+            ] as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalled();
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('--inherit-change-type does not pass a getCascadeIncrement callback to bumpWorkspace', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--inherit-change-type']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalled();
+            const callOptions = (mocks.bumpWorkspace.mock.calls[0] as unknown[])[2] as { getCascadeIncrement?: unknown };
+            expect(callOptions.getCascadeIncrement).toBeUndefined();
+        });
+    });
+
+});

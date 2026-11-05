@@ -5,19 +5,18 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -33,10 +32,13 @@ public class MongoTimelineIntegration {
 
     private static int createdTimelineId;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupTimelines() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -47,12 +49,7 @@ public class MongoTimelineIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("timelines")) {
-                database.createCollection("timelines");
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "finos").append("timelines", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "timelines");
 
             counterSetup(database);
             namespaceSetup(database);
@@ -63,7 +60,7 @@ public class MongoTimelineIntegration {
     @Order(1)
     void end_to_end_get_with_no_timeline() {
         given()
-                .when().get("/calm/namespaces/finos/timelines")
+                .when().get("/api/calm/namespaces/finos/timelines")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -83,7 +80,7 @@ public class MongoTimelineIntegration {
         String location = given()
                 .body(payload)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines")
+                .when().post("/api/calm/namespaces/finos/timelines")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/timelines/"))
@@ -101,7 +98,7 @@ public class MongoTimelineIntegration {
     @Order(3)
     void end_to_end_verify_versions() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions")
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
@@ -112,7 +109,7 @@ public class MongoTimelineIntegration {
     @Order(4)
     void end_to_end_verify_timeline() {
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE));
@@ -126,13 +123,13 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
+                .when().post("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0"));
 
         given()
-                .when().get("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
+                .when().get("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/2.0.0")
                 .then()
                 .statusCode(200)
                 .body(equalTo(TIMELINE_V2));
@@ -146,7 +143,7 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/9.0.0")
+                .when().post("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/9.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));
@@ -160,7 +157,7 @@ public class MongoTimelineIntegration {
         given()
                 .body(envelope)
                 .header("Content-Type", "application/json")
-                .when().put("/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
+                .when().put("/api/calm/namespaces/finos/timelines/" + createdTimelineId + "/versions/1.0.0")
                 .then()
                 .statusCode(400)
                 .body(containsString("could not be parsed"));

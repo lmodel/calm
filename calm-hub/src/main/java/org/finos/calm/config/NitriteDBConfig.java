@@ -75,9 +75,11 @@ public class NitriteDBConfig {
                     if (!Files.exists(dataPath)) {
                         Files.createDirectories(dataPath);
                     }
+                    // Decorators written before Nitrite 5 hold org.bson.Document values.
                     MVStoreModule storeModule = MVStoreModule.withConfig()
                             .filePath(dbFilePath.toString())
                             .autoCommit(true)
+                            .allowedClasses("org.bson.Document")
                             .build();
                     db = Nitrite.builder()
                             .loadModule(storeModule)
@@ -99,15 +101,34 @@ public class NitriteDBConfig {
      * @throws JsonParseException
      */
     private void initializeDatabase() throws IOException, JsonParseException {
-        // Create collections - just getting the collection creates it if it doesn't exist
+        // Create collections - just getting the collection creates it if it doesn't exist.
+        //
+        // Each of the seven versioned types is a header collection plus a sibling
+        // <type>Versions collection (ADR 0001). The stores create both on demand, but they
+        // belong in this list so the set of collections a fresh standalone database starts
+        // with stays honest — a read-only image is seeded from exactly this.
         db.getCollection("architectures");
+        db.getCollection("architectureVersions");
         db.getCollection("patterns");
+        db.getCollection("patternVersions");
+        db.getCollection("flows");
+        db.getCollection("flowVersions");
+        db.getCollection("standards");
+        db.getCollection("standardVersions");
+        db.getCollection("interfaces");
+        db.getCollection("interfaceVersions");
+        db.getCollection("timelines");
+        db.getCollection("timelineVersions");
+        db.getCollection("adrs");
+        db.getCollection("adrVersions");
+        // decorators keeps the one-document-per-namespace shape (ADR 0004), so it has no
+        // sibling versions collection.
+        db.getCollection("decorators");
         db.getCollection("namespaces");
         db.getCollection("domains");
-        db.getCollection("flows");
         db.getCollection("schemas");
         db.getCollection("counters");
-        db.getCollection("decorators");
+        db.getCollection("calm");
     }
 
     /**

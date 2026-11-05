@@ -4,10 +4,15 @@ import com.mongodb.ErrorCategory;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
 
@@ -19,7 +24,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * MongoDB-backed implementation of {@link NamespaceStore}.
  *
  * <h2>Concurrency strategy</h2>
- * A unique index on {@code namespaces.name} (created by {@link MongoIndexInitializer}) prevents
+ * A unique index on {@code namespaces.name} (created by {@code MongoIndexInitializationStep}) prevents
  * duplicate namespace names at the database level. When two concurrent requests try to create the
  * same namespace, the first {@code insertOne} succeeds and the second throws a
  * {@link MongoWriteException} with error category {@link ErrorCategory#DUPLICATE_KEY}.
@@ -30,7 +35,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * safe across multiple application instances (horizontal scaling), because the uniqueness
  * constraint is enforced by MongoDB itself.
  *
- * @see MongoIndexInitializer
  * @see org.finos.calm.store.nitrite.NitriteNamespaceStore NitriteNamespaceStore for the
  *      contrasting ReentrantLock-based approach used in standalone mode
  */
@@ -77,6 +81,24 @@ public class MongoNamespaceStore implements NamespaceStore {
                 throw new NamespaceAlreadyExistsException("Namespace already exists: " + name);
             }
             throw e;
+        }
+    }
+
+    @Override
+    public void updateNamespaceDescription(String name, String description) throws NamespaceNotFoundException {
+        UpdateResult result = namespaceCollection.updateOne(
+                Filters.eq("name", name),
+                Updates.set("description", description));
+        if (result.getMatchedCount() == 0) {
+            throw new NamespaceNotFoundException();
+        }
+    }
+
+    @Override
+    public void deleteNamespace(String name) throws NamespaceNotFoundException {
+        DeleteResult result = namespaceCollection.deleteOne(Filters.eq("name", name));
+        if (result.getDeletedCount() == 0) {
+            throw new NamespaceNotFoundException();
         }
     }
 }

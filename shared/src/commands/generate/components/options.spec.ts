@@ -26,7 +26,7 @@ const applicationYtoZ: CalmChoice = {
     relationships: ['application-y-to-z']
 };
 
-function buildPatternChoice({description, nodes, relationships}: CalmChoice) {
+function buildPatternChoice({ description, nodes, relationships }: CalmChoice) {
     return {
         'properties': {
             'description': {
@@ -50,7 +50,7 @@ function buildPatternOption(optionType: 'oneOf' | 'anyOf', ...choices: object[])
 
 function buildNode(uniqueId: string): object {
     return {
-        '$ref': 'https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node',
+        '$ref': 'https://calm.finos.org/release/1.3/meta/core.json#/defs/node',
         'type': 'object',
         'properties': {
             'unique-id': {
@@ -71,7 +71,7 @@ function buildNode(uniqueId: string): object {
 
 function buildConnectsRelationship(id: string, prompt: string, source: string, destination: string): object {
     return {
-        '$ref': 'https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship',
+        '$ref': 'https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship',
         'type': 'object',
         'properties': {
             'unique-id': {
@@ -272,6 +272,34 @@ describe('Pattern Options', () => {
             expect(selectChoices(pattern, choices)).toEqual(expectedPattern);
         });
 
+        it('should not mutate the input pattern', () => {
+            const applicationA = buildNode('application-a');
+            const applicationB = buildNode('application-b');
+            const connectsRelationshipA = buildConnectsRelationship('application-a-to-c', 'app a to app c', 'application-a', 'application-c');
+            const connectsRelationshipB = buildConnectsRelationship('application-b-to-c', 'app b to app c', 'application-b', 'application-c');
+
+            const pattern = buildPattern(
+                [
+                    { 'anyOf': [ applicationA, applicationB ] }
+                ],
+                [
+                    buildPatternOptionRelationship(
+                        'option-id',
+                        'The choice of nodes and relationships in the pattern',
+                        buildPatternOption('anyOf', buildPatternChoice(applicationAtoC), buildPatternChoice(applicationBtoC))
+                    ),
+                    {
+                        'anyOf': [ connectsRelationshipA, connectsRelationshipB ]
+                    }
+                ]
+            );
+            const patternBeforeSelection = structuredClone(pattern);
+
+            selectChoices(pattern, [applicationAtoC]);
+
+            expect(pattern).toEqual(patternBeforeSelection);
+        });
+
         it('should not affect a normal pattern', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');
@@ -364,6 +392,53 @@ describe('Pattern Options', () => {
             }];
 
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
+        });
+    });
+    describe('items', () => {
+        const node = (id: string) => ({ type: 'object', properties: { 'unique-id': { const: id } } });
+        const add = (id: string): CalmChoice => ({ description: `Add ${id}`, nodes: [id], relationships: [] });
+        const pattern = (nodes: object) => ({ properties: { nodes, relationships: { type: 'array', prefixItems: [] } } });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const nodesOf = (result: object) => (result as any).properties.nodes;
+
+        const withItems = () => pattern({
+            type: 'array',
+            prefixItems: [node('webapp')],
+            items: { oneOf: [node('cache'), node('queue')] }
+        });
+
+        it('should promote a chosen items member into prefixItems', () => {
+            const result = nodesOf(selectChoices(withItems(), [add('cache')]));
+            expect(result.prefixItems).toEqual([node('webapp'), node('cache')]);
+        });
+
+        it('should keep items once its members have been promoted, because validation still needs it', () => {
+            expect(nodesOf(selectChoices(withItems(), [add('cache')])).items).toEqual({ oneOf: [node('cache'), node('queue')] });
+        });
+
+        it('should promote every chosen items member', () => {
+            const result = nodesOf(selectChoices(withItems(), [add('cache'), add('queue')]));
+            expect(result.prefixItems).toEqual([node('webapp'), node('cache'), node('queue')]);
+        });
+
+        it('should promote nothing when no items member is chosen', () => {
+            expect(nodesOf(selectChoices(withItems(), [])).prefixItems).toEqual([node('webapp')]);
+        });
+
+        it('should leave a plain items schema untouched', () => {
+            const plain = pattern({ type: 'array', prefixItems: [node('webapp')], items: { $ref: 'core.json#/defs/node' } });
+            expect(nodesOf(selectChoices(plain, [add('webapp')])).items).toEqual({ $ref: 'core.json#/defs/node' });
+        });
+
+        it('should build prefixItems for a pattern that declares only items', () => {
+            const itemsOnly = pattern({ type: 'array', items: { oneOf: [node('cache')] } });
+            expect(nodesOf(selectChoices(itemsOnly, [add('cache')])).prefixItems).toEqual([node('cache')]);
+        });
+
+        it('should accept a pattern with no relationships property', () => {
+            const noRelationships = { properties: { nodes: { type: 'array', prefixItems: [node('webapp')] } } };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((selectChoices(noRelationships, [add('webapp')]) as any).properties.nodes.prefixItems).toEqual([node('webapp')]);
         });
     });
 });

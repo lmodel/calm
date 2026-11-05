@@ -1,8 +1,14 @@
 ---
 id: calm-hub
 title: CALM Hub
+sidebar_label: CALM Hub
 sidebar_position: 4
 ---
+
+
+:::tip CALM Hub documentation
+This page covers the **visual interface** of CALM Hub. For the technical reference see the [overview and runtimes](/calm-hub/), the [developer guide](/calm-hub/calm-hub-developer-guide), and the [MCP and API reference](/calm-hub/calm-hub-mcp-api).
+:::
 
 # CALM Hub
 
@@ -42,10 +48,10 @@ To run the Hub in standalone mode without an external database dependency, run:
 
 ```bash
 cd calm-hub
-../mvnw quarkus:dev -Dquarkus.profile=standalone
+../mvnw quarkus:dev -Pstandalone
 ```
 
-This automatically sets the storage mode to `standalone` (NitriteDB) and suppresses MongoDB health checks and dev services.
+This sets the storage mode to `standalone` (NitriteDB), suppresses MongoDB health checks and turns off dev services, so it needs no Docker. Use the Maven profile (`-Pstandalone`): dev mode does not apply `-Dquarkus.profile=standalone`.
 
 #### Accessing the UI & API Docs
 
@@ -110,10 +116,36 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 ### Tab Views
 
 * **Diagram Tab:** The interactive visual representation of the model.
-* **JSON Tab:** The raw, validated CALM 1.2 JSON schema backing the diagram.
+* **JSON Tab:** The raw, validated CALM JSON backing the diagram.
 * **Deployments Tab:** Overlays deployment decorators (environments, hosts, and instance settings) on top of the base architecture.
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)
+
+### Control Evaluations
+
+When a tool checks an architecture's controls, for example a policy engine that checks a change before it merges, it can record each result in CALM Hub as a **control evaluation decorator**. Each decorator says which control was evaluated, whether it was `met`, `not-met` or `not-applicable`, and, when not met, which checks failed. The format is the [control evaluation decorator Standard](https://github.com/finos/calm-schema/tree/standard-control-evaluation-v1.0/standards/control-evaluation). The decorator's `target` is the architecture version, in the form `/api/calm/namespaces/{namespace}/architectures/{id}/versions/{major-minor-patch}`, and its `applies-to` lists the nodes and relationships the result is about. Create it with `POST /api/calm/namespaces/{namespace}/decorators`.
+
+The diagram shows the latest result for each node and relationship of the version on screen:
+
+* **Not met:** The node gets a red border and a **Not met** badge. Hover over it to see its latest evaluations, not met first, and what each failed check requires. A relationship is drawn red, arrowheads included, with a **Not met** label.
+* **Met:** The node gets a **Met** badge. Hover over it to see who approved the change, when an approver is recorded.
+* **Containers:** A container (a node that other nodes are `deployed-in` or `composed-of`) shows the same badge beside its label, and a solid red border when not met. A `deployed-in` or `composed-of` relationship is drawn as its container rather than as a line, so its results show on the container.
+* **Evaluations panel:** The metadata panel below the diagram lists every evaluation of the version, newest first, with the elements it applies to and its findings.
+
+While the architecture is open, the results refresh every 5 seconds, so a new decision appears without reloading the page.
+
+![CALM Hub Control Evaluations](/img/hub-ui/control-evaluations.png)
+
+#### Decision Overlay
+
+The **Show decisions** control (the gavel icon in the bottom-left diagram controls) draws each element's latest decision on the diagram, so it can be read without hovering. This is useful when you present the diagram or share your screen.
+
+* Below each evaluated node or container, a callout says **Blocked**, with each control that was not met, what it requires and the element it is about; **Approved by** someone, with the control and the short commit; or **Met**, with the reviewer when one is recorded.
+* A relationship that was not met says what it requires beside its **Not met** label.
+
+The overlay turns on and off with **presentation mode** (the presentation icon beside it), which makes the diagram text larger for a projector. You can also switch the overlay on or off by itself. The choice is kept for the browser session.
+
+![CALM Hub Decision Overlay in Presentation Mode](/img/hub-ui/decision-overlay.png)
 
 ---
 
@@ -173,3 +205,9 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 * **Readable Tab:** Parses complex JSON Schema rules into human-readable tables detailing parameter constraints, encryption requirements (e.g. approved TLS versions), and rotation periods.
 * **Raw JSON Tab:** Inspects the raw control requirement schema.
 * **Configurations & Versions:** Toggles between different policy revisions and environment-specific overrides.
+
+---
+
+## Access Control
+
+CALM Hub uses a hierarchical entitlement model to control who can read, write, and administer namespaces. See [CALM Hub Entitlements](./calm-hub-entitlements) for the full model, worked examples, and API usage.

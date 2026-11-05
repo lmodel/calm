@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -27,7 +28,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Resource for managing decorators in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 public class DecoratorResource {
 
     private final DecoratorStore decoratorStore;
@@ -147,7 +149,7 @@ public class DecoratorResource {
     ) throws URISyntaxException {
         try {
             int id = decoratorStore.createDecorator(namespace, decoratorJson);
-            URI location = new URI("/calm/namespaces/" + namespace + "/decorators/" + id);
+            URI location = new URI("/api/calm/namespaces/" + namespace + "/decorators/" + id);
             return Response.created(location).entity(Map.of("id", id)).build();
         } catch (JsonParseException e) {
             logger.error("Invalid JSON when creating decorator in namespace [{}]", namespace, e);
@@ -193,5 +195,36 @@ public class DecoratorResource {
             logger.error("Invalid namespace [{}] when updating decorator [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
+    }
+
+    /**
+     * Delete an existing decorator by ID in a given namespace.
+     *
+     * @param namespace the namespace containing the decorator
+     * @param id        the id of the decorator to delete
+     * @return 204 No Content, or an appropriate error response
+     */
+    @DELETE
+    @Path("{namespace}/decorators/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a decorator by ID in a given namespace",
+            description = "Deletes a decorator from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteDecoratorForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+    ) {
+        try {
+            decoratorStore.deleteDecorator(namespace, id);
+        } catch (DecoratorNotFoundException e) {
+            logger.error("Decorator [{}] not found in namespace [{}] when deleting", id, namespace, e);
+            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting decorator [{}]", namespace, id, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+        return Response.noContent().build();
     }
 }

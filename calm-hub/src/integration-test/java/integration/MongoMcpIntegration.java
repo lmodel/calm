@@ -10,7 +10,6 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
@@ -54,7 +53,7 @@ public class MongoMcpIntegration {
             {
                 "unique-id": "mcp-test-decorator",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["mcp-test-node"],
                 "data": {"status": "deployed", "environment": "integration-test"}
@@ -65,7 +64,7 @@ public class MongoMcpIntegration {
             {
                 "unique-id": "mcp-test-decorator",
                 "type": "deployment",
-                "target": ["/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
                 "target-type": ["architecture"],
                 "applies-to": ["mcp-test-node"],
                 "data": {"status": "completed", "environment": "integration-test"}
@@ -139,14 +138,17 @@ public class MongoMcpIntegration {
     @Inject
     TimelineTools timelineTools;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     private static String text(ToolResponse r) {
         return ((TextContent) r.firstContent()).text();
     }
 
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -158,9 +160,9 @@ public class MongoMcpIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
                 database.createCollection("architectures");
-                database.getCollection("architectures").insertOne(
-                        new Document("namespace", "finos").append("architectures", new ArrayList<>())
-                );
+                // Collection only — no per-namespace document. That priming belonged to the old
+                // one-document-per-namespace shape; under the header/version shape it has no id
+                // field, so the header reader surfaces it as a resource named "<Type> null".
             }
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("decorators")) {
@@ -170,24 +172,16 @@ public class MongoMcpIntegration {
                 );
             }
 
+            // flows and timelines are header collections now, so they need no priming — and a
+            // primed per-namespace document is harmful, carrying no id and so surfacing as a
+            // phantom "Flow null" / "Timeline null" row in every listing for that namespace.
+            // decorators above keeps the old shape by ADR 0004, so its priming stays.
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("flows")) {
                 database.createCollection("flows");
-                database.getCollection("flows").insertOne(
-                        new Document("namespace", "finos").append("flows", new ArrayList<>())
-                );
             }
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("timelines")) {
                 database.createCollection("timelines");
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "finos").append("timelines", new ArrayList<>())
-                );
-            }
-
-            if (database.getCollection("timelines").countDocuments(new Document("namespace", "mcp-integration")) == 0) {
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "mcp-integration").append("timelines", new ArrayList<>())
-                );
             }
 
             MongoSetup.counterSetup(database);
@@ -403,7 +397,7 @@ public class MongoMcpIntegration {
     @Test
     @Order(24)
     void mcp_validation_rejects_decorator_target_filter_with_spaces() {
-        ToolResponse result = decoratorTools.listDecorators("finos", "/calm/namespaces/finos architectures/1", null);
+        ToolResponse result = decoratorTools.listDecorators("finos", "/api/calm/namespaces/finos architectures/1", null);
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("Target filter"));
     }

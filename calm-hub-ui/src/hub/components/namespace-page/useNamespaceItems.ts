@@ -1,0 +1,88 @@
+import { useEffect, useMemo, useState } from 'react';
+import { CalmService } from '../../../service/calm-service.js';
+import { InterfaceService } from '../../../service/interface-service.js';
+import { AdrService } from '../../../service/adr-service/adr-service.js';
+import { ResourceSummary } from '../../../model/calm.js';
+import { type TypeInUI } from '../tree-navigation/navigation-loaders.js';
+
+export interface NamespaceItem {
+    id: string;
+    name: string;
+    /** One-line summary shown on the card body (clamped to 2 lines). */
+    description?: string;
+    /** Human-readable slug identifier, shown as mono meta when present. */
+    customId?: string;
+    /** Stored-version count for the version-map types; drives the "N versions" scent. */
+    versionCount?: number;
+}
+
+export interface NamespaceItemGroup {
+    type: TypeInUI;
+    items: NamespaceItem[];
+}
+
+const summaryToItem = (s: ResourceSummary): NamespaceItem => ({
+    id: s.customId ?? s.id.toString(),
+    name: s.name,
+    description: s.description,
+    customId: s.customId,
+    versionCount: s.versionCount,
+});
+
+/**
+ * Loads every resource type's items for a namespace and returns them grouped by
+ * type, in display order. Reuses the existing summary services. This backs the
+ * Phase-1 placeholder namespace body (a grouped list); Phase 2 replaces the body
+ * with a card grid + segmented tabs but can keep this data source.
+ */
+export function useNamespaceItems(namespace: string): { groups: NamespaceItemGroup[]; loading: boolean } {
+    const calmService = useMemo(() => new CalmService(), []);
+    const interfaceService = useMemo(() => new InterfaceService(), []);
+    const adrService = useMemo(() => new AdrService(), []);
+
+    const [loaded, setLoaded] = useState<{ namespace: string; groups: NamespaceItemGroup[] } | null>(null);
+    const loading = loaded?.namespace !== namespace;
+
+    useEffect(() => {
+        let cancelled = false;
+
+        Promise.all([
+            calmService.fetchArchitectureSummaries(namespace).catch(() => []),
+            calmService.fetchPatternSummaries(namespace).catch(() => []),
+            calmService.fetchFlowSummaries(namespace).catch(() => []),
+            calmService.fetchStandardSummaries(namespace).catch(() => []),
+            adrService.fetchAdrSummaries(namespace).catch(() => []),
+            interfaceService.fetchInterfacesForNamespace(namespace).catch(() => []),
+        ])
+            .then(([architectures, patterns, flows, standards, adrs, interfaces]): NamespaceItemGroup[] => [
+                { type: 'Architectures', items: architectures.map(summaryToItem) },
+                { type: 'Patterns', items: patterns.map(summaryToItem) },
+                { type: 'Flows', items: flows.map(summaryToItem) },
+                { type: 'Standards', items: standards.map(summaryToItem) },
+                {
+                    type: 'ADRs',
+                    items: adrs.map((a) => ({ id: a.id.toString(), name: `${a.title} (${a.status})` })),
+                },
+                {
+                    type: 'Interfaces',
+                    items: interfaces.map((i) => ({
+                        id: i.customId ?? i.id.toString(),
+                        name: i.name,
+                        description: i.description,
+                        customId: i.customId,
+                    })),
+                },
+            ])
+            // A summaryToItem mapping that throws must not leave the spinner on.
+            .catch((): NamespaceItemGroup[] => [])
+            .then((groups) => {
+                if (!cancelled) setLoaded({ namespace, groups });
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [namespace, calmService, interfaceService, adrService]);
+
+    return { groups: loading ? [] : loaded.groups, loading };
+}

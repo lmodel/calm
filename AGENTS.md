@@ -1,5 +1,15 @@
 # FINOS CALM Monorepo - AI Assistant Guide
 
+## Notes for supporting documentation
+
+- All documentation should be as concise as possible and should avoid explaining *everything*. Focus on the most significant details for a human reader.
+- When writing PR descriptions, do not describe every technical detail of the PR and don't include much, if any, code. Just explain any important decisions, technical gotchas that may not be obvious, and the overall intent of the PR. Link issues if possible.
+- When writing issues, follow the same guidelines: do not write lots of code examples and thoroughly lay out the entire proposed implementation plan. Prefer tables over lists of options, but don't put too much in each table cell.
+- When writing inline comments, do not explain exactly what the code does. Be concise, focusing on intent and any non-obvious gotchas.
+- Don't add comments to code that doesn't need them. Code should ideally be self-documenting.
+- When replying to review feedback, give the conclusion and the change only — "Confirmed, fixed in abc1234" is a complete reply. Do not repeat evidence the reviewer can read for themselves, do not explain how the mistake happened, and do not volunteer follow-up work nobody asked for. If you disagree, give the reason in a sentence or two and stop.
+- Write all the above in Simplified Technical English (ASD-STE100) where possible.
+
 ## Sandbox Folder for Working Files
 
 **IMPORTANT:** Use the `/sandbox/` folder for all temporary working files, test outputs, notes, and drafts.
@@ -9,39 +19,48 @@
 - Do NOT create working files in other directories (they may accidentally be committed)
 - Clean up the sandbox when work is complete if appropriate
 
-```bash
-# Example: Create working files in sandbox
-mkdir -p sandbox
-echo "My notes" > sandbox/my-notes.md
-```
-
 ---
 
 ## Project Overview
 
-This is the **FINOS Architecture as Code** monorepo containing the Common Architecture Language Model (CALM) specification and associated tools.
+This is the **FINOS Architecture as Code** monorepo. It holds the tools for the Common Architecture Language Model (CALM). The CALM schema lives in finos/calm-schema and the governance documents in finos/calm-governance (see [Project Repositories](#project-repositories)).
 
 **CALM** is a declarative, JSON-based modeling language for describing complex software architectures, particularly in regulated environments like financial services.
+
+## Project Repositories
+
+| Repository | Owns | Send here |
+|---|---|---|
+| [architecture-as-code](https://github.com/finos/architecture-as-code) | This repository: the tools, the docs site and CALM Lab. The tools get the schema from the `@finos/calm-schema` npm package (see [CALM Schema Updates](#calm-schema-updates)) | Tool changes, the documentation site, examples that the tools use |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only CALM's own architecture and the 2026-03 draft, which [#3533](https://github.com/finos/architecture-as-code/issues/3533) deletes |
+| [calm-governance](https://github.com/finos/calm-governance) | Project-wide governance, the Maintainer roster, contribution guidelines, the Code of Conduct. No code | Governance and roster changes |
+
+Clone the three repositories side by side, with the same parent directory. Start the agent here and
+add the other two as additional directories. Each repository has its own `AGENTS.md`; read the one
+for the repository you change. Target commands at the correct repository: `git -C ../calm-schema ...`
+and `gh ... --repo finos/calm-schema`. Each repository is a fork clone: `origin` is the contributor's
+fork and `upstream` is the FINOS repository. Branch from `upstream/main` and open pull requests
+against `finos/<repo>`.
 
 ## Monorepo Structure
 
 ```
 architecture-as-code/
-├── calm/                      # CALM specification (JSON schemas)
+├── calm/                      # CALM's own architecture and the 2026-03 schema draft
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
-├── calm-suite/                # Sub-monorepos (see below)
-│   ├── calm-studio/           #   SvelteKit visual CALM editor — nested npm-workspace monorepo
-│   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
+├── calm-studio/               # SvelteKit visual CALM editor — nested npm-workspace monorepo
+├── calm-guard/                # Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
-├── advent-of-calm/            # Educational content (24-day challenge)
+├── examples/                  # Example CALM documents — source of truth for the CALM Hub seed scripts
 ├── experimental/              # Experimental features
 ├── template-bundles/          # Reusable Handlebars template bundles
 ├── conferences/               # Conference/workshop material
@@ -49,67 +68,55 @@ architecture-as-code/
 └── scripts/                   # Repo maintenance scripts (e.g. lockfile validation)
 ```
 
-### `calm-suite/` — nested workspaces
+### Nested workspaces
 
-`calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
+`calm-studio/` and `calm-guard/` are products with their own internal structure, but their packages
+are wired directly into the **root** npm workspaces. Run all npm commands from the repo root, never
+from inside these folders.
 
-- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-suite/calm-studio/packages/*` and `calm-suite/calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
-- **`calm-guard/`** (`calmguard`) — a Next.js (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
+- **`calm-studio/`** — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo.
+  Its packages and app join the root workspaces via `calm-studio/packages/*` and `calm-studio/apps/*`.
+  See [calm-studio/AGENTS.md](calm-studio/AGENTS.md) for the package list.
+- **`calm-guard/`** — a Next.js (App Router) continuous-compliance platform (`calmguard`), plus its
+  Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
 
-**TypeScript/Node.js** (npm workspaces):
-- CLI, models, widgets, shared, VSCode plugin, Hub UI, calm-server, calm-ai, and the `calm-suite/` products (CalmStudio's 8 packages/app + CALMGuard)
-- Build: tsup (esbuild), vitest for testing
-- Package manager: npm workspaces (single root lockfile; see [Lockfile Regeneration](#lockfile-regeneration))
-
-**Java/Maven** (Maven reactor build):
-- Root pom.xml defines multi-module reactor
-- Modules: calm-hub (Java/Quarkus), cli, calm, docs, shared (POM modules)
-- calm-hub backend (Quarkus 3.29+)
-- MongoDB/NitriteDB storage
-- TestContainers for integration tests
-- Maven reactor allows building all modules from root: `./mvnw clean install`
-
-**Documentation**:
-- Docusaurus for main docs (and for CALMGuard's `calmguard-docs`)
-- Astro for advent-of-calm website
+- **TypeScript/Node.js** — every package except the Java modules below. Built with tsup (esbuild),
+  tested with vitest, managed as npm workspaces off a single root lockfile
+  (see [Lockfile Regeneration](#lockfile-regeneration)).
+- **Java/Maven** — the root `pom.xml` is a reactor over six modules. Two carry Java code: `calm-hub`
+  (Quarkus LTS releases only, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
+  `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
+  — it is an npm workspace *and* a Maven module.
+- **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
 
 ## Node Version Requirements
 
-**CRITICAL — YOU MUST USE NODE 22**: This project targets **Node 22** as its CI baseline. All CI workflows run on Node 22, and lockfiles must be compatible with Node 22. **Do not use Node 25 or any other unsupported version — tests will fail silently or produce false results.**
+**Canonical Node version: 26.** `.nvmrc` pins `26.3.1`, CI reads it via
+`node-version-file: '.nvmrc'`, and `engine-strict=true` in `.npmrc` blocks installs on anything
+older. Node 26 is the only version builds and tests are validated against.
 
-The `engines` field in `package.json` (`^22.14.0 || >=24.10.0`) also permits Node 24+ for local development, but **Node 22 is the canonical version** used to validate builds and tests.
-
-**Before running any commands**, verify your Node version:
 ```bash
-node --version   # MUST show v22.x.x
+node --version   # MUST show v26.x.x
+nvm use          # if not — reads .nvmrc → 26.3.1
 ```
 
-If you are on the wrong version:
-```bash
-# If using Homebrew:
-brew install node@22
-export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+Running on another major version breaks in ways that are slow to diagnose: native bindings
+(`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong ABI, and Node 26's global Web Storage API
+shadows jsdom's `localStorage` in tests. `@types/node` is pinned to `^26` by a root `package.json`
+override and by a Renovate `allowedVersions` rule, because transitive deps with loose constraints
+will otherwise hoist an older major to the root and mask API differences.
 
-# If using nvm:
-nvm use   # reads .nvmrc → 22.22.2
-```
-
-### Known Node 25 Bug — localStorage
-
-Node 25 introduces a built-in `localStorage` global that is an **incomplete stub** (no `.clear()`, `.getItem()`, etc.). This shadows jsdom's full `localStorage` implementation during vitest runs, causing **false test failures** in any test that uses `localStorage` (e.g. `node-position-service.test.tsx`). These tests pass on Node 22 and in CI. **If you see `TypeError: localStorage.clear is not a function`, you are on the wrong Node version.**
-
-### Configuration Details
-
-- **`.nvmrc`** pins `22.22.2` — run `nvm use` to switch automatically
-- **`.npmrc`** has `engine-strict=true` — `npm install` will refuse to run on Node versions outside the `engines` range (e.g. Node 18, 20, or 23)
-- **`@types/node`** is overridden to `^22.19.15` in root `package.json` to prevent transitive dependencies from pulling in a different major version
-- **Renovate** is configured with `allowedVersions: "<23.0.0"` for `@types/node`
+Packages that touch `localStorage` or `sessionStorage` document their own stubbing pattern — see
+[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md) and [calm-studio/AGENTS.md](calm-studio/AGENTS.md).
 
 ### Lockfile Regeneration
 
-**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where running `npm install` with an existing `node_modules` directory prunes optional platform-specific dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
+**CRITICAL**: npm has a known bug ([npm/cli#4828](https://github.com/npm/cli/issues/4828)) where
+running `npm install` with an existing `node_modules` directory prunes optional platform-specific
+dependencies (e.g. `@tailwindcss/oxide`, `@swc/core`, `@esbuild`) for platforms other than the
+current machine. This causes CI failures on Linux runners when the lockfile was regenerated on macOS.
 
 **Correct method** — always delete both `node_modules` and the lockfile:
 
@@ -117,146 +124,102 @@ Node 25 introduces a built-in `localStorage` global that is an **incomplete stub
 rm -rf node_modules package-lock.json && npm install
 ```
 
-**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile` CI workflow checks that all expected platform variants are present in `package-lock.json`.
+**Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
+CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
-### Why this matters
+## CALM Schema Updates
 
-Running `npm install` or tests on a different Node major version (e.g. Node 25) causes:
-1. **Test failures from global API conflicts** — Node 25 exposes incomplete browser API stubs (`localStorage`) that shadow jsdom's implementations, causing tests to fail with cryptic errors that **do not reproduce in CI**
-2. **Native binding failures** — platform-specific packages (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong Node ABI, breaking CI builds
-3. **`@types/node` version drift** — transitive deps with loose constraints (`>=18`, `*`) allow `@types/node@25` to be hoisted to root, masking usage of APIs unavailable in Node 22
-4. **Noisy lockfile diffs** — Renovate's `npmDedupe` recalculates the dependency tree, producing large spurious changes
+The tools get the CALM schema from the `@finos/calm-schema` npm package. The root `package.json`
+pins the latest release as `@finos/calm-schema`, and each release by a `calm-schema-<major.minor>`
+alias (see [cli/AGENTS.md](cli/AGENTS.md#schema-handling)). Renovate raises `@finos/calm-schema`
+updates in their own PR. That PR must also pin the alias of that release to the same version.
 
-## Quick Navigation
+`.github/workflows/calm-schema-compatibility.yml` builds and tests each tool against a new release,
+with the commands of its `build-*.yml` workflow (listed in `scripts/calm-schema-compat.mjs`). It
+stops before the tests if the version is not on npm. If a tool fails, the workflow opens one issue
+for that release (label `calm-schema-compatibility`), or comments on the open issue. The issue asks
+for `Closes #<issue>` in the PR that moves `@finos/calm-schema` to the release, so that the merge
+closes it. A run on the default branch in which all tools pass also closes it. A manual run on
+another branch only comments on the open issue: it never opens or closes one. The workflow does
+not reopen a closed issue: a new failure gets a new issue. `cli-hub-smoke.yml` is not in the
+matrix: it tests the CLI against a CALM Hub image, and the cli and calm-hub jobs already test the
+schema.
 
-### Package-Specific Guides
+| Trigger | Version | Notes |
+|---|---|---|
+| `repository_dispatch` | `client_payload.version` | From the finos/calm-schema publish workflow: `event_type: calm-schema-published`, `client_payload: {"version": "x.y.z"}`. Waits up to about five minutes for the version on npm |
+| Daily schedule | npm `latest` | Skips the pinned version, a version with any issue (open or closed), and a version that passed |
+| Manual run | `version` input, or npm `latest` | Always runs. Run it on a fix branch to test the fix |
 
-For detailed guidance on specific packages, see:
+calm-hub fails for each new `major.minor` release until its schema index files list the release
+(see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).
+
+To test a tool locally, run `node scripts/calm-schema-compat.mjs use <version>`, then
+`node scripts/calm-schema-compat.mjs test <tool>`. The `use` command changes `package.json` and
+`package-lock.json` as the update PR must, with `npm install --package-lock-only`, then runs
+`npm ci`. It never installs over an existing `node_modules`, because that can prune other
+platforms' packages from the lockfile. If your PR does not update the schema, restore both files
+(`git checkout -- package.json package-lock.json`) and run `npm ci` when you are done.
+
+## Package-Specific Guides
+
+Read the guide for a package before working on its code, tests, or build.
+
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
+- **[calm-lab/AGENTS.md](calm-lab/AGENTS.md)** - In-browser learning lab, browser-engine contract, deploy
 - **[calm-server/AGENTS.md](calm-server/AGENTS.md)** - TypeScript CALM server
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
 - **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
-- **[calm-suite/calm-studio/AGENTS.md](calm-suite/calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
-- **[calm-suite/calm-guard/AGENTS.md](calm-suite/calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
-- **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
-
-### When to Use Package-Specific Guides
-
-Open the package-specific AGENTS.md when:
-- Working on code or tests in that package
-- Debugging package-specific issues
-- Understanding architecture patterns
-- Running package-specific commands
+- **[calm-studio/AGENTS.md](calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
+- **[calm-guard/AGENTS.md](calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
 
 ## Key Commands
 
-**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within individual package directories.
+**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within
+individual package directories. Any script below can be narrowed to one package with
+`--workspace <name>`, e.g. `npm test --workspace cli`.
 
 ```bash
-# Root-level commands (npm workspaces)
+# npm workspaces (from the repository root)
 npm run build              # Build all TypeScript workspaces
 npm test                   # Test all TypeScript workspaces
 npm run lint               # Lint all workspaces
-npm run build:cli          # Build CLI and dependencies
+npm run lint-fix           # Fix auto-fixable lint issues
+npm run build:cli          # Build CLI and its dependencies
 npm run build:shared       # Build shared packages
+npm run link:cli           # Link the CLI globally for manual testing
+npm run watch --workspace <name>   # Watch mode
 
-# Package-specific builds (from root using workspaces)
-npm run build --workspace cli
-npm run build --workspace calm-widgets
-npm run build --workspace shared
-npm run build --workspace calm-plugins/vscode
-
-# Root-level Maven reactor build
+# Maven reactor (from the repository root)
 ./mvnw clean install       # Build all Maven modules (mainly calm-hub)
-./mvnw test                # Test all Maven modules (mainly calm-hub)
-
-# Testing specific packages (from root using workspaces)
-npm test --workspace cli              # Test CLI only
-npm test --workspace shared  # Test shared packages
-npm test --workspace calm-plugins/vscode # Test VSCode extension
-npm test --workspace calm-models      # Test calm-models
-npm test --workspace calm-widgets     # Test calm-widgets
-# Java/Maven (calm-hub specific)
-cd calm-hub
-../mvnw quarkus:dev        # Development mode with hot reload
-../mvnw -P integration verify  # Full test suite with integration tests
-../mvnw test               # Unit tests only
-
-# CLI (from root)
-npm run link:cli           # Link CLI globally for testing
-calm --version             # Test CLI
-
-# Watch modes (from root)
-npm run watch --workspace cli                  # Watch CLI
-npm run watch --workspace calm-plugins/vscode  # Watch VSCode extension
-npm run watch --workspace calm-widgets         # Watch widgets
-
-# Advent of CALM website
-cd advent-of-calm/website
-npm install                # First time setup
-npm run dev                # Dev server with hot reload
-npm run build              # Production build
+./mvnw test                # Test all Maven modules
 ```
+
+Package-specific development loops — CLI, VSCode extension, CALM Hub — live in that package's
+AGENTS.md.
 
 ## Build Order Dependencies
 
 ```
 TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
-
-Maven modules (reactor build):
-  Parent POM → calm-hub (only Java module with code)
-  Other modules (cli, calm, docs, shared) are POM-only placeholders
+                                     ↳ calm-lab
 ```
 
-**Important**: 
-- Always build dependencies before dependent packages for TypeScript
-- Maven reactor handles build order automatically: `./mvnw clean install`
+Always build dependencies before dependent packages. The Maven reactor works this out for itself:
+`./mvnw clean install`.
 
-## Common Workflows
+`calm-lab` consumes the compiled `@finos/calm-shared/browser` entry, so `shared` must be built
+first — `npm run build:calm-lab` chains the whole order for you.
 
-### Working on the CLI
-```bash
-# From repository root
-npm run build:cli          # Builds models, widgets, shared, cli
-npm run link:cli           # Link globally
-calm --version             # Verify
-npm test --workspace cli   # Run CLI tests
-```
-
-### Working on VSCode Extension
-```bash
-# From repository root
-npm run build:shared       # Build dependencies
-npm run watch --workspace calm-plugins/vscode  # Watch mode
-# Press F5 in VSCode to debug
-```
-
-### Working on CALM Hub
-```bash
-cd calm-hub/local-dev
-docker-compose up          # Start MongoDB
-cd ..
-../mvnw quarkus:dev        # Start backend
-```
-
-### Working on Advent of CALM
-```bash
-cd advent-of-calm
-vim day-10.md              # Edit content
-cd website
-npm run dev                # Test in browser
-```
+The root `npm run build` builds the workspaces in the order of the `workspaces` list in
+`package.json`, not in dependency order. `docs` must stay after `calm-studio/packages/*`, because
+it loads the built `@finos/calm-docusaurus-plugin`, which loads the built `@calmstudio/diagram`.
 
 ## Testing
-
-**CRITICAL**: Before considering any change ready:
-1. **All tests must pass** with coverage enabled
-2. **All new code must have tests** (unit and/or integration)
-3. **Run linting** (see Linting section below)
 
 **IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
 Do NOT use `vitest` without `run` as it enters watch mode and will hang indefinitely.
@@ -265,126 +228,40 @@ Do NOT use `vitest` without `run` as it enters watch mode and will hang indefini
 If you modify the `shared` package, you **MUST** run tests for **ALL** workspaces (`npm run test`) because `shared` is a dependency for CLI, VSCode extension, and other packages. Changes in `shared` can break downstream consumers.
 
 ```bash
-# Run ALL tests with coverage (required before committing)
-npm test -- --coverage      # TypeScript packages with coverage
-cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo enabled by default)
+npm test -- --coverage         # TypeScript packages, with coverage
+cd calm-hub && ../mvnw verify  # Java tests with coverage (JaCoCo on by default)
 
-# Quick test runs (without coverage reports)
-npm test                    # TypeScript packages (runs vitest run in each workspace)
-cd calm-hub && ../mvnw test # Java unit tests (still collects coverage data)
-
-# Run tests for just one class
-# NB you must be in the right project to run that file, because you need vitest.config.ts for tests to run
-npx vitest run ${TEST FILE}
-
-# Package-specific tests (from repository root using workspaces)
-npm test --workspace cli
-npm test --workspace calm-plugins/vscode
-npm test --workspace shared
-npm test --workspace calm-widgets
-npm test --workspace calm-models
+# One file — you must be at or below that package's directory so vitest.config.ts resolves
+npx vitest run ${TEST_FILE}
 
 # Java integration tests (requires Docker)
 cd calm-hub && ../mvnw -P integration verify
 ```
 
-### Test Coverage Requirements
-- All new functions/methods must have tests
-- Aim for >80% coverage on new code
-- Critical paths must have 100% coverage
-- Tests should cover both success and error cases
-
-## Linting
-
-**CRITICAL**: Always run linting after making code changes. Fix all errors before committing.
-
-```bash
-# Lint all workspaces (required before committing)
-npm run lint               # Check all TypeScript/JavaScript code
-
-# Auto-fix issues
-npm run lint-fix           # Fix auto-fixable linting issues
-
-# Package-specific linting
-npm run lint --workspace cli
-npm run lint --workspace calm-plugins/vscode
-```
-
-Linting checks code style, common errors, and best practices.
+All new code needs tests covering both success and error cases. Aim for >80% coverage on new code,
+100% on critical paths.
 
 ## Commit Messages
 
-This project uses **Conventional Commits** enforced by **commitlint** and **husky**.
+**Conventional Commits**, enforced by commitlint via husky — invalid messages are rejected at commit
+time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 
-### Commit Message Format
+- **type** (required, lowercase): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
+  `perf`, `ci`, `build`, `revert`
+- **scope** (optional but preferred): `cli`, `shared`, `calm-models`, `calm-ai`, `calm-widgets`,
+  `calm-server`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
 
-```
-<type>(<scope>): <subject>
+Run `npm run commit` for an interactive prompt. Stage your changes first.
 
-<body>
-
-<footer>
-```
-
-**Required**:
-- `type`: One of: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `revert`
-- `subject`: Brief description (no period at end)
-
-**Optional**:
-- `scope`: Package affected (`cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`)
-- `body`: Detailed explanation
-- `footer`: Breaking changes, issue references
-
-### Examples
-
-```bash
-# Good commit messages
-feat(cli): add support for schema validation caching
-fix(calm-hub): resolve MongoDB connection timeout issue
-docs(vscode): update extension installation guide
-test(shared): add unit tests for template processor
-chore(deps): update Quarkus to 3.29.4
-
-# Bad commit messages (will be rejected)
-update stuff                          # Missing type
-Fix: bug in code                      # Type must be lowercase
-feat(cli) added new feature.          # Subject ends with period
-FEAT(cli): new feature                # Type must be lowercase
-```
-
-### Type Guidelines
-
-- **feat**: New feature for users
-- **fix**: Bug fix for users
-- **docs**: Documentation only changes
-- **style**: Code style changes (formatting, no logic change)
-- **refactor**: Code restructuring (no behavior change)
-- **test**: Adding or updating tests
-- **chore**: Maintenance tasks (dependencies, tooling)
-- **perf**: Performance improvements
-- **ci**: CI/CD pipeline changes
-- **build**: Build system changes
-- **revert**: Reverting a previous commit
-
-### Automated Enforcement
-
-**Husky** runs commitlint automatically on every commit. Invalid messages are rejected.
-
-To bypass validation (not recommended):
-```bash
-git commit --no-verify -m "message"
-```
-
-### Using Commitizen (Interactive Helper)
-
-For help crafting valid commits:
-```bash
-npx cz
-# or
-npm run commit  # if configured
-```
-
-This provides an interactive prompt to build a compliant message.
+Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
+on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
+also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
+does the same for its own scopes. The VS Code extension releases on the changes that touched
+`calm-plugins/vscode`, whatever their scope (see
+[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md#releasing)). Check these files before
+assuming a commit is release-neutral. A
+merged PR with a conventional title is released on its title alone, so give the PR the type and scope
+of its most significant change. A plain `git revert` does not release.
 
 ## Pre-Commit Checklist
 
@@ -398,61 +275,18 @@ Before considering any code change ready:
 - [ ] **Test coverage meets requirements** (>80% for new code)
 - [ ] **Commit message follows Conventional Commits** (enforced by husky)
 
-## Documentation
-
-- **User Docs**: https://calm.finos.org
-- **Advent of CALM**: https://calm.finos.org/advent/
-- **API Docs**: Generated from code (Swagger for calm-hub)
-
 ## Contributing
 
 **CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
-### Pull Request Template Requirement
-
 **CRITICAL:** Always use the repository PR template in `.github/pull_request_template.md` when creating or updating a pull request. Do not submit ad-hoc PR descriptions when a template exists; populate each section with accurate status.
 
-1. **Fork the repository**
-2. **Create a feature branch** with descriptive name (e.g., `feat/add-caching`, `fix/mongodb-timeout`)
-3. **Make your changes** following package-specific guidelines (see AGENTS.md files)
-4. **Write tests** for all new code
-5. **Run the pre-commit checklist** (see above)
-   - Tests with coverage pass
-   - Linting passes (0 errors)
-   - Builds succeed
-6. **Commit with Conventional Commits format**
-   - Example: `feat(cli): add schema validation caching`
-   - Husky will validate your commit message automatically
-7. **Push to your fork** and create a pull request
-8. **Ensure CI passes** on your pull request
-
-### Quick Contribution Workflow
-
-```bash
-# 1. Create feature branch
-git checkout -b feat/my-feature
-
-# 2. Make changes and write tests
-vim src/my-file.ts
-vim src/my-file.spec.ts
-
-# 3. Run pre-commit checks
-npm test -- --coverage
-npm run lint
-npm run build
-
-# 4. Commit with conventional format (husky validates)
-git add .
-git commit -m "feat(cli): add my feature"
-
-# 5. Push and create PR
-git push origin feat/my-feature
-```
+Branch names are descriptive and conventional-commit-flavoured (`feat/add-caching`,
+`fix/mongodb-timeout`). Work through the pre-commit checklist above before pushing, follow the
+package-specific guide for whatever you touched, and make sure CI is green on the PR.
 
 ## Getting Help
 
+- User docs: https://calm.finos.org (calm-hub also serves generated Swagger)
 - Issues: https://github.com/finos/architecture-as-code/issues
 - Discussions: https://github.com/finos/architecture-as-code/discussions
-- Community: FINOS Architecture as Code meetings
-
----

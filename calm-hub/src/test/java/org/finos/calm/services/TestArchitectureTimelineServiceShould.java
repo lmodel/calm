@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,6 +41,8 @@ public class TestArchitectureTimelineServiceShould {
 
     private static final String NAMESPACE = "finos";
     private static final int ARCHITECTURE_ID = 42;
+    private static final Path BUNDLED_RELEASES_INDEX =
+            Path.of("src", "main", "resources", "META-INF", "calm-schemas", "versions.txt");
 
     @BeforeEach
     void setup() {
@@ -70,6 +74,17 @@ public class TestArchitectureTimelineServiceShould {
     }
 
     @Test
+    void use_the_latest_bundled_calm_release_for_the_timeline_schema() throws Exception {
+        // Read the source file: a test fixture shadows this resource on the test classpath.
+        List<String> releases = Files.readAllLines(BUNDLED_RELEASES_INDEX).stream()
+                .filter(line -> !line.isBlank())
+                .toList();
+
+        assertThat(ArchitectureTimelineService.TIMELINE_SCHEMA,
+                is("https://calm.finos.org/release/" + releases.getLast() + "/meta/calm-timeline.json"));
+    }
+
+    @Test
     void produce_a_single_moment_for_a_single_version() throws Exception {
         JsonNode timeline = impliedTimelineFor(List.of("1.0.0"));
 
@@ -85,7 +100,7 @@ public class TestArchitectureTimelineServiceShould {
         assertThat(moment.get("name").asText(), is("1.0.0"));
         assertThat(moment.get("description").asText(), containsString("1.0.0"));
         assertThat(moment.get("details").get("detailed-architecture").asText(),
-                is("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                is("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
     }
 
     @Test
@@ -142,6 +157,36 @@ public class TestArchitectureTimelineServiceShould {
     }
 
     @Test
+    void order_a_snapshot_immediately_before_its_release_and_set_current_moment_to_the_release() throws Exception {
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(2));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0-SNAPSHOT"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.0.0"));
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0"));
+    }
+
+    @Test
+    void set_current_moment_to_the_highest_release_even_when_a_snapshot_ranks_higher() throws Exception {
+        // A 1.1.0-SNAPSHOT past the published 1.0.0 must not become "current" — it isn't published yet.
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0", "1.1.0-SNAPSHOT"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(2));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.1.0-SNAPSHOT"));
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0"));
+    }
+
+    @Test
+    void set_current_moment_to_the_snapshot_when_nothing_is_published_yet() throws Exception {
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0-SNAPSHOT"));
+
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void treat_hyphenated_semver_as_semver() throws Exception {
         // Semver.parse accepts hyphen-separated versions (e.g. mongo-style "1-0-0")
         JsonNode timeline = impliedTimelineFor(List.of("2-0-0", "1-0-0"));
@@ -178,7 +223,7 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
         when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
         when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
-                .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -193,7 +238,7 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
         when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0", "2.0.0", "1.1.0"));
         when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
-                .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -275,6 +320,20 @@ public class TestArchitectureTimelineServiceShould {
 
         assertThrows(NamespaceNotFoundException.class,
                 () -> service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+    }
+
+    @Test
+    void order_a_snapshot_into_position_rather_than_after_every_release() throws Exception {
+        // Before Semver.parse accepted the suffix, a snapshot was classified non-semver and
+        // appended after the sorted versions, so every implied timeline ended with it.
+        JsonNode timeline = impliedTimelineFor(List.of("2.0.0", "1.5.0-SNAPSHOT", "1.0.0"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(3));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.5.0-SNAPSHOT"));
+        assertThat(moments.get(2).get("unique-id").asText(), is("2.0.0"));
+        assertThat(timeline.get("current-moment").asText(), is("2.0.0"));
     }
 
     @Test

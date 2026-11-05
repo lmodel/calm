@@ -5,10 +5,10 @@ import type { DeploymentDecorator } from '../../contracts/contracts.js';
 
 const mockDecorators: DeploymentDecorator[] = [
     {
-        schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+        schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
         uniqueId: 'dep-1',
         type: 'deployment',
-        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+        target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-api', 'rel-api-db'],
         data: {
             status: 'completed',
@@ -19,10 +19,10 @@ const mockDecorators: DeploymentDecorator[] = [
         },
     },
     {
-        schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+        schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
         uniqueId: 'dep-2',
         type: 'deployment',
-        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+        target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-db'],
         data: {
             status: 'failed',
@@ -31,10 +31,10 @@ const mockDecorators: DeploymentDecorator[] = [
         },
     },
     {
-        schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+        schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
         uniqueId: 'dep-3',
         type: 'deployment',
-        target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+        target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
         appliesTo: ['node-api'],
         data: {
             status: 'in-progress',

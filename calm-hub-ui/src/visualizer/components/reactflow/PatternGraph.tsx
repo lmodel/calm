@@ -11,6 +11,7 @@ import ReactFlow, {
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { MotionToggleButton } from './MotionToggleButton.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
@@ -19,10 +20,14 @@ import { DecisionGroupNode } from './DecisionGroupNode.js';
 import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
+import { PatternRulesState } from './PatternRulesState.js';
 import { parsePatternData } from './utils/patternTransformer.js';
+import { extractPatternRules, hasPatternRules } from './utils/patternRules.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyStoredPositions } from '../../services/node-position-service.js';
+import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useNodeSearch } from './node-search-context.js';
 import { DecisionSelectorPanel } from './DecisionSelectorPanel.js';
 import {
     extractDecisionPoints,
@@ -45,18 +50,41 @@ interface PatternGraphProps {
     onNodeClick?: (nodeData: Record<string, unknown>) => void;
     onEdgeClick?: (edgeData: Record<string, unknown>) => void;
     viewportKey?: string;
+    /** Server-stored default layout for a pattern. undefined = loading, null = none stored. */
+    defaultLayout?: StoredNodePosition[] | null;
+    /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
+    layoutEpoch?: number;
+    onPositionsChange?: (positions: StoredNodePosition[]) => void;
 }
 
-export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKey }: PatternGraphProps) {
+export function PatternGraph({
+    patternData,
+    onNodeClick,
+    onEdgeClick,
+    viewportKey,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: PatternGraphProps) {
     const savedViewport = useMemo<Viewport | undefined>(
         () => (viewportKey ? readViewportForKey(viewportKey) : undefined),
         [viewportKey]
     );
 
+    // See ArchitectureGraph: holds the latest onPositionsChange in a ref so the
+    // parse effect below doesn't have to depend on the caller's function identity.
+    const onPositionsChangeRef = useRef(onPositionsChange);
+    useEffect(() => {
+        onPositionsChangeRef.current = onPositionsChange;
+    });
+    const reportPositions = useCallback((positions: StoredNodePosition[]) => {
+        onPositionsChangeRef.current?.(positions);
+    }, []);
+
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const { searchTerm, setSearchTerm, typeFilter, setTypeFilter, availableNodeTypes, setAvailableNodeTypes, external: externalSearch } =
+        useNodeSearch();
     const [decisionSelections, setDecisionSelections] = useState<DecisionSelections>(new Map());
 
     // Refs hold the structural node/edge data from parsing.
@@ -65,8 +93,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
     const sourceNodesRef = useRef<Node[]>([]);
     const sourceEdgesRef = useRef<Edge[]>([]);
 
-    const [availableNodeTypes, setAvailableNodeTypes] = useState<string[]>([]);
-    const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
+    const isMobile = useIsMobile();
 
     const {
         onNodesChange,
@@ -75,25 +102,59 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         handleNodeMouseEnter,
         handleNodeMouseLeave,
     } = useGraphInteractions({
+        nodes,
         setNodes,
         onNodesChangeBase,
         onNodeClick,
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
         persistKey: viewportKey,
+        onPositionsChange: reportPositions,
     });
 
+    // Still fetching the server default for this diagram: hold off applying
+    // positions rather than flashing the auto-layout and then jumping to the
+    // restored one. See ArchitectureGraph's awaitingDefaultLayout for the
+    // invariant this relies on: DiagramSection is the only caller that ever
+    // sets `viewportKey` here, and it always does so via useDefaultLayout,
+    // which settles `defaultLayout` away from `undefined` for every type it
+    // supports — so this can't get stuck for a caller that forgot to pass one.
+    const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
+
+    // Parsed during render, not in the effect, so the empty and error states
+    // below are decided on the first frame instead of after node state fills.
+    const parsed = useMemo(() => parsePatternData(patternData), [patternData]);
+    const rules = useMemo(() => extractPatternRules(patternData), [patternData]);
+    const decisionPoints = useMemo(() => extractDecisionPoints(parsed.nodes), [parsed]);
+
     useEffect(() => {
-        const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
+        if (awaitingDefaultLayout) return;
+
+        const { nodes: parsedNodes, edges: parsedEdges } = parsed;
         sourceNodesRef.current = parsedNodes;
         sourceEdgesRef.current = parsedEdges;
-        // Restore any custom layout the user dragged for this diagram, falling
-        // back to the parsed auto-layout when none is stored.
-        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
+        // Precedence: a provided default layout (from document _layout or
+        // server-saved) wins over stale localStorage scratch. Scratch only
+        // applies when there is no default.
+        const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
+        const positionedNodes = applyPositions(parsedNodes, effectivePositions);
+
+        setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-        setDecisionPoints(extractDecisionPoints(parsedNodes));
-    }, [patternData, setNodes, setEdges, viewportKey]);
+        reportPositions(toStoredPositions(positionedNodes));
+    }, [
+        parsed,
+        setNodes,
+        setEdges,
+        setAvailableNodeTypes,
+        viewportKey,
+        defaultLayout,
+        layoutEpoch,
+        awaitingDefaultLayout,
+        reportPositions,
+    ]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -164,8 +225,20 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
         setDecisionSelections(new Map());
     }, []);
 
-    if (nodes.length === 0) {
-        return <EmptyGraphState message="No pattern data to display. Load a CALM pattern to visualize." />;
+    if (parsed.failed) {
+        return <EmptyGraphState message="This pattern could not be drawn. See the JSON view for its schema." />;
+    }
+
+    if (parsed.nodes.length === 0) {
+        return hasPatternRules(rules) ? (
+            <PatternRulesState rules={rules} />
+        ) : (
+            <EmptyGraphState message="This pattern defines no nodes or relationships to draw." />
+        );
+    }
+
+    if (awaitingDefaultLayout) {
+        return <EmptyGraphState message="Loading saved layout…" />;
     }
 
     return (
@@ -191,22 +264,29 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                 attributionPosition="bottom-left"
                 style={{ background: THEME.colors.background }}
             >
-                <Background color={THEME.colors.border} gap={16} />
-                <Controls
-                    style={{
-                        background: THEME.colors.card,
-                        border: `1px solid ${THEME.colors.border}`,
-                        borderRadius: '8px',
-                    }}
-                />
-                <MiniMap
-                    style={{
-                        background: THEME.colors.backgroundSecondary,
-                        border: `1px solid ${THEME.colors.border}`,
-                    }}
-                    nodeColor={THEME.colors.accent}
-                    maskColor={`${THEME.colors.background}cc`}
-                />
+                {/* Dot colour lives in index.css — see ArchitectureGraph. */}
+                <Background gap={16} />
+                {!isMobile && (
+                    <Controls
+                        style={{
+                            background: THEME.colors.card,
+                            border: `1px solid ${THEME.colors.border}`,
+                            borderRadius: '8px',
+                        }}
+                    >
+                        <MotionToggleButton />
+                    </Controls>
+                )}
+                {!isMobile && (
+                    <MiniMap
+                        className="calm-minimap-mask-base"
+                        style={{
+                            background: THEME.colors.backgroundSecondary,
+                            border: `1px solid ${THEME.colors.border}`,
+                        }}
+                        nodeColor={THEME.colors.accent}
+                    />
+                )}
                 <Panel position="top-left">
                     <DecisionSelectorPanel
                         decisionPoints={decisionPoints}
@@ -215,6 +295,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         onReset={handleDecisionReset}
                     />
                 </Panel>
+                {!externalSearch && (
                 <Panel position="top-right">
                     <SearchBar
                         searchTerm={searchTerm}
@@ -224,6 +305,7 @@ export function PatternGraph({ patternData, onNodeClick, onEdgeClick, viewportKe
                         nodeTypes={availableNodeTypes}
                     />
                 </Panel>
+                )}
             </ReactFlow>
         </div>
     );

@@ -5,6 +5,7 @@ import { SingleStrategy } from './single-strategy';
 import { TemplateEngine } from '../template-engine';
 import { TemplateEntry, OutputContext } from '../types';
 import { Logger } from '../../logger';
+import { createMockLogger } from '../../test/test-utils';
 
 vi.mock('fs');
 vi.mock('../front-matter', () => ({
@@ -23,12 +24,7 @@ describe('SingleStrategy', () => {
             compileTemplate: vi.fn()
         } as unknown as TemplateEngine;
 
-        mockLogger = {
-            info: vi.fn(),
-            warn: vi.fn(),
-            debug: vi.fn(),
-            error: vi.fn()
-        } as unknown as Logger;
+        mockLogger = createMockLogger();
 
         strategy = new SingleStrategy(mockEngine);
 
@@ -38,6 +34,29 @@ describe('SingleStrategy', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('output path containment', () => {
+        it('throws and writes nothing when output escapes the output directory', () => {
+            const entry: TemplateEntry = {
+                template: 'index.md.hbs',
+                from: 'document',
+                output: '../outside.md',
+                'output-type': 'single'
+            };
+
+            const context: OutputContext = {
+                data: { document: {} },
+                outputDir: '/test/output',
+                scaffoldOnly: false
+            };
+
+            vi.mocked(mockEngine.getCompiledTemplate).mockReturnValue(() => 'content');
+
+            expect(() => strategy.process(entry, context, mockLogger))
+                .toThrow('resolves outside the output directory');
+            expect(fs.writeFileSync).not.toHaveBeenCalled();
+        });
     });
 
     describe('scaffold mode', () => {

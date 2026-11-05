@@ -4,7 +4,9 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
 import { SchemaDirectory } from '../../schema-directory.js';
-import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, setCalmSchema } from '../../test/test-utils';
+import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
+import { generate } from '../generate/generate-core.js';
+import { CalmChoice } from '../generate/components/options.js';
 
 const inputArchPath = path.join(
     __dirname,
@@ -23,10 +25,6 @@ const validationPath = path.join(
     '../../../test_fixtures/command/validate/'
 );
 
-const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
-const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
-const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
-
 const invalidArchMissingRelationshipTypePath = path.join(
     __dirname,
     '../../../test_fixtures/command/validate/invalid-architecture-missing-relationship-type.json'
@@ -37,7 +35,7 @@ describe('validate E2E', () => {
     let schemaDirectory: SchemaDirectory;
 
     beforeEach(async () => {
-        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11, schemaDir_12], true);
+        documentLoader = new FileSystemDocumentLoader(TEST_ALL_SCHEMA.map(([release]) => calmSchemaDir(release)), true);
         schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
     });
@@ -66,6 +64,95 @@ describe('validate E2E', () => {
         expect(response.hasErrors).toBeFalsy();
     });
 
+    it('reports a decision with no answer against the pattern instead of throwing', async () => {
+        const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
+        const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
+        inputArch.relationships[0]['relationship-type'].options = [];
+
+        const response = await validate(inputArch, inputPattern, undefined, schemaDirectory, true);
+
+        // This pattern's decision is a oneOf that requires an answer.
+        expect(response.jsonSchemaValidationOutputs.map(o => o.path))
+            .toEqual(['/relationships/0/relationship-type/options']);
+    });
+
+    describe('a decision answered with nothing', () => {
+        const NODE = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node';
+        const RELATIONSHIP = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship';
+        const DECISION = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/decision';
+        type Keyword = 'anyOf' | 'oneOf';
+
+        const node = (id: string) => ({
+            $ref: NODE, type: 'object',
+            properties: { 'unique-id': { const: id }, name: { const: id }, 'node-type': { const: 'service' } }
+        });
+        const answer = (description: string, nodeId: string): CalmChoice => ({ description, nodes: [nodeId], relationships: [] });
+        const decision = (id: string, keyword: Keyword, answers: CalmChoice[]) => ({
+            $ref: RELATIONSHIP, type: 'object',
+            properties: {
+                'unique-id': { const: id },
+                description: { const: id },
+                'relationship-type': {
+                    type: 'object',
+                    properties: {
+                        options: {
+                            type: 'array',
+                            prefixItems: [{
+                                [keyword]: answers.map(a => ({
+                                    $ref: DECISION, type: 'object',
+                                    properties: { description: { const: a.description }, nodes: { const: a.nodes }, relationships: { const: [] } }
+                                }))
+                            }]
+                        }
+                    }
+                }
+            }
+        });
+
+        const cache = answer('Cache', 'cache');
+        const queue = answer('Queue', 'queue');
+
+        // The optional cache sits before the required db, so dropping its slot moves db up.
+        const patternWith = (keyword: Keyword) => ({
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            $id: 'https://calm.finos.org/test/decision-with-no-answer.json',
+            type: 'object',
+            properties: {
+                nodes: { type: 'array', prefixItems: [node('api'), { [keyword]: [node('cache')] }, node('db'), { anyOf: [node('queue')] }] },
+                relationships: { type: 'array', prefixItems: [decision('add-cache', keyword, [cache]), decision('add-queue', 'anyOf', [queue])] }
+            },
+            required: ['nodes', 'relationships']
+        });
+
+        async function generateThenValidate(keyword: Keyword, chosen: CalmChoice[]) {
+            const architecture = await generate(patternWith(keyword), schemaDirectory, { chosenChoices: chosen }) as { nodes: { 'unique-id': string }[] };
+            const response = await validate(architecture, patternWith(keyword), undefined, schemaDirectory, false);
+            return { nodes: architecture.nodes.map(n => n['unique-id']), response };
+        }
+
+        it('accepts what calm generate builds when an anyOf decision is answered with nothing', async () => {
+            const { nodes, response } = await generateThenValidate('anyOf', []);
+
+            expect(nodes).toEqual(['api', 'db']);
+            expect(response.jsonSchemaValidationOutputs).toEqual([]);
+        });
+
+        it('reads an empty answer the same way when another decision has an answer', async () => {
+            const { nodes, response } = await generateThenValidate('anyOf', [queue]);
+
+            expect(nodes).toEqual(['api', 'db', 'queue']);
+            expect(response.jsonSchemaValidationOutputs).toEqual([]);
+        });
+
+        it('reports a oneOf decision answered with nothing', async () => {
+            const { response } = await generateThenValidate('oneOf', []);
+
+            expect(response.jsonSchemaValidationOutputs.map(o => `${o.path} ${o.message}`)).toEqual([
+                '/relationships/0/relationship-type/options The decision [add-cache] is a oneOf and needs exactly one answer.'
+            ]);
+        });
+    });
+
     it('validates architecture against pattern with options', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
@@ -80,6 +167,20 @@ describe('validate E2E', () => {
         expect(response.spectralSchemaValidationOutputs).toHaveLength(2);
         expect(response.spectralSchemaValidationOutputs[0].path).toBe('/nodes/0/description');
         expect(response.spectralSchemaValidationOutputs[1].path).toBe('/nodes/1/description');
+    });
+
+    it('produces the same outcome when the same pattern object is validated repeatedly', async () => {
+        // Long-lived processes (e.g. calm-server) cache pattern objects and reuse
+        // them across validations, so validating must not mutate the pattern.
+        const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
+        const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
+        const patternBeforeValidation = structuredClone(inputPattern);
+
+        const firstResponse = await validate(inputArch, inputPattern, undefined, schemaDirectory, false);
+        const secondResponse = await validate(inputArch, inputPattern, undefined, schemaDirectory, false);
+
+        expect(inputPattern).toEqual(patternBeforeValidation);
+        expect(secondResponse).toEqual(firstResponse);
     });
 
     it('reports json schema compilation errors for bad-json-schema fixture', async () => {
@@ -136,6 +237,13 @@ describe('validate E2E', () => {
     });
 
     describe('applyArchitectureOptionsToPattern', () => {
+        it('leaves the pattern unchanged when the architecture records no decision', () => {
+            const pattern = JSON.parse(readFileSync(inputPatternPath, 'utf8'));
+            const architecture = { nodes: [], relationships: [] };
+
+            expect(applyArchitectureOptionsToPattern(architecture, pattern, false)).toBe(pattern);
+        });
+
         it('works with one options relationship', async () => {
             const architecture = JSON.parse(
                 readFileSync(inputArchPath, 'utf8')
@@ -149,6 +257,47 @@ describe('validate E2E', () => {
 
             const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
+        });
+
+        it('keeps the items catalogue, so validation still constrains what an architecture adds', () => {
+            const node = (id: string) => ({ properties: { 'unique-id': { const: id } } });
+            const pattern = {
+                properties: {
+                    nodes: { prefixItems: [node('gateway')], items: { oneOf: [node('cache'), node('queue')] } },
+                    relationships: {
+                        prefixItems: [{
+                            properties: {
+                                'unique-id': { const: 'db-choice' },
+                                'relationship-type': {
+                                    properties: {
+                                        options: {
+                                            prefixItems: [{
+                                                oneOf: [{
+                                                    properties: {
+                                                        description: { const: 'Use postgres' },
+                                                        nodes: { const: ['postgres'] },
+                                                        relationships: { const: [] }
+                                                    }
+                                                }]
+                                            }]
+                                        }
+                                    }
+                                }
+                            }
+                        }]
+                    }
+                }
+            };
+            const architecture = {
+                nodes: [],
+                relationships: [{
+                    'unique-id': 'db-choice',
+                    'relationship-type': { options: [{ description: 'Use postgres', nodes: ['postgres'], relationships: [] }] }
+                }]
+            };
+
+            const resolved = applyArchitectureOptionsToPattern(architecture, pattern, false) as typeof pattern;
+            expect(resolved.properties.nodes.items).toBeDefined();
         });
     });
 
@@ -260,6 +409,46 @@ describe('validate E2E', () => {
 
             expect(response.hasErrors).toBeFalsy();
             expect(response.jsonSchemaValidationOutputs.length).toBe(0);
+        });
+    });
+
+    describe('control config-url document with no $id', () => {
+        function architectureWithConfigUrl(configFile: string) {
+            return {
+                '$schema': 'https://calm.finos.org/release/1.2/meta/calm.json',
+                controls: {
+                    security: {
+                        description: 'Secure communication',
+                        requirements: [{
+                            'requirement-url': 'https://calm.finos.org/release/1.2/meta/control-requirement.json',
+                            'config-url': path.join(validationPath, 'controls', configFile)
+                        }]
+                    }
+                },
+                nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'A service' }],
+                relationships: []
+            };
+        }
+
+        it('accepts a config that agrees with the requirement schema', async () => {
+            const arch = architectureWithConfigUrl('tls-config.json');
+
+            const response = await validate(arch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(0);
+        });
+
+        it('reports a config that does not agree with the requirement schema', async () => {
+            const arch = architectureWithConfigUrl('tls-config-no-description.json');
+
+            const response = await validate(arch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
+            expect(response.jsonSchemaValidationOutputs[0].code).toBe('control-requirement-validation');
+            expect(response.jsonSchemaValidationOutputs[0].path).toBe('/controls/security/requirements/0');
+            expect(response.jsonSchemaValidationOutputs[0].message).toContain('description');
         });
     });
 });

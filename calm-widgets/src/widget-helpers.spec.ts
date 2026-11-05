@@ -4,6 +4,13 @@ import { registerGlobalTemplateHelpers } from './widget-helpers';
 describe('Widget Helpers', () => {
     const helpers = registerGlobalTemplateHelpers();
 
+    // Alphabetical order makes helpers easier to find and reduces merge conflicts
+    // when multiple contributors add helpers simultaneously.
+    it('helpers are defined in alphabetical order', () => {
+        const keys = Object.keys(helpers);
+        expect(keys).toEqual([...keys].sort());
+    });
+
     describe('eq helper', () => {
         it('returns true for equal values', () => {
             expect(helpers.eq(5, 5)).toBe(true);
@@ -27,6 +34,30 @@ describe('Widget Helpers', () => {
         it('returns true for unequal values', () => {
             expect(helpers.ne(5, 10)).toBe(true);
             expect(helpers.ne('hello', 'world')).toBe(true);
+        });
+    });
+
+    describe('nodeLabel helper', () => {
+        it('returns the mapped name when the id is present in the map', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': 'Service Alpha' })).toBe('Service Alpha');
+        });
+
+        it('falls back to the id when the map has no entry for it', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-b': 'Service Beta' })).toBe('svc-a');
+        });
+
+        it('falls back to the id when no map is provided', () => {
+            expect(helpers.nodeLabel('svc-a', undefined)).toBe('svc-a');
+        });
+
+        it('falls back to the id when the mapped value is not a non-empty string', () => {
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': '' })).toBe('svc-a');
+            expect(helpers.nodeLabel('svc-a', { 'svc-a': 42 })).toBe('svc-a');
+        });
+
+        it('returns an empty string for a non-string id', () => {
+            expect(helpers.nodeLabel(undefined, { x: 'X' })).toBe('');
+            expect(helpers.nodeLabel(42, { x: 'X' })).toBe('');
         });
     });
 
@@ -237,6 +268,21 @@ describe('Widget Helpers', () => {
 
         it('handles already capitalized words', () => {
             expect(helpers.kebabToTitleCase('API-Gateway')).toBe('API Gateway');
+        });
+    });
+
+    describe('linkId helper', () => {
+        it('returns sourceId when the item is a copy of another node', () => {
+            expect(helpers.linkId({ id: 'ns__in__cluster-a', sourceId: 'ns' })).toBe('ns');
+        });
+
+        it('returns id when the item has no sourceId', () => {
+            expect(helpers.linkId({ id: 'ns' })).toBe('ns');
+        });
+
+        it('returns an empty string for invalid input', () => {
+            expect(helpers.linkId(undefined)).toBe('');
+            expect(helpers.linkId('ns')).toBe('');
         });
     });
 

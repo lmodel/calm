@@ -1,13 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MetadataPanel } from './MetadataPanel';
+import type { ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 // Mock child components
-vi.mock('./FlowsPanel', () => ({
-    FlowsPanel: ({ flows }: { flows: unknown[] }) => (
-        <div data-testid="flows-panel">Flows: {flows.length}</div>
-    ),
-}));
 
 vi.mock('./ControlsPanel', () => ({
     ControlsPanel: ({ controls }: { controls: Record<string, unknown> }) => (
@@ -28,20 +24,6 @@ vi.mock('./AdrsPanel', () => ({
 }));
 
 describe('MetadataPanel', () => {
-    const mockFlows = [
-        {
-            'unique-id': 'flow-1',
-            name: 'Test Flow',
-            description: 'A test flow',
-            transitions: [
-                {
-                    'sequence-number': 1,
-                    description: 'Step 1',
-                    'relationship-unique-id': 'rel-1',
-                },
-            ],
-        },
-    ];
 
     const mockControls = {
         'control-1': {
@@ -52,10 +34,10 @@ describe('MetadataPanel', () => {
 
     const mockDecorators = [
         {
-            schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+            schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
             uniqueId: 'dec-1',
             type: 'deployment',
-            target: ['/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
+            target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
             appliesTo: ['node-a'],
             data: {
                 status: 'completed',
@@ -66,7 +48,6 @@ describe('MetadataPanel', () => {
     ];
 
     const defaultProps = {
-        flows: mockFlows,
         controls: mockControls,
         decorators: [] as typeof mockDecorators,
         adrs: [] as string[],
@@ -76,15 +57,9 @@ describe('MetadataPanel', () => {
         onHeightChange: vi.fn(),
     };
 
-    it('renders nothing when no flows, no controls, and no decorators', () => {
+    it('renders nothing when there are no controls, decorators or adrs', () => {
         const { container } = render(
-            <MetadataPanel
-                {...defaultProps}
-                flows={[]}
-                controls={{}}
-                decorators={[]}
-                adrs={[]}
-            />
+            <MetadataPanel {...defaultProps} controls={{}} decorators={[]} adrs={[]} />
         );
         expect(container.firstChild).toBeNull();
     });
@@ -92,7 +67,6 @@ describe('MetadataPanel', () => {
     it('renders collapsed view with counts when collapsed', () => {
         render(<MetadataPanel {...defaultProps} isCollapsed={true} />);
 
-        expect(screen.getByText('Flows (1)')).toBeInTheDocument();
         expect(screen.getByText('Controls (1)')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Expand metadata panel' })).toBeInTheDocument();
     });
@@ -113,14 +87,20 @@ describe('MetadataPanel', () => {
     it('renders tab buttons when expanded', () => {
         render(<MetadataPanel {...defaultProps} />);
 
-        expect(screen.getByRole('button', { name: /Flows \(1\)/ })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Controls \(1\)/ })).toBeInTheDocument();
     });
 
-    it('shows FlowsPanel by default when flows exist', () => {
+    it('has no flows tab — flows have their own dedicated view', () => {
         render(<MetadataPanel {...defaultProps} />);
 
-        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Flows/ })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('flows-panel')).not.toBeInTheDocument();
+    });
+
+    it('shows ControlsPanel by default when controls exist', () => {
+        render(<MetadataPanel {...defaultProps} />);
+
+        expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
     });
 
     it('switches to ControlsPanel when clicking Controls tab', () => {
@@ -149,22 +129,15 @@ describe('MetadataPanel', () => {
         expect(onToggleCollapse).toHaveBeenCalled();
     });
 
-    it('shows only flows tab when no controls exist', () => {
-        render(<MetadataPanel {...defaultProps} controls={{}} />);
+    it('hides the controls tab when there are no controls', () => {
+        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} controls={{}} />);
 
-        expect(screen.getByRole('button', { name: /Flows \(1\)/ })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Controls/ })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Deployment' })).toBeInTheDocument();
     });
 
-    it('shows only controls tab when no flows exist', () => {
-        render(<MetadataPanel {...defaultProps} flows={[]} />);
-
-        expect(screen.getByRole('button', { name: /Controls \(1\)/ })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /Flows/ })).not.toBeInTheDocument();
-    });
-
-    it('defaults to controls tab when no flows exist', () => {
-        render(<MetadataPanel {...defaultProps} flows={[]} />);
+    it('defaults to the controls tab when controls exist', () => {
+        render(<MetadataPanel {...defaultProps} />);
 
         expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
     });
@@ -222,7 +195,7 @@ describe('MetadataPanel', () => {
     });
 
     it('defaults to adrs tab when only adrs exist', () => {
-        render(<MetadataPanel {...defaultProps} flows={[]} controls={{}} decorators={[]} adrs={['https://example.com/adr/0001.md']} />);
+        render(<MetadataPanel {...defaultProps} controls={{}} decorators={[]} adrs={['https://example.com/adr/0001.md']} />);
 
         expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
     });
@@ -237,7 +210,6 @@ describe('MetadataPanel', () => {
         const { container } = render(
             <MetadataPanel
                 {...defaultProps}
-                flows={[]}
                 controls={{}}
                 decorators={[]}
                 adrs={['https://example.com/adr/0001.md']}
@@ -250,32 +222,71 @@ describe('MetadataPanel', () => {
         const { rerender } = render(
             <MetadataPanel
                 {...defaultProps}
-                flows={mockFlows}
-                controls={{}}
                 decorators={[]}
                 adrs={['https://example.com/adr/0001.md']}
             />
         );
 
-        // Initially on flows tab
-        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+        // Initially on the controls tab
+        expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
 
         // Switch to ADRs tab
         fireEvent.click(screen.getByRole('button', { name: /ADRs \(1\)/ }));
         expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
 
-        // Re-render with no ADRs — activeTab should reset to flows
-        rerender(
-            <MetadataPanel
-                {...defaultProps}
-                flows={mockFlows}
-                controls={{}}
-                decorators={[]}
-                adrs={[]}
-            />
-        );
+        // Re-render with no ADRs. activeTab must fall back to controls.
+        rerender(<MetadataPanel {...defaultProps} decorators={[]} adrs={[]} />);
 
-        expect(screen.getByTestId('flows-panel')).toBeInTheDocument();
+        expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
         expect(screen.queryByTestId('adrs-panel')).not.toBeInTheDocument();
+    });
+
+    describe('control evaluations', () => {
+        const evaluations: ControlEvaluationDecorator[] = [
+            {
+                schema: 's',
+                uniqueId: 'eval-1',
+                type: 'control-evaluation',
+                target: ['t'],
+                appliesTo: ['trade-api'],
+                data: {
+                    control: { 'unique-id': 'client-ledger-human-approval', 'requirement-url': 'https://example.org/r' },
+                    status: 'met',
+                    'evaluated-at': '2026-11-04T15:00:00Z',
+                },
+            },
+        ];
+        const onlyEvaluations = { ...defaultProps, controls: {}, decorators: [], adrs: [], evaluations };
+
+        it('counts evaluations in the collapsed bar', () => {
+            render(<MetadataPanel {...onlyEvaluations} isCollapsed={true} />);
+
+            expect(screen.getByText('Evaluations (1)')).toBeInTheDocument();
+        });
+
+        it('opens on the evaluations tab when there are evaluations', () => {
+            render(<MetadataPanel {...onlyEvaluations} />);
+
+            expect(screen.getByTestId('control-evaluation-row')).toBeInTheDocument();
+        });
+
+        it('switches to the evaluations tab when evaluations arrive after mount', () => {
+            const { rerender } = render(<MetadataPanel {...defaultProps} isCollapsed={true} />);
+            rerender(<MetadataPanel {...defaultProps} evaluations={evaluations} isCollapsed={true} />);
+            rerender(<MetadataPanel {...defaultProps} evaluations={evaluations} isCollapsed={false} />);
+
+            expect(screen.getByTestId('control-evaluation-row')).toBeInTheDocument();
+            expect(screen.queryByTestId('controls-panel')).not.toBeInTheDocument();
+        });
+
+        it('keeps the tab the user chose when evaluations update later', () => {
+            const { rerender } = render(<MetadataPanel {...defaultProps} evaluations={evaluations} />);
+            fireEvent.click(screen.getByRole('button', { name: /Controls \(1\)/ }));
+            const updated = [...evaluations, { ...evaluations[0], uniqueId: 'eval-2' }];
+            rerender(<MetadataPanel {...defaultProps} evaluations={updated} />);
+
+            expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
+            expect(screen.queryByTestId('control-evaluation-row')).not.toBeInTheDocument();
+        });
     });
 });

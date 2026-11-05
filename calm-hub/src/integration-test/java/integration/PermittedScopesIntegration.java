@@ -3,6 +3,7 @@ package integration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+
+import jakarta.inject.Inject;
 
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
@@ -34,10 +37,13 @@ public class PermittedScopesIntegration {
     private static final Logger logger = LoggerFactory.getLogger(PermittedScopesIntegration.class);
     private static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             throw new IllegalStateException("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -48,13 +54,20 @@ public class PermittedScopesIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
                 database.createCollection("patterns");
-                database.getCollection("patterns").insertOne(
-                        new Document("namespace", "finos").append("patterns", new ArrayList<>())
-                );
+                // Collection only — no per-namespace document. That priming belonged to the old
+                // one-document-per-namespace shape; under the header/version shape it has no id
+                // field, so the header reader surfaces it as a resource named "<Type> null".
             }
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("userAccess")) {
-                database.createCollection("userAccess");
+            // Guard on the specific grant, not collection existence: MongoIndexInitializationStep's
+            // startup index creation on userAccess implicitly creates the (empty) collection
+            // before this ever runs, so "does the collection exist" is never a useful check here.
+            boolean grantExists = database.getCollection("userAccess").find(Filters.and(
+                    Filters.eq("username", "test-user"),
+                    Filters.eq("namespace", "finos"),
+                    Filters.eq("permission", UserAccess.Permission.read.name())
+            )).first() != null;
+            if (!grantExists) {
                 database.getCollection("userAccess").insertOne(
                         new Document("username", "test-user")
                                 .append("namespace", "finos")
@@ -92,7 +105,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces/finos/patterns")
+                .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
                 .body("values", empty());
@@ -108,7 +121,7 @@ public class PermittedScopesIntegration {
                 .auth().oauth2(token)
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(403);
     }
@@ -119,7 +132,7 @@ public class PermittedScopesIntegration {
         given()
                 .body(PATTERN)
                 .header("Content-Type", "application/json")
-                .when().post("/calm/namespaces/finos/patterns")
+                .when().post("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(401);
     }
@@ -132,7 +145,7 @@ public class PermittedScopesIntegration {
 
         given()
                 .auth().oauth2(token)
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(200)
                 .body("values.name", hasItem("finos"))
@@ -143,8 +156,59 @@ public class PermittedScopesIntegration {
     @Order(5)
     void unauthenticated_request_for_namespaces_is_rejected() {
         given()
-                .when().get("/calm/namespaces")
+                .when().get("/api/calm/namespaces")
                 .then()
                 .statusCode(401);
+    }
+
+    @Test
+    @Order(6)
+    void read_only_user_cannot_post_to_calm_namespaces_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(7)
+    void read_only_user_cannot_put_to_calm_namespace_resource() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/my-pattern/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().put("/calm")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @Order(8)
+    void read_only_user_cannot_post_control_requirement_via_calm_endpoint() {
+        String authServerUrl = ConfigProvider.getConfig().getValue("quarkus.oidc.auth-server-url", String.class);
+        String token = tokenForTestUser(authServerUrl);
+
+        String payload = "{\"$id\":\"http://localhost:8080/calm/domains/finos/controls/my-control/requirement/versions/1.0.0\"}";
+
+        given()
+                .auth().oauth2(token)
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm")
+                .then()
+                .statusCode(403);
     }
 }

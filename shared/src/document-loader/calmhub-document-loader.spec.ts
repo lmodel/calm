@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { Axios } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -32,6 +32,11 @@ describe('calmhub-document-loader', () => {
         });
     });
     
+    it('fails to load a document with invalid url scheme', async () => {
+        const calmHubUrl = 'ftp://schemas/2025-03/meta/core.json';
+        await expect(async () => await calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
+    });
+    
     it('calls configured auth plugin if provided', async () => {
         const authPlugin: AuthPlugin = {
             getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer test-token' })
@@ -52,10 +57,34 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
     });
 
-    it('throws an error when the protocol is not calm:', async () => {
-        const calmHubUrl = 'https://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
+    it('throws an error when the protocol is not http/https/calm', async () => {
+        const calmHubUrl = 'ftp://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
 
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
+    });
+
+    it('does not claim an http(s) URL whose origin is not this CalmHub instance, so other loaders can try it', async () => {
+        const externalUrl = 'https://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
+
+        const promise = calmHubDocumentLoader.loadMissingDocument(externalUrl, 'schema');
+        await expect(promise).rejects.toThrow('only loads http(s) documents from the configured CALMHub origin');
+        // Recoverable: a DocumentLoadError with recoverable: true, so MultiStrategyDocumentLoader falls through.
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ recoverable: true });
+    });
+
+    it('rejects a calmHubUrl that is not a parseable absolute URL', () => {
+        expect(() => new CalmHubDocumentLoader('not-a-url', false, undefined, ax))
+            .toThrow('Invalid CalmHub URL');
+    });
+
+    it('loads an http(s) URL whose origin matches this CalmHub instance', async () => {
+        const hubUrl = `${calmHubBaseUrl}/schemas/2025-03/meta/core.json`;
+        const document = await calmHubDocumentLoader.loadMissingDocument(hubUrl, 'schema');
+        expect(document).toEqual({
+            '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+            'value': 'test'
+        });
     });
 
     it('rejects paths containing directory traversal segments', async () => {
@@ -89,5 +118,39 @@ describe('calmhub-document-loader', () => {
         const promise = calmHubDocumentLoader.loadMissingDocument('calm:/schemas/2025-03/meta/array-response.json', 'schema');
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('rejects a response redirected to a different origin', async () => {
+        const redirectAx = axios.create({ baseURL: calmHubBaseUrl });
+        vi.spyOn(redirectAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://evil.example/x.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: 'https://evil.example/x.json' }
+        });
+        const redirectedLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, redirectAx as unknown as Axios);
+
+        const calmHubUrl = 'calm:/schemas/2025-03/meta/core.json';
+        await expect(redirectedLoader.loadMissingDocument(calmHubUrl, 'schema'))
+            .rejects.toThrow('redirected to a different origin');
+    });
+
+    it('accepts a response whose responseURL confirms the same origin', async () => {
+        const sameOriginAx = axios.create({ baseURL: calmHubBaseUrl });
+        vi.spyOn(sameOriginAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://calm.finos.org/core.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: `${calmHubBaseUrl}/schemas/2025-03/meta/core.json` }
+        });
+        const sameOriginLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, sameOriginAx as unknown as Axios);
+
+        const calmHubUrl = 'calm:/schemas/2025-03/meta/core.json';
+        const document = await sameOriginLoader.loadMissingDocument(calmHubUrl, 'schema');
+        expect(document).toEqual({ '$id': 'https://calm.finos.org/core.json' });
     });
 });

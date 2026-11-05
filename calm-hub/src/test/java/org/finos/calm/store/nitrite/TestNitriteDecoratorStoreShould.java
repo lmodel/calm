@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +52,8 @@ class TestNitriteDecoratorStoreShould {
     private NitriteDecoratorStore decoratorStore;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(db.getCollection("decorators")).thenReturn(decoratorCollection);
         decoratorStore = new NitriteDecoratorStore(db, namespaceStore, counterStore);
     }
@@ -321,7 +324,7 @@ class TestNitriteDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-deployment-1")
                 .put("type", "deployment")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
@@ -342,7 +345,7 @@ class TestNitriteDecoratorStoreShould {
         // Then
         assertTrue(result.isPresent());
         Decorator decorator = result.get();
-        assertEquals("https://calm.finos.org/draft/2025-03/meta/decorator.json", decorator.getSchema());
+        assertEquals("https://calm.finos.org/release/1.3/meta/decorators.json", decorator.getSchema());
         assertEquals("finos-deployment-1", decorator.getUniqueId());
         assertEquals("deployment", decorator.getType());
         assertEquals(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"), decorator.getTarget());
@@ -406,11 +409,11 @@ class TestNitriteDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc1 = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc1 = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-deployment-1")
                 .put("type", "deployment")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        Document decoratorDoc2 = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc2 = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-observability-1")
                 .put("type", "observability")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
@@ -580,16 +583,6 @@ class TestNitriteDecoratorStoreShould {
     }
 
     @Test
-    void should_log_initialization_message() {
-        // Given/When - setUp already called
-        
-        // Then
-        verify(db).getCollection("decorators");
-        // Logger message is logged but we can't easily verify it in unit tests
-        // This test mainly verifies the constructor completes successfully
-    }
-
-    @Test
     void should_create_decorator_and_return_assigned_id_when_namespace_doc_does_not_exist() throws NamespaceNotFoundException {
         // Given
         String namespace = "finos";
@@ -684,5 +677,75 @@ class TestNitriteDecoratorStoreShould {
         assertEquals(10, decoratorIds.get(1));
         assertEquals(1, decoratorIds.get(2));
         verify(namespaceStore).namespaceExists(namespace);
+    }
+
+    @Test
+    void should_delete_decorator_successfully() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decorator1 = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("unique-id", "decorator-1"));
+        Document decorator2 = Document.createDocument("decoratorId", 2)
+                .put("decorator", Document.createDocument("unique-id", "decorator-2"));
+        Document namespaceDocument = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decorator1, decorator2));
+
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+
+        // When
+        decoratorStore.deleteDecorator(namespace, 1);
+
+        // Then
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_deleting_an_id_not_present() {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decorator1 = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("unique-id", "decorator-1"));
+        Document namespaceDocument = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decorator1));
+
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 99));
+
+        verify(decoratorCollection, never()).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_deleting_from_a_namespace_with_no_document() {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(null);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+
+        verify(decoratorCollection, never()).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_deleting_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+
+        verify(decoratorCollection, never()).find(any(Filter.class));
     }
 }

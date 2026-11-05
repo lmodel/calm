@@ -4,7 +4,7 @@
 # Encapsulates all three steps required to produce the image so the process is
 # identical locally and in CI:
 #   1. Maven package  — compiles calm-hub and runs unit tests.
-#   2. Stage content  — copies calm/ schemas and controls/ into the Docker build
+#   2. Stage content  — copies the released meta-schemas, controls/, standards/, patterns/ and interfaces/ into the Docker build
 #                       context (target/readonly-seed/) which is gitignored.
 #   3. Docker build   — builds the two-stage Dockerfile.readonly-static image.
 #
@@ -15,6 +15,8 @@
 #   --no-docker    Run steps 1 and 2 only; skip the docker build step.
 #                  CI uses this flag and performs its own multi-arch buildx push.
 #   --no-maven     Skip the Maven build (assumes target/quarkus-app/ already exists).
+#   --smoke        After the docker build, run the readonly smoke test (start container,
+#                  run smoke-test.sh readonly, stop container).  Mirrors what CI does.
 #   --help         Show this message.
 #
 # IMAGE_TAG:
@@ -33,11 +35,13 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 IMAGE_TAG="calm-hub:read-only-static"
 RUN_DOCKER=true
 RUN_MAVEN=true
+RUN_SMOKE=false
 
 for arg in "$@"; do
     case "${arg}" in
         --no-docker) RUN_DOCKER=false ;;
         --no-maven)  RUN_MAVEN=false  ;;
+        --smoke)     RUN_SMOKE=true   ;;
         --help)
             sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | grep '^#' | sed 's/^# \{0,1\}//'
             exit 0
@@ -51,16 +55,31 @@ done
 if [[ "${RUN_MAVEN}" == true ]]; then
     echo "[build] Building calm-hub with Maven..."
     cd "${SCRIPT_DIR}"
-    "${REPO_ROOT}/mvnw" package -DskipITs -Ddependency-check.skip=true
+    "${REPO_ROOT}/mvnw" package -DskipITs
     cd "${REPO_ROOT}"
 fi
 
 # ── Step 2: Stage seed content into the Docker build context ──────────────────
-echo "[build] Staging calm/ schemas and controls into target/readonly-seed/..."
-mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm"
+echo "[build] Staging meta-schemas, controls, standards, patterns and interfaces into target/readonly-seed/..."
+# Start from an empty staging directory: cp -r never removes files a previous run staged, so a
+# document deleted from the repository would otherwise still be seeded into the image.
+rm -rf "${SCRIPT_DIR}/target/readonly-seed"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/controls"
-cp -r "${REPO_ROOT}/calm/." "${SCRIPT_DIR}/target/readonly-seed/calm/"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/standards"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/patterns"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm-schemas"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/interfaces"
+# The released meta-schemas come from the @finos/calm-schema npm packages; the Maven build
+# copies them to target/calm-schemas/release.
+if [[ ! -d "${SCRIPT_DIR}/target/calm-schemas/release" ]]; then
+    echo "[build] ERROR: target/calm-schemas/release is missing. Run the Maven build first (or 'npm run calm-hub:copy-schemas' at the repository root)." >&2
+    exit 1
+fi
+cp -r "${SCRIPT_DIR}/target/calm-schemas/release" "${SCRIPT_DIR}/target/readonly-seed/calm-schemas/release"
+cp -r "${SCRIPT_DIR}/mongo/interfaces/." "${SCRIPT_DIR}/target/readonly-seed/interfaces/"
 cp -r "${SCRIPT_DIR}/mongo/controls/." "${SCRIPT_DIR}/target/readonly-seed/controls/"
+cp -r "${SCRIPT_DIR}/mongo/standards/." "${SCRIPT_DIR}/target/readonly-seed/standards/"
+cp -r "${SCRIPT_DIR}/mongo/patterns/." "${SCRIPT_DIR}/target/readonly-seed/patterns/"
 echo "[build] Staged:"
 ls "${SCRIPT_DIR}/target/readonly-seed/"
 
@@ -74,4 +93,27 @@ if [[ "${RUN_DOCKER}" == true ]]; then
     echo ""
     echo "[build] Done. Run the image with:"
     echo "  docker run --rm -p 8080:8080 ${IMAGE_TAG}"
+fi
+
+# ── Step 4: Smoke test (optional, --smoke flag) ────────────────────────────────
+if [[ "${RUN_SMOKE}" == true ]]; then
+    if [[ "${RUN_DOCKER}" != true ]]; then
+        echo "[build] WARNING: --smoke requires a docker build; skipping smoke test." >&2
+    else
+        SMOKE_PORT=18080
+        SMOKE_CONTAINER="calm-hub-readonly-smoke-$$"
+        cleanup_smoke() { docker stop "${SMOKE_CONTAINER}" > /dev/null 2>&1 || true; }
+        trap cleanup_smoke EXIT
+
+        echo "[build] Starting smoke container on port ${SMOKE_PORT}..."
+        docker run --rm -d -p "${SMOKE_PORT}:8080" --name "${SMOKE_CONTAINER}" "${IMAGE_TAG}"
+
+        echo "[build] Running readonly smoke test..."
+        bash "${SCRIPT_DIR}/smoke-test.sh" "http://localhost:${SMOKE_PORT}" readonly
+
+        echo "[build] Stopping smoke container..."
+        docker stop "${SMOKE_CONTAINER}" > /dev/null 2>&1 || true
+        trap - EXIT
+        echo "[build] Smoke test passed."
+    fi
 fi

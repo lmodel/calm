@@ -4,8 +4,11 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -17,7 +20,9 @@ import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -26,7 +31,9 @@ import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.ArchitectureTimelineService;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,18 +44,23 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 
 /**
  * Resource for managing architectures in a given namespace
  */
-@Path("/calm/namespaces")
+@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Path("/api/calm/namespaces")
 @Authenticated
 public class ArchitectureResource {
 
     private final ArchitectureStore store;
     private final ArchitectureTimelineService timelineService;
+    private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(ArchitectureResource.class);
 
@@ -56,9 +68,12 @@ public class ArchitectureResource {
     Boolean allowPutOperations;
 
     @Inject
-    public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService) {
+    public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService,
+                                CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.timelineService = timelineService;
+        this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     /**
@@ -72,14 +87,18 @@ public class ArchitectureResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Retrieve architectures in a given namespace",
-            description = "Architecture stored in a given namespace"
+            description = "Architecture stored in a given namespace. Optional limit/offset query "
+                    + "parameters page the result; when omitted the full list is returned. Offset "
+                    + "is only applied alongside a limit."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecturesForNamespace(
-            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.ARCHITECTURE,
+                    store.getArchitecturesForNamespace(namespace, page.toPageRequest())))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -157,7 +176,7 @@ public class ArchitectureResource {
     public Response getArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version) {
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -288,8 +307,33 @@ public class ArchitectureResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/architectures/{architectureId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete an architecture",
+            description = "Deletes an architecture and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId
+    ) {
+        try {
+            store.deleteArchitecture(namespace, architectureId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting architecture", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.error("Invalid architecture [{}] when deleting architecture", architectureId, e);
+            return invalidArchitectureResponse(architectureId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.ARCHITECTURE, architectureId);
+        return Response.noContent().build();
+    }
+
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {
-        return Response.created(new URI("/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
+        return Response.created(new URI("/api/calm/namespaces/" + architecture.getNamespace() + "/architectures/" + architecture.getId() + "/versions/" + architecture.getDotVersion())).build();
     }
 
     private Response invalidArchitectureResponse(int architectureId) {

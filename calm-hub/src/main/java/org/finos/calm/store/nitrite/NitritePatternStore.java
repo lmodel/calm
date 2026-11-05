@@ -5,9 +5,6 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
-import org.dizitart.no2.collection.Document;
-import org.dizitart.no2.collection.NitriteCollection;
-import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -15,24 +12,30 @@ import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
-import org.finos.calm.domain.pattern.NamespacePatternSummary;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
-import org.finos.calm.store.util.TypeSafeNitriteDocument;
+import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
- * Implementation of the PatternStore interface using NitriteDB.
- * This implementation is used when the application is running in standalone mode.
+ * NitriteDB-backed implementation of {@link PatternStore}, used in standalone mode.
+ *
+ * <h2>Document model</h2>
+ * One <em>header</em> document per pattern in {@code patterns}, and one <em>version</em>
+ * document per version in {@code patternVersions}, mirroring {@link org.finos.calm.store.mongo.MongoPatternStore}.
+ * All document handling and locking live in {@link NitriteVersionDocumentStore}.
+ *
+ * <p>As with the Architecture pair, two differences from the Mongo implementation are
+ * deliberate and predate this shape: content is stored as a JSON string rather than a parsed
+ * document, and JSON is validated up front by {@link #validatePatternJson} before the
+ * pattern's existence is checked — so a request that is both malformed and aimed at a
+ * missing pattern reports the parse failure here and the missing pattern on Mongo.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -40,312 +43,102 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 public class NitritePatternStore implements PatternStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(NitritePatternStore.class);
-    private static final String COLLECTION_NAME = "patterns";
-    private static final String NAMESPACE_FIELD = "namespace";
-    private static final String PATTERN_ID_FIELD = "patternId";
-    private static final String PATTERNS_FIELD = "patterns";
-    private static final String VERSIONS_FIELD = "versions";
-    private static final String NAME_FIELD = "name";
-    private static final String DESCRIPTION_FIELD = "description";
+    private static final String HEADER_COLLECTION = "patterns";
+    private static final String VERSION_COLLECTION = "patternVersions";
+    private static final String ID_FIELD = "patternId";
+    private static final String RESOURCE_LABEL = "Pattern";
 
-    private final NitriteCollection patternCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
-    private final Lock lock = new ReentrantLock();
+    private final NitriteVersionDocumentStore documentStore;
 
     @Inject
     public NitritePatternStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
-        this.patternCollection = db.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
-        LOG.info("NitritePatternStore initialized with collection: {}", COLLECTION_NAME);
+        this.documentStore = new NitriteVersionDocumentStore(
+                db.getCollection(HEADER_COLLECTION),
+                db.getCollection(VERSION_COLLECTION),
+                ID_FIELD,
+                RESOURCE_LABEL);
+        LOG.info("NitritePatternStore initialized with collections: {} / {}", HEADER_COLLECTION, VERSION_COLLECTION);
     }
 
     @Override
-    public List<NamespacePatternSummary> getPatternsForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when retrieving patterns", namespace);
-            throw new NamespaceNotFoundException();
-        }
-
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDocument = patternCollection.find(filter).firstOrNull();
-
-        // If no patterns exist for this namespace yet
-        if (namespaceDocument == null) {
-            LOG.debug("No patterns found for namespace '{}'", namespace);
-            return List.of();
-        }
-
-        List<NamespacePatternSummary> patternSummaries = new ArrayList<>();
-        // Get patterns list with proper type handling
-        List<Object> rawPatterns = new TypeSafeNitriteDocument<>(namespaceDocument, Object.class).getList(PATTERNS_FIELD);
-
-        if (rawPatterns != null) {
-            for (Object patternObj : rawPatterns) {
-                if (patternObj instanceof Document patternDoc) {
-                    Integer patternId = patternDoc.get(PATTERN_ID_FIELD, Integer.class);
-                    String name = patternDoc.get(NAME_FIELD, String.class);
-                    String description = patternDoc.get(DESCRIPTION_FIELD, String.class);
-                    if (patternId != null) {
-                        if (name == null) name = "Pattern " + patternId;
-                        if (description == null) description = "";
-                        patternSummaries.add(new NamespacePatternSummary(name, description, patternId));
-                    }
-                }
-            }
-        }
-
-        LOG.debug("Retrieved {} patterns for namespace '{}'", patternSummaries.size(), namespace);
-        return patternSummaries;
+    public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
-    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found when creating pattern", namespace);
-            throw new NamespaceNotFoundException();
-        }
-
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException {
+        namespaceStore.requireNamespace(namespace);
         validatePatternJson(patternRequest.getPatternJson());
 
-        lock.lock();
-        try {
-            int id = counterStore.getNextPatternSequenceValue();
+        int id = counterStore.getNextPatternSequenceValue();
+        documentStore.createHeader(namespace, id, patternRequest.getName(), patternRequest.getDescription());
+        documentStore.createFirstVersion(namespace, id, version, patternRequest.getPatternJson());
 
-            Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-            Document namespaceDocument = patternCollection.find(filter).firstOrNull();
-
-            String name = patternRequest.getName();
-            String description = patternRequest.getDescription();
-
-            Document patternDocument = Document.createDocument()
-                    .put(PATTERN_ID_FIELD, id)
-                    .put(NAME_FIELD, name)
-                    .put(DESCRIPTION_FIELD, description)
-                    .put(VERSIONS_FIELD, Document.createDocument().put("1-0-0", patternRequest.getPatternJson()));
-
-            if (namespaceDocument == null) {
-                // Create new namespace document with pattern
-                Document newNamespaceDoc = Document.createDocument()
-                        .put(NAMESPACE_FIELD, namespace)
-                        .put(PATTERNS_FIELD, List.of(patternDocument));
-
-                patternCollection.insert(newNamespaceDoc);
-            } else {
-                // Update existing namespace document
-                List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class)
-                        .getList(PATTERNS_FIELD);
-                if (patterns == null) {
-                    patterns = new ArrayList<>();
-                } else {
-                    patterns = new ArrayList<>(patterns); // Make a mutable copy
-                }
-                patterns.add(patternDocument);
-
-                namespaceDocument.put(PATTERNS_FIELD, patterns);
-                patternCollection.update(filter, namespaceDocument);
-            }
-
-            Pattern persistedPattern = new Pattern.PatternBuilder()
-                    .setId(id)
-                    .setNamespace(namespace)
-                    .setPattern(patternRequest.getPatternJson())
-                    .setVersion("1-0-0")
-                    .build();
-
-            LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
-            return persistedPattern;
-        } finally {
-            lock.unlock();
-        }
+        LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
+        return new Pattern.PatternBuilder()
+                .setId(id)
+                // Dot-separated, matching the Mongo store and what is actually stored. This
+                // backend used to return "1-0-0" here, so the Location header differed by
+                // backend for the same operation.
+                .setVersion(version)
+                .setNamespace(namespace)
+                .setPattern(patternRequest.getPatternJson())
+                .build();
     }
 
     @Override
     public List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when retrieving pattern versions", pattern.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
-
-        Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
-        if (patternDoc == null) {
-            LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions == null) {
-            throw new PatternNotFoundException();
-        }
-        Set<String> fieldNames = versions.getFields();
-        List<String> versionList = new ArrayList<>();
-        for (String fieldName : fieldNames) {
-            versionList.add(fieldName.replace('-', '.'));
-        }
-
-        LOG.debug("Retrieved {} versions for pattern {} in namespace '{}'",
-                versionList.size(), pattern.getId(), pattern.getNamespace());
-        return versionList;
+        requirePattern(pattern);
+        return documentStore.listVersions(pattern.getNamespace(), pattern.getId());
     }
 
     @Override
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when retrieving pattern version", pattern.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
+        requirePattern(pattern);
 
-        Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
-        if (patternDoc == null) {
-            LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions == null) {
-            throw new PatternVersionNotFoundException();
-        }
-        Object versionObj = versions.get(pattern.getMongoVersion());
-
-        if (!(versionObj instanceof String)) {
+        String content = documentStore.getVersion(
+                pattern.getNamespace(), pattern.getId(), pattern.getDotVersion());
+        if (content == null) {
             LOG.warn("Version '{}' not found for pattern {} in namespace '{}'",
-                    pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
+                    pattern.getDotVersion(), pattern.getId(), pattern.getNamespace());
             throw new PatternVersionNotFoundException();
         }
-
-        LOG.debug("Retrieved version '{}' for pattern {} in namespace '{}'",
-                pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
-        return (String) versionObj;
+        return content;
     }
 
     @Override
     public Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when creating pattern version", pattern.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
-
+        namespaceStore.requireNamespace(pattern.getNamespace());
         validatePatternJson(pattern.getPatternJson());
+        requirePatternExists(pattern);
 
-        lock.lock();
-        try {
-            Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
-            Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
-
-            if (namespaceDocument == null) {
-                LOG.warn("Namespace document for '{}' not found when creating pattern version", pattern.getNamespace());
-                throw new PatternNotFoundException();
-            }
-
-            Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
-            if (patternDoc == null) {
-                LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
-                throw new PatternNotFoundException();
-            }
-
-            Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-            if (versions == null) {
-                throw new PatternNotFoundException();
-            }
-            if (versions.containsKey(pattern.getMongoVersion())) {
-                LOG.warn("Version '{}' already exists for pattern {} in namespace '{}'",
-                        pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
-                throw new PatternVersionExistsException();
-            }
-
-            // Add the new version
-            versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
-            patternDoc.put(VERSIONS_FIELD, versions);
-
-            // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
-            // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
-            if (pattern.getName() != null && !pattern.getName().isBlank()) {
-                patternDoc.put(NAME_FIELD, pattern.getName());
-            }
-            if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
-                patternDoc.put(DESCRIPTION_FIELD, pattern.getDescription());
-            }
-
-            // Update the pattern in the namespace document
-            List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
-            // Create a mutable copy of the list
-            patterns = new ArrayList<>(patterns);
-            for (int i = 0; i < patterns.size(); i++) {
-                Document doc = patterns.get(i);
-                if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
-                    patterns.set(i, patternDoc);
-                    break;
-                }
-            }
-
-            namespaceDocument.put(PATTERNS_FIELD, patterns);
-            patternCollection.update(namespaceFilter, namespaceDocument);
-        } finally {
-            lock.unlock();
+        boolean created = documentStore.createVersion(pattern.getNamespace(), pattern.getId(),
+                pattern.getDotVersion(), pattern.getPatternJson());
+        if (!created) {
+            LOG.warn("Version '{}' already exists for pattern {} in namespace '{}'",
+                    pattern.getDotVersion(), pattern.getId(), pattern.getNamespace());
+            throw new PatternVersionExistsException();
         }
 
-        LOG.info("Created version '{}' for pattern {} in namespace '{}'",
-                pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
+        updateHeaderDetails(pattern);
         return pattern;
     }
 
     @Override
     public Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        if (!namespaceStore.namespaceExists(pattern.getNamespace())) {
-            LOG.warn("Namespace '{}' not found when updating pattern version", pattern.getNamespace());
-            throw new NamespaceNotFoundException();
-        }
-
+        namespaceStore.requireNamespace(pattern.getNamespace());
         validatePatternJson(pattern.getPatternJson());
+        requirePatternExists(pattern);
 
-        Filter namespaceFilter = where(NAMESPACE_FIELD).eq(pattern.getNamespace());
-        Document namespaceDocument = patternCollection.find(namespaceFilter).firstOrNull();
+        documentStore.upsertVersion(pattern.getNamespace(), pattern.getId(),
+                pattern.getDotVersion(), pattern.getPatternJson());
 
-        if (namespaceDocument == null) {
-            LOG.warn("Namespace document for '{}' not found when updating pattern version", pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document patternDoc = findPatternDocument(pattern.getNamespace(), pattern.getId());
-        if (patternDoc == null) {
-            LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
-            throw new PatternNotFoundException();
-        }
-
-        Document versions = patternDoc.get(VERSIONS_FIELD, Document.class);
-        if (versions == null) {
-            throw new PatternNotFoundException();
-        }
-        versions.put(pattern.getMongoVersion(), pattern.getPatternJson());
-        patternDoc.put(VERSIONS_FIELD, versions);
-
-        // Defensive: the REST layer enforces @NotBlank on name/description via CreatePatternRequest,
-        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
-        if (pattern.getName() != null && !pattern.getName().isBlank()) {
-            patternDoc.put(NAME_FIELD, pattern.getName());
-        }
-        if (pattern.getDescription() != null && !pattern.getDescription().isBlank()) {
-            patternDoc.put(DESCRIPTION_FIELD, pattern.getDescription());
-        }
-
-        // Update the pattern in the namespace document
-        List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
-        // Create a mutable copy of the list
-        patterns = new ArrayList<>(patterns);
-        for (int i = 0; i < patterns.size(); i++) {
-            Document doc = patterns.get(i);
-            if (doc.get(PATTERN_ID_FIELD, Integer.class) == pattern.getId()) {
-                patterns.set(i, patternDoc);
-                break;
-            }
-        }
-
-        namespaceDocument.put(PATTERNS_FIELD, patterns);
-        patternCollection.update(namespaceFilter, namespaceDocument);
-
-        LOG.info("Updated version '{}' for pattern {} in namespace '{}'",
-                pattern.getMongoVersion(), pattern.getId(), pattern.getNamespace());
+        updateHeaderDetails(pattern);
         return pattern;
     }
 
@@ -372,34 +165,46 @@ public class NitritePatternStore implements PatternStore {
     }
 
     /**
-     * Helper method to find a pattern document by namespace and pattern ID.
-     *
-     * @param namespace The namespace
-     * @param patternId The pattern ID
-     * @return The pattern document, or null if not found
+     * Applies the name and description that came with a version write, ignoring either that
+     * is blank, and only after the version write succeeds.
      */
-    private Document findPatternDocument(String namespace, int patternId) {
-        Filter filter = where(NAMESPACE_FIELD).eq(namespace);
-        Document namespaceDocument = patternCollection.find(filter).firstOrNull();
+    private void updateHeaderDetails(Pattern pattern) {
+        documentStore.updatePresentHeaderDetails(pattern.getNamespace(), pattern.getId(),
+                pattern.getName(), pattern.getDescription());
+    }
 
-        if (namespaceDocument == null) {
-            return null;
+    private void requirePatternExists(Pattern pattern) throws PatternNotFoundException {
+        if (!documentStore.headerExists(pattern.getNamespace(), pattern.getId())) {
+            LOG.warn("Pattern with ID {} not found in namespace '{}'", pattern.getId(), pattern.getNamespace());
+            throw new PatternNotFoundException();
         }
+    }
 
-        List<Document> patterns = new TypeSafeNitriteDocument<>(namespaceDocument, Document.class).getList(PATTERNS_FIELD);
-        if (patterns == null) {
-            return null;
+    private void requirePattern(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(pattern.getNamespace());
+        requirePatternExists(pattern);
+    }
+
+    @Override
+    public void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, patternId)) {
+            throw new PatternNotFoundException();
         }
+        LOG.info("Deleted pattern with ID {} from namespace '{}'", patternId, namespace);
+    }
 
-        for (Object patternObj : patterns) {
-            if (patternObj instanceof Document patternDoc) {
-                Integer id = patternDoc.get(PATTERN_ID_FIELD, Integer.class);
-                if (id != null && id == patternId) {
-                    return patternDoc;
-                }
-            }
+    @Override
+    public boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
         }
-
-        return null;
+        boolean deleted = documentStore.deleteVersion(namespace, patternId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of pattern {} from namespace '{}'", version, patternId, namespace);
+        }
+        return deleted;
     }
 }

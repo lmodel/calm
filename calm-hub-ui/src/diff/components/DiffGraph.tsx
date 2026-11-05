@@ -16,8 +16,10 @@ import { CustomNode } from '../../visualizer/components/reactflow/CustomNode.js'
 import { SystemGroupNode } from '../../visualizer/components/reactflow/SystemGroupNode.js';
 import { DecisionGroupNode } from '../../visualizer/components/reactflow/DecisionGroupNode.js';
 import { THEME } from '../../visualizer/components/reactflow/theme.js';
+import { MotionToggleButton } from '../../visualizer/components/reactflow/MotionToggleButton.js';
 import { parseCALMDataWithDiff } from './utils/diffTransformer.js';
 import { parsePatternDataWithDiff } from './utils/patternDiffTransformer.js';
+import { useIsMobile } from '../../hooks/useMediaQuery.js';
 import type { DiffGraphProps } from '../model/diff-ui-types.js';
 
 const edgeTypes = { custom: FloatingEdge };
@@ -30,6 +32,7 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
     const nodesInitialized = useNodesInitialized();
+    const isMobile = useIsMobile();
     const containerRef = useRef<HTMLDivElement>(null);
     const fitFrameRef = useRef<number>();
 
@@ -85,22 +88,29 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             attributionPosition="bottom-left"
             style={{ background: THEME.colors.background }}
         >
-            <Background color={THEME.colors.border} gap={16} />
-            <Controls
-                style={{
-                    background: THEME.colors.card,
-                    border: `1px solid ${THEME.colors.border}`,
-                    borderRadius: '8px',
-                }}
-            />
-            <MiniMap
-                style={{
-                    background: THEME.colors.backgroundSecondary,
-                    border: `1px solid ${THEME.colors.border}`,
-                }}
-                nodeColor={THEME.colors.accent}
-                maskColor={`${THEME.colors.background}cc`}
-            />
+            {/* Dot colour lives in index.css — see ArchitectureGraph. */}
+            <Background gap={16} />
+            {!isMobile && (
+                <Controls
+                    style={{
+                        background: THEME.colors.card,
+                        border: `1px solid ${THEME.colors.border}`,
+                        borderRadius: '8px',
+                    }}
+                >
+                    <MotionToggleButton />
+                </Controls>
+            )}
+            {!isMobile && (
+                <MiniMap
+                    className="calm-minimap-mask-base"
+                    style={{
+                        background: THEME.colors.backgroundSecondary,
+                        border: `1px solid ${THEME.colors.border}`,
+                    }}
+                    nodeColor={THEME.colors.accent}
+                />
+            )}
         </ReactFlow>
         </div>
     );

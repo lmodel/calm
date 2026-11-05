@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.FlowStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +40,7 @@ public class TestFlowResourcePutEnabledShould {
                 .header("Content-Type", "application/json")
                 .body(envelopeBody)
                 .when()
-                .put("/calm/namespaces/test/flows/20/versions/invalid-version")
+                .put("/api/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -49,6 +50,8 @@ public class TestFlowResourcePutEnabledShould {
         return Stream.of(
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new FlowNotFoundException(), 404),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }
@@ -75,16 +78,16 @@ public class TestFlowResourcePutEnabledShould {
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode)
-                    .header("Location", containsString("/calm/namespaces/test/flows/20/versions/1.0.1"));
+                    .header("Location", containsString("/api/calm/namespaces/test/flows/20/versions/1.0.1"));
         } else {
             given()
                     .header("Content-Type", "application/json")
                     .body("{\"name\":\"n\",\"description\":\"d\",\"flowJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
                     .when()
-                    .put("/calm/namespaces/test/flows/20/versions/1.0.1")
+                    .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                     .then()
                     .statusCode(expectedStatusCode);
         }

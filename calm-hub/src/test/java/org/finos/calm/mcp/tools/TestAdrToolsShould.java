@@ -8,8 +8,10 @@ import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrParseException;
 import org.finos.calm.domain.exception.AdrPersistenceException;
+import org.finos.calm.domain.exception.AdrRevisionExistsException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.AdrStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -541,6 +543,17 @@ class TestAdrToolsShould {
         assertThat(text(result), not(containsString("sensitive internal detail")));
     }
 
+    @Test
+    void return_error_when_concurrent_update_conflicts_on_revision() throws Exception {
+        when(adrStore.updateAdrForNamespace(any(AdrMeta.class)))
+                .thenThrow(new AdrRevisionExistsException());
+
+        ToolResponse result = adrTools.updateAdr("finos", 1, VALID_ADR_JSON);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("concurrently updated"));
+    }
+
     // --- updateAdrStatus ---
 
     @Test
@@ -611,6 +624,32 @@ class TestAdrToolsShould {
 
         assertThat(result.isError(), is(true));
         assertThat(text(result), containsString("not found"));
+    }
+
+    @Test
+    void return_error_when_concurrent_status_update_conflicts_on_revision() throws Exception {
+        when(adrStore.updateAdrStatus(any(AdrMeta.class), any(Status.class)))
+                .thenThrow(new AdrRevisionExistsException());
+
+        ToolResponse result = adrTools.updateAdrStatus("finos", 1, "accepted");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("concurrently updated"));
+    }
+
+    @Test
+    void return_error_rather_than_propagating_an_unchecked_write_failure_on_status_update() throws Exception {
+        // StorageWriteException is unchecked, so it is not in updateAdrStatus's throws clause
+        // and none of the catch blocks above name it. Without a generic catch it escapes the
+        // @Tool method entirely instead of becoming an error response — the five sibling
+        // methods in AdrTools have always ended with one; this one did not.
+        when(adrStore.updateAdrStatus(any(AdrMeta.class), any(Status.class)))
+                .thenThrow(StorageWriteException.writeFailed(new RuntimeException("mongo down")));
+
+        ToolResponse result = adrTools.updateAdrStatus("finos", 1, "accepted");
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Failed to update status"));
     }
 
     @ParameterizedTest
