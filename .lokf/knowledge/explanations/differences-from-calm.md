@@ -14,14 +14,14 @@ sources:
   - resource: .linkml/parity
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: 4d7e95652cde2263c793e23ec9952b3d10183744
+  at: "2026-11-06T08:26:22Z"
+  revision: 7c036d453c485cf0e0a265f4c500d78a9018f82e
 status: draft
 ---
 
 # Where the model differs from CALM's files
 
-`metadata` accepts any value, and a decorator's `data` may be empty, because LinkML cannot state CALM's rules there.[^about.md] A controls map holds a control under every key, where CALM leaves a key outside its pattern unchecked.[^about.md] Three faults of CALM's own files are not repeated:
+`metadata` accepts any value, and a decorator's `data` may be empty, because LinkML cannot state CALM's rules there.[^about.md] A controls map holds a control under every key, where CALM leaves a key outside its pattern unchecked.[^about.md] CALM's own files hold three faults:
 
 - `core.json` misplaces `additionalProperties`.
 - `units.json` closes an empty root.

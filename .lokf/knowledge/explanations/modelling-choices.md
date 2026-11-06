@@ -16,14 +16,14 @@ sources:
     title: Validating a CALM document
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:12:05Z"
-  revision: 4d7e95652cde2263c793e23ec9952b3d10183744
+  at: "2026-11-06T08:26:22Z"
+  revision: 7c036d453c485cf0e0a265f4c500d78a9018f82e
 status: draft
 ---
 
 # How the model keeps CALM's form
 
-A slot carries CALM's key as its alias. Six slots list the key under `aliases` instead: five hold a key LOKF defines with another meaning, and one holds `$schema`, which gen-python would make an attribute's name.[^about.md] No slot is an identifier. gen-python names an identifier's type after its alias, and `unique-id` is no Python name.[^about.md] `linkml-validate`, the example runner and the dataclasses read slot names, so they cannot read a CALM document.[^docs-index.md]
+A slot carries CALM's key as its alias. Six slots list the key under `aliases` instead: five hold CALM's `source`, `destination`, `target`, `unit` and `type`, of which LOKF defines all but `destination` with another meaning, and one holds `$schema`, which gen-python would make an attribute's name.[^about.md] No slot is an identifier. gen-python names an identifier's type after its alias, and `unique-id` is no Python name.[^about.md] `linkml-validate`, the example runner and the dataclasses read slot names, so they cannot read a CALM document.[^docs-index.md]
 
 [^about.md]: .linkml/docs/about.md, How the model keeps CALM's form
 [^docs-index.md]: .linkml/docs/index.md, Validating a CALM document

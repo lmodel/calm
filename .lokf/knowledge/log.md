@@ -2,6 +2,8 @@
 
 ## 2026-11-06
 
+* **Changed**: Where the model differs from CALM's files no longer says the model avoids all three of CALM's faults; it keeps CALM's cron pattern and records that fault.
+* **Changed**: Alias and Modelling choices name the five keys the renamed slots hold, since LOKF does not define `destination`.
 * **Prose**: reworded 26 concept bodies in plain English. No fact, link, number or frontmatter changed.
 * **Changed**: the descriptions of the CALM Meta Schema and the documentation site name no bare web address, which the index bullets repeat and markdownlint refuses.
 * **Changed**: How the model keeps CALM's form; it now names all six slots that list CALM's key under `aliases`, as `.linkml/docs/about.md` does.
