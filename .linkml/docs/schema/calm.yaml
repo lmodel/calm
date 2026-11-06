@@ -18,9 +18,15 @@ description: A LinkML model of CALM 1.3, the Common Architecture Language Model 
   JSON Schema files can be generated from the model.
 title: FINOS CALM
 comments:
-- A key with a hyphen, such as unique-id, is the alias of a slot named with an underscore.
-  scripts/calm_meta.py writes CALM's files with the aliases as keys, which plain gen-json-schema
-  does only with --preserve-names.
+- A slot whose name differs from CALM's key carries the key as its alias, such as
+  unique_id for unique-id. scripts/calm_meta.py writes CALM's files with the aliases
+  as keys, which plain gen-json-schema does only with --preserve-names.
+- 'Six slots list CALM''s key under aliases instead, so that the key appears only
+  in CALM''s files: source_end, destination_end, target_architectures, unit_of_time
+  and decorator_type, because LOKF defines source, target, unit and type with other
+  meanings and a composite''s JSON-LD context gives each key one IRI, and decorator_schema,
+  because gen-python makes an alias an attribute''s name and $schema is no Python
+  name.'
 - 'A reference to a node, relationship or moment is its unique-id, a string, as CALM
   gives it. No slot is an identifier: gen-python in linkml 1.12.1 names an identifier''s
   type from its alias, and the hyphen in unique-id makes that name invalid Python.'
@@ -1027,12 +1033,14 @@ slots:
     required: true
     multivalued: true
     minimum_cardinality: 1
-  calmConnectsType__source:
-    name: calmConnectsType__source
+  calmConnectsType__source_end:
+    name: calmConnectsType__source_end
     description: The end that opens the connection.
     from_schema: https://w3id.org/lmodel/calm/calm_core
-    slot_uri: calm:source
-    alias: source
+    aliases:
+    - source
+    slot_uri: calm:source_end
+    alias: source_end
     owner: CalmConnectsType
     domain_of:
     - CalmConnectsType
@@ -1040,12 +1048,14 @@ slots:
     required: true
     inlined: true
     inlined_as_list: true
-  calmConnectsType__destination:
-    name: calmConnectsType__destination
+  calmConnectsType__destination_end:
+    name: calmConnectsType__destination_end
     description: The end the connection reaches.
     from_schema: https://w3id.org/lmodel/calm/calm_core
-    slot_uri: calm:destination
-    alias: destination
+    aliases:
+    - destination
+    slot_uri: calm:destination_end
+    alias: destination_end
     owner: CalmConnectsType
     domain_of:
     - CalmConnectsType
@@ -1345,10 +1355,6 @@ slots:
     name: calmDecorator__decorator_schema
     description: URI of the schema that this decorator conforms to, for example a
       decorator standard
-    comments:
-    - CALM's key is $schema, listed under aliases rather than as the alias, because
-      gen-python makes an alias the attribute's name and $schema is no Python name.
-      scripts/calm_meta.py writes the key as $schema.
     from_schema: https://w3id.org/lmodel/calm/calm_decorators
     aliases:
     - $schema
@@ -1374,8 +1380,10 @@ slots:
     description: Type of decorator - a free-form string identifying the decorator
       category
     from_schema: https://w3id.org/lmodel/calm/calm_decorators
-    slot_uri: calm:type
-    alias: type
+    aliases:
+    - type
+    slot_uri: calm:decorator_type
+    alias: decorator_type
     owner: CalmDecorator
     domain_of:
     - CalmDecorator
@@ -1396,13 +1404,15 @@ slots:
     range: CalmDecoratorTargetType
     multivalued: true
     minimum_cardinality: 1
-  calmDecorator__target:
-    name: calmDecorator__target
+  calmDecorator__target_architectures:
+    name: calmDecorator__target_architectures
     description: Array of file paths or URLs referencing the CALM architectures this
       decorator targets
     from_schema: https://w3id.org/lmodel/calm/calm_decorators
-    slot_uri: calm:target
-    alias: target
+    aliases:
+    - target
+    slot_uri: calm:target_architectures
+    alias: target_architectures
     owner: CalmDecorator
     domain_of:
     - CalmDecorator
@@ -1524,12 +1534,14 @@ slots:
     - CalmControlRequirement
     range: string
     required: true
-  calmTimeUnit__unit:
-    name: calmTimeUnit__unit
+  calmTimeUnit__unit_of_time:
+    name: calmTimeUnit__unit_of_time
     description: The unit of time (e.g., seconds, minutes, hours).
     from_schema: https://w3id.org/lmodel/calm/calm_units
-    slot_uri: calm:unit
-    alias: unit
+    aliases:
+    - unit
+    slot_uri: calm:unit_of_time
+    alias: unit_of_time
     owner: CalmTimeUnit
     domain_of:
     - CalmTimeUnit
@@ -2035,18 +2047,22 @@ classes:
     exact_mappings:
     - calm_meta:core.json#/defs/connects-type
     slots:
-    - calmConnectsType__source
-    - calmConnectsType__destination
+    - calmConnectsType__source_end
+    - calmConnectsType__destination_end
     attributes:
-      source:
-        name: source
+      source_end:
+        name: source_end
         description: The end that opens the connection.
+        aliases:
+        - source
         range: CalmNodeInterface
         required: true
         inlined: true
-      destination:
-        name: destination
+      destination_end:
+        name: destination_end
         description: The end the connection reaches.
+        aliases:
+        - destination
         range: CalmNodeInterface
         required: true
         inlined: true
@@ -2336,7 +2352,7 @@ classes:
     - calmDecorator__unique_id
     - calmDecorator__decorator_type
     - calmDecorator__target_type
-    - calmDecorator__target
+    - calmDecorator__target_architectures
     - calmDecorator__applies_to
     - calmDecorator__data
     attributes:
@@ -2344,10 +2360,6 @@ classes:
         name: decorator_schema
         description: URI of the schema that this decorator conforms to, for example
           a decorator standard
-        comments:
-        - CALM's key is $schema, listed under aliases rather than as the alias, because
-          gen-python makes an alias the attribute's name and $schema is no Python
-          name. scripts/calm_meta.py writes the key as $schema.
         aliases:
         - $schema
       unique_id:
@@ -2359,7 +2371,8 @@ classes:
         name: decorator_type
         description: Type of decorator - a free-form string identifying the decorator
           category
-        alias: type
+        aliases:
+        - type
         required: true
       target_type:
         name: target_type
@@ -2371,10 +2384,12 @@ classes:
         range: CalmDecoratorTargetType
         multivalued: true
         minimum_cardinality: 1
-      target:
-        name: target
+      target_architectures:
+        name: target_architectures
         description: Array of file paths or URLs referencing the CALM architectures
           this decorator targets
+        aliases:
+        - target
         required: true
         multivalued: true
         minimum_cardinality: 1
@@ -2514,12 +2529,14 @@ classes:
     exact_mappings:
     - calm_meta:units.json#/defs/time-unit
     slots:
-    - calmTimeUnit__unit
+    - calmTimeUnit__unit_of_time
     - calmTimeUnit__value
     attributes:
-      unit:
-        name: unit
+      unit_of_time:
+        name: unit_of_time
         description: The unit of time (e.g., seconds, minutes, hours).
+        aliases:
+        - unit
         range: CalmTimeUnitName
         required: true
       value:
@@ -2564,6 +2581,6 @@ classes:
     class_uri: calm:CalmRateUnit
 metamodel_version: 1.12.0
 source_file: calm.yaml
-source_file_date: '2026-11-05T21:51:44'
-source_file_size: 3495
+source_file_date: '2026-11-06T08:06:13'
+source_file_size: 3957
 

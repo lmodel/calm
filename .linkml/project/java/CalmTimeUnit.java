@@ -16,7 +16,7 @@ import lombok.*;
 @EqualsAndHashCode(callSuper=false)
 public class CalmTimeUnit  {
 
-  private String unit;
+  private String unitOfTime;
   private float value;
 
 

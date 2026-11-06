@@ -292,9 +292,9 @@ export interface CalmInteractsType {
  */
 export interface CalmConnectsType {
     /** The end that opens the connection. */
-    source: CalmNodeInterface,
+    source_end: CalmNodeInterface,
     /** The end the connection reaches. */
-    destination: CalmNodeInterface,
+    destination_end: CalmNodeInterface,
 }
 
 
@@ -411,11 +411,11 @@ export interface CalmDecorator {
     /** Unique identifier for this decorator */
     unique_id: string,
     /** Type of decorator - a free-form string identifying the decorator category */
-    type: string,
+    decorator_type: string,
     /** Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements. */
     target_type?: string,
     /** Array of file paths or URLs referencing the CALM architectures this decorator targets */
-    target: string[],
+    target_architectures: string[],
     /** Array of unique-ids referencing nodes, relationships, flows, or other architecture elements */
     applies_to: string[],
     /** Free-form JSON object containing the decorator's data */
@@ -470,7 +470,7 @@ export interface CalmControlRequirement {
  */
 export interface CalmTimeUnit {
     /** The unit of time (e.g., seconds, minutes, hours). */
-    unit: string,
+    unit_of_time: string,
     /** The numeric value representing the amount of time. */
     value: number,
 }

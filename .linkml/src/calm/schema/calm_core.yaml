@@ -194,12 +194,16 @@ classes:
     extra_slots:
       allowed: true
     attributes:
-      source:
+      source_end:
+        aliases:
+          - source
         description: The end that opens the connection.
         range: CalmNodeInterface
         inlined: true
         required: true
-      destination:
+      destination_end:
+        aliases:
+          - destination
         description: The end the connection reaches.
         range: CalmNodeInterface
         inlined: true

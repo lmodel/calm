@@ -66,7 +66,9 @@ classes:
           unit: days
           value: 7
     attributes:
-      unit:
+      unit_of_time:
+        aliases:
+          - unit
         description: The unit of time (e.g., seconds, minutes, hours).
         range: CalmTimeUnitName
         required: true

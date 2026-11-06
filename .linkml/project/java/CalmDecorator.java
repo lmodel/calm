@@ -20,7 +20,7 @@ public class CalmDecorator  {
   private String uniqueId;
   private String decoratorType;
   private List<String> targetType;
-  private List<String> target;
+  private List<String> targetArchitectures;
   private List<String> appliesTo;
   private CalmDecoratorData data;
 

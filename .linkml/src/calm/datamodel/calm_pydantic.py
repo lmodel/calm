@@ -73,10 +73,18 @@ linkml_meta = LinkMLMeta({'annotations': {'upstream_commit': {'tag': 'upstream_c
                      'upstream_release_date': {'tag': 'upstream_release_date',
                                                'value': '2026-10-24'},
                      'upstream_tag': {'tag': 'upstream_tag', 'value': 'v1.3'}},
-     'comments': ['A key with a hyphen, such as unique-id, is the alias of a slot '
-                  "named with an underscore. scripts/calm_meta.py writes CALM's "
-                  'files with the aliases as keys, which plain gen-json-schema '
-                  'does only with --preserve-names.',
+     'comments': ["A slot whose name differs from CALM's key carries the key as "
+                  'its alias, such as unique_id for unique-id. '
+                  "scripts/calm_meta.py writes CALM's files with the aliases as "
+                  'keys, which plain gen-json-schema does only with '
+                  '--preserve-names.',
+                  "Six slots list CALM's key under aliases instead, so that the "
+                  "key appears only in CALM's files: source_end, destination_end, "
+                  'target_architectures, unit_of_time and decorator_type, because '
+                  'LOKF defines source, target, unit and type with other meanings '
+                  "and a composite's JSON-LD context gives each key one IRI, and "
+                  'decorator_schema, because gen-python makes an alias an '
+                  "attribute's name and $schema is no Python name.",
                   'A reference to a node, relationship or moment is its unique-id, '
                   'a string, as CALM gives it. No slot is an identifier: '
                   "gen-python in linkml 1.12.1 names an identifier's type from its "
@@ -596,8 +604,8 @@ class CalmConnectsType(ConfiguredBaseModel):
          'extra_slots': {'allowed': True},
          'from_schema': 'https://w3id.org/lmodel/calm/calm_core'})
 
-    source: CalmNodeInterface = Field(default=..., description="""The end that opens the connection.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmConnectsType']} })
-    destination: CalmNodeInterface = Field(default=..., description="""The end the connection reaches.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmConnectsType']} })
+    source_end: CalmNodeInterface = Field(default=..., description="""The end that opens the connection.""", json_schema_extra = { "linkml_meta": {'aliases': ['source'], 'domain_of': ['CalmConnectsType']} })
+    destination_end: CalmNodeInterface = Field(default=..., description="""The end the connection reaches.""", json_schema_extra = { "linkml_meta": {'aliases': ['destination'], 'domain_of': ['CalmConnectsType']} })
 
 
 class CalmDeployedInType(ConfiguredBaseModel):
@@ -798,12 +806,7 @@ class CalmDecorator(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'exact_mappings': ['calm_meta:decorators.json#/defs/decorator'],
          'from_schema': 'https://w3id.org/lmodel/calm/calm_decorators'})
 
-    decorator_schema: Optional[str] = Field(default=None, description="""URI of the schema that this decorator conforms to, for example a decorator standard""", json_schema_extra = { "linkml_meta": {'aliases': ['$schema'],
-         'comments': ["CALM's key is $schema, listed under aliases rather than as the "
-                      "alias, because gen-python makes an alias the attribute's name "
-                      'and $schema is no Python name. scripts/calm_meta.py writes the '
-                      'key as $schema.'],
-         'domain_of': ['CalmDecorator']} })
+    decorator_schema: Optional[str] = Field(default=None, description="""URI of the schema that this decorator conforms to, for example a decorator standard""", json_schema_extra = { "linkml_meta": {'aliases': ['$schema'], 'domain_of': ['CalmDecorator']} })
     unique_id: str = Field(default=..., alias="unique-id", description="""Unique identifier for this decorator""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmInterfaceDefinition',
                        'CalmInterfaceType',
                        'CalmNode',
@@ -811,9 +814,9 @@ class CalmDecorator(ConfiguredBaseModel):
                        'CalmFlow',
                        'CalmDecorator',
                        'CalmEvidence']} })
-    type: str = Field(default=..., description="""Type of decorator - a free-form string identifying the decorator category""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmDecorator']} })
+    decorator_type: str = Field(default=..., description="""Type of decorator - a free-form string identifying the decorator category""", json_schema_extra = { "linkml_meta": {'aliases': ['type'], 'domain_of': ['CalmDecorator']} })
     target_type: Optional[list[CalmDecoratorTargetType]] = Field(default=None, alias="target-type", description="""Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements.""", min_length=1, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmDecorator'], 'list_elements_unique': True} })
-    target: list[str] = Field(default=..., description="""Array of file paths or URLs referencing the CALM architectures this decorator targets""", min_length=1, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmDecorator']} })
+    target_architectures: list[str] = Field(default=..., description="""Array of file paths or URLs referencing the CALM architectures this decorator targets""", min_length=1, json_schema_extra = { "linkml_meta": {'aliases': ['target'], 'domain_of': ['CalmDecorator']} })
     applies_to: list[str] = Field(default=..., alias="applies-to", description="""Array of unique-ids referencing nodes, relationships, flows, or other architecture elements""", min_length=1, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmDecorator']} })
     data: CalmDecoratorData = Field(default=..., description="""Free-form JSON object containing the decorator's data""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmDecorator']} })
 
@@ -895,7 +898,7 @@ class CalmTimeUnit(ConfiguredBaseModel):
                       {'object': {'unit': 'days', 'value': 7}}],
          'from_schema': 'https://w3id.org/lmodel/calm/calm_units'})
 
-    unit: CalmTimeUnitName = Field(default=..., description="""The unit of time (e.g., seconds, minutes, hours).""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmTimeUnit']} })
+    unit_of_time: CalmTimeUnitName = Field(default=..., description="""The unit of time (e.g., seconds, minutes, hours).""", json_schema_extra = { "linkml_meta": {'aliases': ['unit'], 'domain_of': ['CalmTimeUnit']} })
     value: float = Field(default=..., description="""The numeric value representing the amount of time.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmTimeUnit']} })
 
 

@@ -27,9 +27,9 @@ message CalmComposedOfType {
 // A relationship in which one node connects to another through their interfaces.
 message CalmConnectsType {
   // The end that opens the connection.
-  CalmNodeInterface source = 1;
+  CalmNodeInterface source_end = 1;
   // The end the connection reaches.
-  CalmNodeInterface destination = 2;
+  CalmNodeInterface destination_end = 2;
 }
 // One control in a controls map, with the requirements that define it.
 message CalmControl {
@@ -80,11 +80,11 @@ message CalmDecorator {
   // Unique identifier for this decorator
   string unique_id = 2;
   // Type of decorator - a free-form string identifying the decorator category
-  string type = 3;
+  string decorator_type = 3;
   // Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements.
   repeated CalmDecoratorTargetType target_type = 4;
   // Array of file paths or URLs referencing the CALM architectures this decorator targets
-  repeated string target = 5;
+  repeated string target_architectures = 5;
   // Array of unique-ids referencing nodes, relationships, flows, or other architecture elements
   repeated string applies_to = 6;
   // Free-form JSON object containing the decorator's data
@@ -261,7 +261,7 @@ message CalmTimeline {
 // A unit of time with a value and a unit type.
 message CalmTimeUnit {
   // The unit of time (e.g., seconds, minutes, hours).
-  CalmTimeUnitName unit = 1;
+  CalmTimeUnitName unit_of_time = 1;
   // The numeric value representing the amount of time.
   float value = 2;
 }

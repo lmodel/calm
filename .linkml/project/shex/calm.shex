@@ -68,8 +68,8 @@ linkml:Sparqlpath xsd:string
 }
 
 <CalmConnectsType> CLOSED {
-    (  $<CalmConnectsType_tes> (  <source> @<CalmNodeInterface> ;
-          <destination> @<CalmNodeInterface>
+    (  $<CalmConnectsType_tes> (  <source_end> @<CalmNodeInterface> ;
+          <destination_end> @<CalmNodeInterface>
        ) ;
        rdf:type [ <CalmConnectsType> ] ?
     )
@@ -126,9 +126,9 @@ linkml:Sparqlpath xsd:string
 <CalmDecorator> CLOSED {
     (  $<CalmDecorator_tes> (  <decorator_schema> @linkml:String ? ;
           <unique_id> @linkml:String ;
-          <type> @linkml:String ;
+          <decorator_type> @linkml:String ;
           <target_type> [ <https://w3id.org/lmodel/calm/CalmDecoratorTargetType#architecture> ] * ;
-          <target> @linkml:String + ;
+          <target_architectures> @linkml:String + ;
           <applies_to> @linkml:String + ;
           <data> @<CalmDecoratorData>
        ) ;
@@ -307,7 +307,7 @@ linkml:Sparqlpath xsd:string
 }
 
 <CalmTimeUnit> CLOSED {
-    (  $<CalmTimeUnit_tes> (  <unit> [ <https://w3id.org/lmodel/calm/CalmTimeUnitName#nanoseconds>
+    (  $<CalmTimeUnit_tes> (  <unit_of_time> [ <https://w3id.org/lmodel/calm/CalmTimeUnitName#nanoseconds>
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#microseconds>
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#milliseconds> <https://w3id.org/lmodel/calm/CalmTimeUnitName#seconds>
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#minutes> <https://w3id.org/lmodel/calm/CalmTimeUnitName#hours>

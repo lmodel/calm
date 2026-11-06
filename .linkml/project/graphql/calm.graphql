@@ -88,8 +88,8 @@ type CalmComposedOfType
 
 type CalmConnectsType
   {
-    source: CalmNodeInterface!
-    destination: CalmNodeInterface!
+    sourceEnd: CalmNodeInterface!
+    destinationEnd: CalmNodeInterface!
   }
 
 type CalmControl
@@ -132,9 +132,9 @@ type CalmDecorator
   {
     decoratorSchema: String
     unique-id: String!
-    type: String!
+    decoratorType: String!
     target-type: [CalmDecoratorTargetType]
-    target: [String]!
+    targetArchitectures: [String]!
     applies-to: [String]!
     data: CalmDecoratorData!
   }
@@ -268,7 +268,7 @@ type CalmTimeline
 
 type CalmTimeUnit
   {
-    unit: CalmTimeUnitName!
+    unitOfTime: CalmTimeUnitName!
     value: Float!
   }
 

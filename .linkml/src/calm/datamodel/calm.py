@@ -510,19 +510,19 @@ class CalmConnectsType(YAMLRoot):
     class_name: ClassVar[str] = "CalmConnectsType"
     class_model_uri: ClassVar[URIRef] = CALM.CalmConnectsType
 
-    source: Union[dict, CalmNodeInterface] = None
-    destination: Union[dict, CalmNodeInterface] = None
+    source_end: Union[dict, CalmNodeInterface] = None
+    destination_end: Union[dict, CalmNodeInterface] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.source):
-            self.MissingRequiredField("source")
-        if not isinstance(self.source, CalmNodeInterface):
-            self.source = CalmNodeInterface(**as_dict(self.source))
+        if self._is_empty(self.source_end):
+            self.MissingRequiredField("source_end")
+        if not isinstance(self.source_end, CalmNodeInterface):
+            self.source_end = CalmNodeInterface(**as_dict(self.source_end))
 
-        if self._is_empty(self.destination):
-            self.MissingRequiredField("destination")
-        if not isinstance(self.destination, CalmNodeInterface):
-            self.destination = CalmNodeInterface(**as_dict(self.destination))
+        if self._is_empty(self.destination_end):
+            self.MissingRequiredField("destination_end")
+        if not isinstance(self.destination_end, CalmNodeInterface):
+            self.destination_end = CalmNodeInterface(**as_dict(self.destination_end))
 
         super().__post_init__(**kwargs)
 
@@ -791,8 +791,8 @@ class CalmDecorator(YAMLRoot):
     class_model_uri: ClassVar[URIRef] = CALM.CalmDecorator
 
     unique_id: str = None
-    type: str = None
-    target: Union[str, list[str]] = None
+    decorator_type: str = None
+    target_architectures: Union[str, list[str]] = None
     applies_to: Union[str, list[str]] = None
     data: Union[dict, "CalmDecoratorData"] = None
     decorator_schema: Optional[str] = None
@@ -804,16 +804,16 @@ class CalmDecorator(YAMLRoot):
         if not isinstance(self.unique_id, str):
             self.unique_id = str(self.unique_id)
 
-        if self._is_empty(self.type):
-            self.MissingRequiredField("type")
-        if not isinstance(self.type, str):
-            self.type = str(self.type)
+        if self._is_empty(self.decorator_type):
+            self.MissingRequiredField("decorator_type")
+        if not isinstance(self.decorator_type, str):
+            self.decorator_type = str(self.decorator_type)
 
-        if self._is_empty(self.target):
-            self.MissingRequiredField("target")
-        if not isinstance(self.target, list):
-            self.target = [self.target] if self.target is not None else []
-        self.target = [v if isinstance(v, str) else str(v) for v in self.target]
+        if self._is_empty(self.target_architectures):
+            self.MissingRequiredField("target_architectures")
+        if not isinstance(self.target_architectures, list):
+            self.target_architectures = [self.target_architectures] if self.target_architectures is not None else []
+        self.target_architectures = [v if isinstance(v, str) else str(v) for v in self.target_architectures]
 
         if self._is_empty(self.applies_to):
             self.MissingRequiredField("applies_to")
@@ -954,14 +954,14 @@ class CalmTimeUnit(YAMLRoot):
     class_name: ClassVar[str] = "CalmTimeUnit"
     class_model_uri: ClassVar[URIRef] = CALM.CalmTimeUnit
 
-    unit: Union[str, "CalmTimeUnitName"] = None
+    unit_of_time: Union[str, "CalmTimeUnitName"] = None
     value: float = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
-        if self._is_empty(self.unit):
-            self.MissingRequiredField("unit")
-        if not isinstance(self.unit, CalmTimeUnitName):
-            self.unit = CalmTimeUnitName(self.unit)
+        if self._is_empty(self.unit_of_time):
+            self.MissingRequiredField("unit_of_time")
+        if not isinstance(self.unit_of_time, CalmTimeUnitName):
+            self.unit_of_time = CalmTimeUnitName(self.unit_of_time)
 
         if self._is_empty(self.value):
             self.MissingRequiredField("value")
@@ -1335,11 +1335,11 @@ slots.calmInteractsType__actor = Slot(uri=CALM.actor, name="calmInteractsType__a
 slots.calmInteractsType__nodes = Slot(uri=CALM.nodes, name="calmInteractsType__nodes", curie=CALM.curie('nodes'),
                    model_uri=CALM.calmInteractsType__nodes, domain=None, range=Union[str, list[str]])
 
-slots.calmConnectsType__source = Slot(uri=CALM.source, name="calmConnectsType__source", curie=CALM.curie('source'),
-                   model_uri=CALM.calmConnectsType__source, domain=None, range=Union[dict, CalmNodeInterface])
+slots.calmConnectsType__source_end = Slot(uri=CALM.source_end, name="calmConnectsType__source_end", curie=CALM.curie('source_end'),
+                   model_uri=CALM.calmConnectsType__source_end, domain=None, range=Union[dict, CalmNodeInterface])
 
-slots.calmConnectsType__destination = Slot(uri=CALM.destination, name="calmConnectsType__destination", curie=CALM.curie('destination'),
-                   model_uri=CALM.calmConnectsType__destination, domain=None, range=Union[dict, CalmNodeInterface])
+slots.calmConnectsType__destination_end = Slot(uri=CALM.destination_end, name="calmConnectsType__destination_end", curie=CALM.curie('destination_end'),
+                   model_uri=CALM.calmConnectsType__destination_end, domain=None, range=Union[dict, CalmNodeInterface])
 
 slots.calmDeployedInType__container = Slot(uri=CALM.container, name="calmDeployedInType__container", curie=CALM.curie('container'),
                    model_uri=CALM.calmDeployedInType__container, domain=None, range=str)
@@ -1419,14 +1419,14 @@ slots.calmDecorator__decorator_schema = Slot(uri=CALM.decorator_schema, name="ca
 slots.calmDecorator__unique_id = Slot(uri=CALM.unique_id, name="calmDecorator__unique_id", curie=CALM.curie('unique_id'),
                    model_uri=CALM.calmDecorator__unique_id, domain=None, range=str)
 
-slots.calmDecorator__decorator_type = Slot(uri=CALM.type, name="calmDecorator__decorator_type", curie=CALM.curie('type'),
+slots.calmDecorator__decorator_type = Slot(uri=CALM.decorator_type, name="calmDecorator__decorator_type", curie=CALM.curie('decorator_type'),
                    model_uri=CALM.calmDecorator__decorator_type, domain=None, range=str)
 
 slots.calmDecorator__target_type = Slot(uri=CALM.target_type, name="calmDecorator__target_type", curie=CALM.curie('target_type'),
                    model_uri=CALM.calmDecorator__target_type, domain=None, range=Optional[Union[Union[str, "CalmDecoratorTargetType"], list[Union[str, "CalmDecoratorTargetType"]]]])
 
-slots.calmDecorator__target = Slot(uri=CALM.target, name="calmDecorator__target", curie=CALM.curie('target'),
-                   model_uri=CALM.calmDecorator__target, domain=None, range=Union[str, list[str]])
+slots.calmDecorator__target_architectures = Slot(uri=CALM.target_architectures, name="calmDecorator__target_architectures", curie=CALM.curie('target_architectures'),
+                   model_uri=CALM.calmDecorator__target_architectures, domain=None, range=Union[str, list[str]])
 
 slots.calmDecorator__applies_to = Slot(uri=CALM.applies_to, name="calmDecorator__applies_to", curie=CALM.curie('applies_to'),
                    model_uri=CALM.calmDecorator__applies_to, domain=None, range=Union[str, list[str]])
@@ -1455,8 +1455,8 @@ slots.calmControlRequirement__name = Slot(uri=SCHEMA.name, name="calmControlRequ
 slots.calmControlRequirement__description = Slot(uri=SCHEMA.description, name="calmControlRequirement__description", curie=SCHEMA.curie('description'),
                    model_uri=CALM.calmControlRequirement__description, domain=None, range=str)
 
-slots.calmTimeUnit__unit = Slot(uri=CALM.unit, name="calmTimeUnit__unit", curie=CALM.curie('unit'),
-                   model_uri=CALM.calmTimeUnit__unit, domain=None, range=Union[str, "CalmTimeUnitName"])
+slots.calmTimeUnit__unit_of_time = Slot(uri=CALM.unit_of_time, name="calmTimeUnit__unit_of_time", curie=CALM.curie('unit_of_time'),
+                   model_uri=CALM.calmTimeUnit__unit_of_time, domain=None, range=Union[str, "CalmTimeUnitName"])
 
 slots.calmTimeUnit__value = Slot(uri=CALM.value, name="calmTimeUnit__value", curie=CALM.curie('value'),
                    model_uri=CALM.calmTimeUnit__value, domain=None, range=float)

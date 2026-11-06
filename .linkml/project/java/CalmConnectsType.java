@@ -16,8 +16,8 @@ import lombok.*;
 @EqualsAndHashCode(callSuper=false)
 public class CalmConnectsType  {
 
-  private CalmNodeInterface source;
-  private CalmNodeInterface destination;
+  private CalmNodeInterface sourceEnd;
+  private CalmNodeInterface destinationEnd;
 
 
 }

@@ -98,18 +98,18 @@
             "additionalProperties": true,
             "description": "A relationship in which one node connects to another through their interfaces.",
             "properties": {
-                "destination": {
+                "destination_end": {
                     "$ref": "#/$defs/CalmNodeInterface",
                     "description": "The end the connection reaches."
                 },
-                "source": {
+                "source_end": {
                     "$ref": "#/$defs/CalmNodeInterface",
                     "description": "The end that opens the connection."
                 }
             },
             "required": [
-                "source",
-                "destination"
+                "source_end",
+                "destination_end"
             ],
             "title": "CalmConnectsType",
             "type": "object"
@@ -305,7 +305,11 @@
                         "null"
                     ]
                 },
-                "target": {
+                "decorator_type": {
+                    "description": "Type of decorator - a free-form string identifying the decorator category",
+                    "type": "string"
+                },
+                "target_architectures": {
                     "description": "Array of file paths or URLs referencing the CALM architectures this decorator targets",
                     "items": {
                         "type": "string"
@@ -324,10 +328,6 @@
                         "null"
                     ]
                 },
-                "type": {
-                    "description": "Type of decorator - a free-form string identifying the decorator category",
-                    "type": "string"
-                },
                 "unique_id": {
                     "description": "Unique identifier for this decorator",
                     "type": "string"
@@ -335,8 +335,8 @@
             },
             "required": [
                 "unique_id",
-                "type",
-                "target",
+                "decorator_type",
+                "target_architectures",
                 "applies_to",
                 "data"
             ],
@@ -1112,7 +1112,7 @@
                 }
             ],
             "properties": {
-                "unit": {
+                "unit_of_time": {
                     "$ref": "#/$defs/CalmTimeUnitName",
                     "description": "The unit of time (e.g., seconds, minutes, hours)."
                 },
@@ -1123,7 +1123,7 @@
                 }
             },
             "required": [
-                "unit",
+                "unit_of_time",
                 "value"
             ],
             "title": "CalmTimeUnit",

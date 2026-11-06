@@ -31,13 +31,13 @@
       "container": {
          "@id": "container"
       },
-      "destination": {
+      "destination_end": {
          "@type": "@id",
-         "@id": "destination"
+         "@id": "destination_end"
       },
-      "source": {
+      "source_end": {
          "@type": "@id",
-         "@id": "source"
+         "@id": "source_end"
       },
       "description": {
          "@id": "schema:description"
@@ -72,11 +72,11 @@
       "decorator_schema": {
          "@id": "decorator_schema"
       },
-      "type": {
-         "@id": "type"
+      "decorator_type": {
+         "@id": "decorator_type"
       },
-      "target": {
-         "@id": "target"
+      "target_architectures": {
+         "@id": "target_architectures"
       },
       "target_type": {
          "@context": {
@@ -183,13 +183,13 @@
          "@type": "@id",
          "@id": "moments"
       },
-      "unit": {
+      "unit_of_time": {
          "@context": {
             "text": "skos:notation",
             "description": "skos:prefLabel",
             "meaning": "@id"
          },
-         "@id": "unit"
+         "@id": "unit_of_time"
       },
       "value": {
          "@type": "xsd:float",
