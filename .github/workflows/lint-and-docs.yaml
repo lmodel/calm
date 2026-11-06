@@ -148,6 +148,10 @@ jobs:
       # `**/*.md` means `*/*.md` and skips every file at the root and in
       # dot-folders. git ls-files lists
       # tracked files only, so the knowledge_bundle link is not read twice;
-      # [tool.codespell] in pyproject.toml supplies the ignore list.
+      # [tool.codespell] in pyproject.toml supplies the ignore list. Its skip
+      # globs are relative to .linkml/, where codespell is run by hand, and
+      # match nothing when the paths start with `.linkml/` as they do here, so
+      # the pathspecs below leave out what markdownlint's config ignores too:
+      # calm-schema's copied release and the copier template's doc templates.
       - name: codespell
-        run: git ls-files -z '.linkml/*.md' '.lokf/*.md' '.github/SECURITY.md' | xargs -0 pipx run --spec codespell==2.4.2 codespell --toml .linkml/pyproject.toml
+        run: git ls-files -z '.linkml/*.md' '.lokf/*.md' '.github/SECURITY.md' ':!.linkml/upstream/*' ':!.linkml/docs/templates-linkml/*' | xargs -0 pipx run --spec codespell==2.4.2 codespell --toml .linkml/pyproject.toml
