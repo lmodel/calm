@@ -30,4 +30,10 @@ FINOS's CLI reads a folder of CALM's files through its `--schema-directory` opti
 
 ## What the tests hold
 
-`tests/test_parity.py` holds `meta/` to CALM's files: every address CALM's files name exists, every CALM document in FINOS's tree and calm-schema's release gets the same verdict, mutated or not, and each remaining difference is listed in `parity/` with its reason. `tests/test_data.py` checks an example of each class and a counter-example of each rule, under `tests/data/problem/`.
+`tests/test_parity.py` holds `meta/` to CALM's files in three tiers:
+
+- **Addresses.** Every `$id`, every definition and every pointer that one of CALM's `$ref`s names exists in `meta/`.
+- **Verdicts.** Every CALM document in FINOS's tree and calm-schema's release, each mutation of it, and each probe in `parity/probes.yaml` gets the same verdict from both, or the difference `probes.yaml` gives with its reason.
+- **Shape.** Only the six definitions in `parity/structural.yaml` differ in shape, each with its kind and reason, and every description CALM gives is kept word for word.
+
+`tests/test_data.py` checks an example of each class and a counter-example of each rule, under `tests/data/problem/`.

@@ -21,11 +21,11 @@ comments:
 - A slot whose name differs from CALM's key carries the key as its alias, such as
   unique_id for unique-id. scripts/calm_meta.py writes CALM's files with the aliases
   as keys, which plain gen-json-schema does only with --preserve-names.
-- 'Six slots list CALM''s key under aliases instead, so that only CALM''s files carry
-  it. Five hold a key LOKF defines with another meaning: source_end, destination_end,
-  target_architectures, unit_of_time and decorator_type. A composite''s JSON-LD context
-  gives each key one IRI. The sixth, decorator_schema, holds $schema, which gen-python
-  would make an attribute''s name.'
+- Six slots list CALM's key under aliases instead, so that only CALM's files carry
+  it. Five are source_end, destination_end, target_architectures, unit_of_time and
+  decorator_type, because LOKF defines source, target, unit and type with other meanings,
+  and a composite's JSON-LD context gives each key one IRI. The sixth, decorator_schema,
+  holds $schema, which gen-python would make an attribute's name.
 - 'A reference to a node, relationship or moment is its unique-id, a string, as CALM
   gives it. No slot is an identifier: gen-python in linkml 1.12.1 names an identifier''s
   type from its alias, and the hyphen in unique-id makes that name invalid Python.'
@@ -2580,6 +2580,6 @@ classes:
     class_uri: calm:CalmRateUnit
 metamodel_version: 1.12.0
 source_file: calm.yaml
-source_file_date: '2026-11-06T08:10:51'
-source_file_size: 3909
+source_file_date: '2026-11-06T08:23:02'
+source_file_size: 3943
 
