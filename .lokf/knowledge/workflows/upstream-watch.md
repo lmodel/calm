@@ -13,8 +13,8 @@ sources:
     title: the docstring
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: f8c8b6c2c38e5ee52b86f31e9184e171ec290441
+  at: "2026-11-06T20:27:22Z"
+  revision: ebc3ad962ccfabb0ed9a8bb1753974ea69ba7894
 status: draft
 ---
 

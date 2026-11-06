@@ -16,8 +16,7 @@ sources:
     title: Validating a CALM document
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:26:22Z"
-  revision: 7c036d453c485cf0e0a265f4c500d78a9018f82e
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

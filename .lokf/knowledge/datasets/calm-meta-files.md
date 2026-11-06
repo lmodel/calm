@@ -16,8 +16,7 @@ sources:
   - resource: .linkml/meta
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T12:04:00Z"
-  revision: 580d305364bff1d6024165741ad3a9b3264f7056
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

@@ -10,8 +10,7 @@ sources:
     resource: .github/workflows/knowledge-release.yaml
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: 526d76ccca38eebc3b08619d015962a07c4081db
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

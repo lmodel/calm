@@ -19,8 +19,7 @@ sources:
   - resource: .linkml/docs/schema
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: e3049d37e117aca6a92dff91576f333fdcfa802d
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

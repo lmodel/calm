@@ -14,8 +14,7 @@ sources:
   - resource: .linkml/tests/neighbours
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: fa096d644ebd722b932d0ca644b337a63d35f759
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

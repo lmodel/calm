@@ -13,8 +13,7 @@ sources:
     title: What is left out
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: 4d7e95652cde2263c793e23ec9952b3d10183744
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

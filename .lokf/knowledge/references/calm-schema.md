@@ -18,8 +18,7 @@ sameAs:
   - https://github.com/finos/calm-schema
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:13:55Z"
-  revision: 3f1ca0dfb5c90cacc7ec5dc39d3f039fcd690cb6
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

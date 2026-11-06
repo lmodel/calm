@@ -13,8 +13,7 @@ sources:
     title: What it models
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: 61a8d9a54deb76718e0285b14415f4fc11e316f2
+  at: "2026-11-06T20:27:22Z"
 status: draft
 ---
 

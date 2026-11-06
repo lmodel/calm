@@ -14,8 +14,8 @@ sources:
     resource: .linkml/parity/structural.yaml
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: 978a861246a227e8e26439074bd579f7e2c4b5f7
+  at: "2026-11-06T20:27:22Z"
+  revision: ebc3ad962ccfabb0ed9a8bb1753974ea69ba7894
 status: draft
 ---
 

@@ -16,8 +16,8 @@ sources:
   - resource: .lokf/schema/calm.yaml
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T16:04:28Z"
-  revision: 002eb3d51bc2faf8f9ffab1dfe82bf3a7b50841c
+  at: "2026-11-06T20:27:22Z"
+  revision: ebc3ad962ccfabb0ed9a8bb1753974ea69ba7894
 status: draft
 ---
 

@@ -10,8 +10,8 @@ sources:
     resource: .github/workflows/semantic-release.yml
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:08:58Z"
-  revision: e7660611c637d033fcb16e8de895531804ff8e35
+  at: "2026-11-06T20:27:22Z"
+  revision: ebc3ad962ccfabb0ed9a8bb1753974ea69ba7894
 status: draft
 ---
 
