@@ -64,6 +64,10 @@ jobs:
             .github/workflows/main.yaml
             .github/workflows/lint-and-docs.yaml
             .github/workflows/upstream-watch.yaml
+            .github/workflows/knowledge-librarian.yaml
+            .github/workflows/knowledge-registrar.yaml
+            .github/workflows/knowledge-release.yaml
+            .github/workflows/knowledge-sync.yaml
 
   word-budgets:
     name: Hold the governance files to their word budgets
