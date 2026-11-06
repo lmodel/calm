@@ -10,6 +10,7 @@ The `v0.0.0` tag is a baseline, not a release: it marks where versioning starts 
 
 - **A schema of CALM 1.3**, one module per file of calm-schema's v1.3 release, with `Calm` classes that keep CALM's keys as aliases and CALM's descriptions word for word.
 - **CALM's JSON Schema files, generated from the schema**, in `meta/` at CALM's addresses, which `scripts/calm_meta.py` writes.
+- **A JSON-LD context with CALM's keys**, `meta/calm.context.jsonld`, so a CALM document expands to RDF under the schema's IRIs without renaming.
 - **Parity tests** that hold `meta/` to CALM's own files: every address CALM's files name, the same verdict on each CALM document in FINOS's tree and calm-schema's release and on their mutations, and each remaining difference listed with its reason in `parity/`.
 - **A weekly watch** of calm-schema's tags and FINOS's main, against calm-schema's v1.3 files under `upstream/` and a list of every file of FINOS's merged commit.
 - **`.lokf/calm.yaml`, the schema's `lokf adapt` copy.** The knowledge release attaches it as `schema-<tag>-calm.yaml`.

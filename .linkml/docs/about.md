@@ -41,6 +41,10 @@ Each class, enum and type that renders a definition of CALM's names it in `exact
 - the one array CALM names, `option-type`;
 - a key a slot lists under `aliases`. The `--split`, `--draft` and `--def-name-style` options proposed for gen-json-schema would take over most of its routing.
 
+## A JSON-LD context with CALM's keys
+
+`meta/calm.context.jsonld` is a JSON-LD context keyed by CALM's keys, which the build writes from the slots' aliases and IRIs. With it a CALM document expands to RDF under the schema's IRIs without renaming: `unique-id` is `calm:unique_id`, and `name` is `schema:name`. The context the generators write keys an aliased slot by its alias with the hyphen made an underscore, so a document's `unique-id` does not expand through it. A free-form value, such as `metadata`, a decorator's `data` or a `config`, stays one JSON literal. A controls map is an index map, so its keys are not carried. A key CALM's files do not name, such as an interface type's own, is left out, and so is `$schema`, which is JSON Schema's keyword on a document. `tests/test_context.py` holds every key CALM's files name to a term, and expands an example architecture with rdflib.
+
 ## Where the model differs from CALM's files
 
 Every CALM document in FINOS's tree and calm-schema's release gets the same verdict from both. `parity/` lists what differs, each with its reason:

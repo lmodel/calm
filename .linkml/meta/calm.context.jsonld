@@ -1,0 +1,169 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "calm": "https://w3id.org/lmodel/calm/",
+    "schema": "http://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "actor": {
+      "@id": "calm:actor"
+    },
+    "adrs": {
+      "@id": "calm:adrs"
+    },
+    "applies-to": {
+      "@id": "calm:applies_to"
+    },
+    "composed-of": {
+      "@id": "calm:composed_of"
+    },
+    "config": {
+      "@id": "calm:config",
+      "@type": "@json"
+    },
+    "config-url": {
+      "@id": "calm:config_url"
+    },
+    "connects": {
+      "@id": "calm:connects"
+    },
+    "container": {
+      "@id": "calm:container"
+    },
+    "control-config-url": {
+      "@id": "calm:control_config_url"
+    },
+    "control-id": {
+      "@id": "calm:control_id"
+    },
+    "controls": {
+      "@id": "calm:controls",
+      "@container": "@index"
+    },
+    "current-moment": {
+      "@id": "calm:current_moment"
+    },
+    "data": {
+      "@id": "calm:data",
+      "@type": "@json"
+    },
+    "definition-url": {
+      "@id": "calm:definition_url"
+    },
+    "deployed-in": {
+      "@id": "calm:deployed_in"
+    },
+    "description": {
+      "@id": "schema:description"
+    },
+    "destination": {
+      "@id": "calm:destination_end"
+    },
+    "detailed-architecture": {
+      "@id": "calm:detailed_architecture"
+    },
+    "details": {
+      "@id": "calm:details"
+    },
+    "direction": {
+      "@id": "calm:direction"
+    },
+    "evidence": {
+      "@id": "calm:evidence"
+    },
+    "evidence-paths": {
+      "@id": "calm:evidence_paths"
+    },
+    "flows": {
+      "@id": "calm:flows"
+    },
+    "interacts": {
+      "@id": "calm:interacts"
+    },
+    "interfaces": {
+      "@id": "calm:interfaces"
+    },
+    "metadata": {
+      "@id": "calm:metadata",
+      "@type": "@json"
+    },
+    "moments": {
+      "@id": "calm:moments"
+    },
+    "name": {
+      "@id": "schema:name"
+    },
+    "node": {
+      "@id": "calm:node"
+    },
+    "node-type": {
+      "@id": "calm:node_type"
+    },
+    "nodes": {
+      "@id": "calm:nodes"
+    },
+    "options": {
+      "@id": "calm:options"
+    },
+    "per": {
+      "@id": "calm:per"
+    },
+    "protocol": {
+      "@id": "calm:protocol"
+    },
+    "rate": {
+      "@id": "calm:rate",
+      "@type": "xsd:float"
+    },
+    "relationship-type": {
+      "@id": "calm:relationship_type"
+    },
+    "relationship-unique-id": {
+      "@id": "calm:relationship_unique_id"
+    },
+    "relationships": {
+      "@id": "calm:relationships"
+    },
+    "required-pattern": {
+      "@id": "calm:required_pattern"
+    },
+    "requirement-url": {
+      "@id": "calm:requirement_url"
+    },
+    "requirements": {
+      "@id": "calm:requirements"
+    },
+    "sequence-number": {
+      "@id": "calm:sequence_number",
+      "@type": "xsd:integer"
+    },
+    "source": {
+      "@id": "calm:source_end"
+    },
+    "target": {
+      "@id": "calm:target_architectures"
+    },
+    "target-type": {
+      "@id": "calm:target_type"
+    },
+    "transitions": {
+      "@id": "calm:transitions"
+    },
+    "type": {
+      "@id": "calm:decorator_type"
+    },
+    "unique-id": {
+      "@id": "calm:unique_id"
+    },
+    "unit": {
+      "@id": "calm:unit_of_time"
+    },
+    "valid-from": {
+      "@id": "calm:valid_from",
+      "@type": "xsd:date"
+    },
+    "value": {
+      "@id": "calm:value",
+      "@type": "xsd:float"
+    }
+  }
+}

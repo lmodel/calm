@@ -25,7 +25,7 @@ This repository is a fork of [finos/architecture-as-code](https://github.com/fin
 ## Repository Structure
 
 * [docs/](docs/): the website's own pages
-* [meta/](meta): CALM's JSON Schema files, which [scripts/calm_meta.py](scripts/calm_meta.py) writes from the schema
+* [meta/](meta): CALM's JSON Schema files and a JSON-LD context with CALM's keys, which [scripts/calm_meta.py](scripts/calm_meta.py) writes from the schema
 * [parity/](parity): the differences from CALM's files the tests allow, each with its reason
 * [project/](project/): generated project files (do not edit them)
 * [scripts/](scripts/): the build of `meta/`, the upstream watch and the sidecar's preflight

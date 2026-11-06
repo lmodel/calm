@@ -30,7 +30,11 @@ out of gen-python's attribute names, and ``source``, ``target``, ``unit`` and
 ``type`` out of the JSON-LD keys a composite with LOKF shares.
 
 calm.json and calm-timeline.json declare CALM's vocabulary beside JSON Schema's and
-define nothing, so they are copied from upstream/ unchanged. Usage::
+define nothing, so they are copied from upstream/ unchanged.
+
+``calm.context.jsonld``, beside the eleven files, is a JSON-LD context keyed by
+CALM's keys, written from the slots' aliases and IRIs, so that a CALM document
+expands to RDF under the schema's IRIs without renaming. Usage::
 
     python scripts/calm_meta.py [--output DIR] [--check]
 """
@@ -59,6 +63,20 @@ DRAFT = "https://json-schema.org/draft/2020-12/schema"
 TOP_CLASS = "CalmArchitecture"
 UMBRELLA = "calm"
 COPIED = ("calm.json", "calm-timeline.json")
+CONTEXT = "calm.context.jsonld"
+
+# The JSON-LD datatype of a LinkML type's base, where a CALM value is not a plain
+# string. A base not named here, str included, is written with no datatype.
+DATATYPES = {
+    "int": "xsd:integer",
+    "float": "xsd:float",
+    "Decimal": "xsd:decimal",
+    "Bool": "xsd:boolean",
+    "XSDDate": "xsd:date",
+    "XSDDateTime": "xsd:dateTime",
+    "XSDTime": "xsd:time",
+}
+XSD = "http://www.w3.org/2001/XMLSchema#"
 
 # CALM names one array, the options of a relationship, as a definition of its own.
 NAMED_ARRAYS = {("CalmRelationshipType", "options"): ("core.json", "option-type")}
@@ -429,14 +447,71 @@ class Shaper:
             out[file] = _ordered(doc)
         return out
 
+    # ---- a JSON-LD context with CALM's keys -----------------------------------
+
+    def context(self) -> dict:
+        """A JSON-LD context keyed by CALM's keys, so that a CALM document expands to
+        RDF under the schema's IRIs without renaming.
+
+        Each term is a slot's key in CALM's files (its alias, the one key it lists
+        under aliases, or its name) and the slot's IRI. A value whose class is free in
+        shape (metadata, a decorator's data, a configuration) is one JSON literal, a
+        controls map is an index map, whose keys the RDF does not carry, and a typed
+        value such as sequence-number carries its datatype. $schema is left out: it is
+        JSON Schema's keyword on a document, not CALM data. A key that two classes give
+        different IRIs or datatypes is refused, so the context stays one meaning per
+        key, as the schema is built to be.
+        """
+        terms: dict[str, dict] = {}
+        for cls in sorted(self.sv.all_classes()):
+            for slot in self.sv.class_induced_slots(cls):
+                key = slot.alias or (slot.aliases[0] if slot.aliases else slot.name)
+                if key == "$schema":
+                    continue
+                term = {"@id": self.sv.get_uri(slot, expand=False)}
+                if slot.range in self.sv.all_classes():
+                    target = self.sv.get_class(slot.range)
+                    free = target.class_uri == "linkml:Any" or (
+                        target.extra_slots
+                        and target.extra_slots.allowed
+                        and not self.sv.class_induced_slots(slot.range)
+                    )
+                    if free:
+                        term["@type"] = "@json"
+                    elif target.extra_slots and target.extra_slots.range_expression:
+                        term["@container"] = "@index"
+                elif slot.range in self.sv.all_types():
+                    datatype = DATATYPES.get(self.sv.induced_type(slot.range).base)
+                    if datatype:
+                        term["@type"] = datatype
+                previous = terms.setdefault(key, term)
+                for keyword, value in term.items():
+                    if previous.setdefault(keyword, value) != value:
+                        raise ValueError(
+                            f"{key} has two meanings: {previous} and {term}"
+                        )
+        prefixes = {t["@id"].partition(":")[0] for t in terms.values()}
+        namespaces = {p: str(self.sv.namespaces()[p]) for p in sorted(prefixes)}
+        if any(t.get("@type", "").startswith("xsd:") for t in terms.values()):
+            namespaces["xsd"] = XSD
+        return {
+            "@context": {
+                "@version": 1.1,
+                **namespaces,
+                **{key: terms[key] for key in sorted(terms)},
+            }
+        }
+
 
 def render(doc: dict) -> str:
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
 def write(output: Path, check: bool) -> int:
-    files = {name: render(doc) for name, doc in Shaper().build().items()}
+    shaper = Shaper()
+    files = {name: render(doc) for name, doc in shaper.build().items()}
     files |= {name: (UPSTREAM / name).read_text(encoding="utf-8") for name in COPIED}
+    files[CONTEXT] = render(shaper.context())
     stale = []
     for name, text in sorted(files.items()):
         path = output / name
@@ -446,7 +521,7 @@ def write(output: Path, check: bool) -> int:
             if not check:
                 output.mkdir(parents=True, exist_ok=True)
                 path.write_text(text, encoding="utf-8")
-    extra = sorted(p.name for p in output.glob("*.json") if p.name not in files)
+    extra = sorted(p.name for p in output.glob("*.json*") if p.name not in files)
     if check:
         for name in stale + extra:
             print(
