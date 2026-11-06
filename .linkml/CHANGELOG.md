@@ -6,6 +6,10 @@ The `v0.0.0` tag is a baseline, not a release: it marks where versioning starts 
 
 ## [Unreleased]
 
+### Fixed
+
+- **The knowledge bundle's revision pins name commits on `main`.** The squash merge of #1 left 37 concepts naming the branch's commits, so the knowledge release failed and 0.1.0 has no bundle or schema attached. Fifteen now name the squash commit, which holds their cited files unchanged, and 22 carry no pin, since their files changed after they were read. This release carries the assets.
+
 ## [0.1.0] - 2026-11-06
 
 ### Added
