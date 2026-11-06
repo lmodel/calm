@@ -34,8 +34,8 @@ sources:
   - resource: .github/SECURITY.md
   - resource: .lokf/justfile
   - resource: .lokf/pyproject.toml
-  - resource: .lokf/calm.yaml
-  - resource: .lokf/lokf.yaml
+  - resource: .lokf/schema/calm.yaml
+  - resource: .lokf/schema/lokf.yaml
   - resource: .linkml/generators.yaml
   - resource: .linkml/.linkmllint.yaml
   - resource: .linkml/config.public.mk
@@ -328,8 +328,8 @@ exclusions:
     reason: The template's placeholder README for the source folder.
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T08:09:47Z"
-  revision: e7660611c637d033fcb16e8de895531804ff8e35
+  at: "2026-11-06T16:04:28Z"
+  revision: 002eb3d51bc2faf8f9ffab1dfe82bf3a7b50841c
 status: draft
 ---
 

@@ -2,6 +2,7 @@
 
 ## 2026-11-06
 
+* **Changed**: the adapt copy and LOKF's schema moved to `.lokf/schema/calm.yaml` and `.lokf/schema/lokf.yaml`.
 * **Changed**: `.linkml/meta/` also holds `calm.context.jsonld`, a JSON-LD context with CALM's keys, since 580d3053.
 * **Changed**: Where the model differs from CALM's files no longer says the model avoids all three of CALM's faults; it keeps CALM's cron pattern and records that fault.
 * **Changed**: Alias and Modelling choices name the five keys the renamed slots hold, since LOKF does not define `destination`.
@@ -15,7 +16,7 @@
 * **Added**: CALM's JSON Schema files, generated.
 * **Added**: Pinned copy of calm-schema v1.3.
 * **Added**: FINOS's tree.
-* **Added**: The schema's adapt copy (.lokf/calm.yaml).
+* **Added**: [The schema's adapt copy](datasets/adapt-copy.md).
 * **Added**: Parity allowances.
 * **Added**: Example data.
 * **Added**: Neighbour copies.
