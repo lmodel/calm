@@ -62,8 +62,8 @@
 --     * Slot: actor Description: The unique-id of the node that acts.
 -- # Class: CalmConnectsType Description: A relationship in which one node connects to another through their interfaces.
 --     * Slot: id
---     * Slot: source_id Description: The end that opens the connection.
---     * Slot: destination_id Description: The end the connection reaches.
+--     * Slot: source_end_id Description: The end that opens the connection.
+--     * Slot: destination_end_id Description: The end the connection reaches.
 -- # Class: CalmDeployedInType Description: A relationship in which nodes are deployed in a container node.
 --     * Slot: id
 --     * Slot: container Description: The unique-id of the node the others are deployed in.
@@ -111,7 +111,7 @@
 --     * Slot: id
 --     * Slot: decorator_schema Description: URI of the schema that this decorator conforms to, for example a decorator standard
 --     * Slot: unique-id Description: Unique identifier for this decorator
---     * Slot: type Description: Type of decorator - a free-form string identifying the decorator category
+--     * Slot: decorator_type Description: Type of decorator - a free-form string identifying the decorator category
 --     * Slot: data_id Description: Free-form JSON object containing the decorator's data
 -- # Class: CalmDecoratorData Description: The decorator's data, an object free in shape.
 --     * Slot: id
@@ -129,7 +129,7 @@
 --     * Slot: description Description: A more detailed description of the control and information on what a developer needs to consider
 -- # Class: CalmTimeUnit Description: A unit of time with a value and a unit type.
 --     * Slot: id
---     * Slot: unit Description: The unit of time (e.g., seconds, minutes, hours).
+--     * Slot: unit_of_time Description: The unit of time (e.g., seconds, minutes, hours).
 --     * Slot: value Description: The numeric value representing the amount of time.
 -- # Class: CalmRateUnit Description: A unit representing a rate (e.g., operations per second).
 --     * Slot: id
@@ -171,9 +171,9 @@
 -- # Class: CalmDecorator_target-type
 --     * Slot: CalmDecorator_id Description: Autocreated FK slot
 --     * Slot: target-type Description: Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements.
--- # Class: CalmDecorator_target
+-- # Class: CalmDecorator_target_architectures
 --     * Slot: CalmDecorator_id Description: Autocreated FK slot
---     * Slot: target Description: Array of file paths or URLs referencing the CALM architectures this decorator targets
+--     * Slot: target_architectures Description: Array of file paths or URLs referencing the CALM architectures this decorator targets
 -- # Class: CalmDecorator_applies-to
 --     * Slot: CalmDecorator_id Description: Autocreated FK slot
 --     * Slot: applies-to Description: Array of unique-ids referencing nodes, relationships, flows, or other architecture elements
@@ -280,7 +280,7 @@ CREATE INDEX "ix_CalmControlRequirement_id" ON "CalmControlRequirement" (id);
 
 CREATE TABLE "CalmTimeUnit" (
 	id INTEGER NOT NULL,
-	unit VARCHAR(12) NOT NULL,
+	unit_of_time VARCHAR(12) NOT NULL,
 	value FLOAT NOT NULL,
 	PRIMARY KEY (id)
 );
@@ -328,11 +328,11 @@ CREATE INDEX "ix_CalmInterfaceDefinition_id" ON "CalmInterfaceDefinition" (id);
 
 CREATE TABLE "CalmConnectsType" (
 	id INTEGER NOT NULL,
-	source_id INTEGER NOT NULL,
-	destination_id INTEGER NOT NULL,
+	source_end_id INTEGER NOT NULL,
+	destination_end_id INTEGER NOT NULL,
 	PRIMARY KEY (id),
-	FOREIGN KEY(source_id) REFERENCES "CalmNodeInterface" (id),
-	FOREIGN KEY(destination_id) REFERENCES "CalmNodeInterface" (id)
+	FOREIGN KEY(source_end_id) REFERENCES "CalmNodeInterface" (id),
+	FOREIGN KEY(destination_end_id) REFERENCES "CalmNodeInterface" (id)
 );
 CREATE INDEX "ix_CalmConnectsType_id" ON "CalmConnectsType" (id);
 
@@ -349,7 +349,7 @@ CREATE TABLE "CalmDecorator" (
 	id INTEGER NOT NULL,
 	decorator_schema TEXT,
 	"unique-id" TEXT NOT NULL,
-	type TEXT NOT NULL,
+	decorator_type TEXT NOT NULL,
 	data_id INTEGER NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY(data_id) REFERENCES "CalmDecoratorData" (id)
@@ -494,14 +494,14 @@ CREATE TABLE "CalmDecorator_target-type" (
 CREATE INDEX "ix_CalmDecorator_target-type_CalmDecorator_id" ON "CalmDecorator_target-type" ("CalmDecorator_id");
 CREATE INDEX "ix_CalmDecorator_target-type_target-type" ON "CalmDecorator_target-type" ("target-type");
 
-CREATE TABLE "CalmDecorator_target" (
+CREATE TABLE "CalmDecorator_target_architectures" (
 	"CalmDecorator_id" INTEGER,
-	target TEXT NOT NULL,
-	PRIMARY KEY ("CalmDecorator_id", target),
+	target_architectures TEXT NOT NULL,
+	PRIMARY KEY ("CalmDecorator_id", target_architectures),
 	FOREIGN KEY("CalmDecorator_id") REFERENCES "CalmDecorator" (id)
 );
-CREATE INDEX "ix_CalmDecorator_target_CalmDecorator_id" ON "CalmDecorator_target" ("CalmDecorator_id");
-CREATE INDEX "ix_CalmDecorator_target_target" ON "CalmDecorator_target" (target);
+CREATE INDEX "ix_CalmDecorator_target_architectures_CalmDecorator_id" ON "CalmDecorator_target_architectures" ("CalmDecorator_id");
+CREATE INDEX "ix_CalmDecorator_target_architectures_target_architectures" ON "CalmDecorator_target_architectures" (target_architectures);
 
 CREATE TABLE "CalmDecorator_applies-to" (
 	"CalmDecorator_id" INTEGER,
