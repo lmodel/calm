@@ -151,6 +151,14 @@ def resolves(files: dict[str, dict], pointer: str) -> bool:
 
 
 def _target_of(obj: dict) -> str | None:
+    """The 1.3 definition a document is read against, from its $schema.
+
+    A document of an earlier release (FINOS's tree holds 1.0-rc1 to 1.2 documents
+    beside 1.3's) is read against 1.3's files on purpose: the tests compare the two
+    sets' verdicts on it, not its verdict with its own release, so a document 1.3
+    refuses still tests that both sets refuse it. A pattern document names
+    calm.json as its $schema and is read as an architecture, as docs/about.md says.
+    """
     schema = obj.get("$schema")
     if not isinstance(schema, str) or not schema.startswith("https://calm.finos.org/"):
         return None
