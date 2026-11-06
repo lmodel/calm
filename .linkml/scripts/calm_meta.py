@@ -45,7 +45,7 @@ import sys
 from pathlib import Path
 
 import yaml
-from linkml.generators.jsonschemagen import JsonSchemaGenerator
+from linkml.generators.jsonschemagen import JsonSchemaGenerator, json_schema_types
 from linkml_runtime.utils.schemaview import SchemaView
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -104,6 +104,15 @@ def module_file(module: str) -> str:
     if module == UMBRELLA:
         return "core.json"
     return module[len("calm_") :].replace("_", "-") + ".json"
+
+
+def json_type(base: str | None) -> dict[str, str]:
+    """The JSON Schema `type`, and `format` where one applies, of a LinkML type's
+    base, read from the generator's own table: str gives string, int integer, Decimal
+    number and XSDDate a string with the date format. A base the table lacks is a
+    string, as the generator writes it."""
+    typ, fmt = json_schema_types.get((base or "").lower(), ("string", None))
+    return {"type": typ, "format": fmt} if fmt else {"type": typ}
 
 
 def _walk(node, visit):
@@ -304,9 +313,8 @@ class Shaper:
             for name, spec in (doc.get("types") or {}).items():
                 if self.published(name) is None:
                     continue
-                typeof = self.sv.induced_type(name).base
                 out[name] = {
-                    "type": {"str": "string"}.get(typeof, typeof),
+                    **json_type(self.sv.induced_type(name).base),
                     "title": spec.get("title"),
                     "description": spec.get("description"),
                     "pattern": spec.get("pattern"),
