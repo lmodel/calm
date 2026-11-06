@@ -2,6 +2,7 @@
 
 ## 2026-11-06
 
+* **Changed**: `.linkml/meta/` also holds `calm.context.jsonld`, a JSON-LD context with CALM's keys, since 580d3053.
 * **Changed**: Where the model differs from CALM's files no longer says the model avoids all three of CALM's faults; it keeps CALM's cron pattern and records that fault.
 * **Changed**: Alias and Modelling choices name the five keys the renamed slots hold, since LOKF does not define `destination`.
 * **Prose**: reworded 26 concept bodies in plain English. No fact, link, number or frontmatter changed.
