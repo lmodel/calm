@@ -1,0 +1,4 @@
+# The interfaces of a connection's end are unique-ids.
+node: order-service
+interfaces:
+  - 1

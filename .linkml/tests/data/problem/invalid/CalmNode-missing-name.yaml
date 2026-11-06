@@ -1,0 +1,4 @@
+# A node has a name.
+unique-id: order-service
+node-type: service
+description: Takes orders.

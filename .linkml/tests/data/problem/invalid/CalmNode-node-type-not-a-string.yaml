@@ -1,0 +1,5 @@
+# A node type is a string, one of CALM's or the architecture's own.
+unique-id: order-service
+node-type: 5
+name: Order service
+description: Takes orders.

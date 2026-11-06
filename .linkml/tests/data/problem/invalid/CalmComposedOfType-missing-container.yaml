@@ -1,0 +1,3 @@
+# A composition names its container.
+nodes:
+  - order-service

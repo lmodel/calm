@@ -1,0 +1,4 @@
+# An interface definition names the schema its configuration follows.
+unique-id: order-api
+config:
+  url: https://orders.example.org/api

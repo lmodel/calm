@@ -1,0 +1,7 @@
+# Options are a list of decisions.
+unique-id: bus-or-queue
+relationship-type:
+  options:
+    description: Send orders to the bus.
+    nodes: []
+    relationships: []

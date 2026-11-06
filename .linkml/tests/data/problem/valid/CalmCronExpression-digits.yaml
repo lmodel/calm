@@ -1,0 +1,2 @@
+# A cron expression CALM's pattern accepts: 00:00 on 1 January when it is a Sunday.
+0 0 1 1 0

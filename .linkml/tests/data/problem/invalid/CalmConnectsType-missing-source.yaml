@@ -1,0 +1,3 @@
+# A connection has a source.
+destination:
+  node: order-service

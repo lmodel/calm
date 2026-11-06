@@ -1,0 +1,7 @@
+# A decorator carries data.
+unique-id: deploy-1
+type: deployment
+target:
+  - order-system.architecture.json
+applies-to:
+  - order-service

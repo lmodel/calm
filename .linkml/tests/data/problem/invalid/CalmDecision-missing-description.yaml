@@ -1,0 +1,4 @@
+# A decision says what choosing it means.
+nodes:
+  - message-bus
+relationships: []

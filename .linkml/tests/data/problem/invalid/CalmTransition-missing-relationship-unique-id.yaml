@@ -1,0 +1,3 @@
+# A transition names the relationship it crosses.
+sequence-number: 1
+description: The customer submits the order.

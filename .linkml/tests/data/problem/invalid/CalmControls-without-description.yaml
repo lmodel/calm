@@ -1,0 +1,5 @@
+# A control has a description.
+security:
+  requirements:
+    - requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+      config-url: https://example.org/controls/permitted-connection.config.json

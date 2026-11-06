@@ -1,0 +1,8 @@
+# A decorator applies to at least one element.
+unique-id: deploy-1
+type: deployment
+target:
+  - order-system.architecture.json
+applies-to: []
+data:
+  status: completed

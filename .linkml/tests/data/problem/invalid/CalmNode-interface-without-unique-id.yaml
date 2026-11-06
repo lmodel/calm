@@ -1,0 +1,7 @@
+# An interface, of either kind, has a unique-id.
+unique-id: order-service
+node-type: service
+name: Order service
+description: Takes orders.
+interfaces:
+  - port: 8080
