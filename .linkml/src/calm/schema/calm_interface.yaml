@@ -13,9 +13,9 @@ see_also:
   - https://calm.finos.org/release/1.3/meta/interface.json
 comments:
   - >-
-    Renders interface.json of CALM 1.3. Its title, and every description CALM
-    gives an element, are CALM's own words; the others are this project's. CALM
-    gives the file no description.
+    Renders interface.json of CALM 1.3, in CALM's own words wherever CALM gives a
+    title or a description. CALM gives the file no description, so the module's is
+    this project's.
 
 prefixes:
   calm: https://w3id.org/lmodel/calm/

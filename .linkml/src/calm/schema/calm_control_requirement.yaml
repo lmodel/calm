@@ -13,9 +13,8 @@ see_also:
   - https://calm.finos.org/release/1.3/meta/control-requirement.json
 comments:
   - >-
-    Renders control-requirement.json of CALM 1.3. Its title and description, and
-    every description CALM gives an element, are CALM's own words; the others are
-    this project's.
+    Renders control-requirement.json of CALM 1.3, in CALM's own words wherever CALM
+    gives a title or a description.
 
 prefixes:
   calm: https://w3id.org/lmodel/calm/

@@ -78,13 +78,13 @@ linkml_meta = LinkMLMeta({'annotations': {'upstream_commit': {'tag': 'upstream_c
                   "scripts/calm_meta.py writes CALM's files with the aliases as "
                   'keys, which plain gen-json-schema does only with '
                   '--preserve-names.',
-                  "Six slots list CALM's key under aliases instead, so that the "
-                  "key appears only in CALM's files: source_end, destination_end, "
-                  'target_architectures, unit_of_time and decorator_type, because '
-                  'LOKF defines source, target, unit and type with other meanings '
-                  "and a composite's JSON-LD context gives each key one IRI, and "
-                  'decorator_schema, because gen-python makes an alias an '
-                  "attribute's name and $schema is no Python name.",
+                  "Six slots list CALM's key under aliases instead, so that only "
+                  "CALM's files carry it. Five hold a key LOKF defines with "
+                  'another meaning: source_end, destination_end, '
+                  'target_architectures, unit_of_time and decorator_type. A '
+                  "composite's JSON-LD context gives each key one IRI. The sixth, "
+                  'decorator_schema, holds $schema, which gen-python would make an '
+                  "attribute's name.",
                   'A reference to a node, relationship or moment is its unique-id, '
                   'a string, as CALM gives it. No slot is an identifier: '
                   "gen-python in linkml 1.12.1 names an identifier's type from its "
