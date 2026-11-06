@@ -26,7 +26,7 @@ exclude: >-
     \.linkml/scripts/upstream_pins\.tsv$|
     \.linkml/tests/neighbours/|
     \.lokf/(scripts|m365)/|
-    \.lokf/(lokf|calm)\.yaml$|
+    \.lokf/schema/(lokf|calm)\.yaml$|
     \.github/release/package-lock\.json$
   )
 repos:

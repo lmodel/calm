@@ -42,7 +42,7 @@ Run `just` from this folder to list the project's [just](https://github.com/case
 
 ## Knowledge Trust Ladder (KTL)
 
-`.lokf/` holds this project's [KTL](https://w3id.org/ktl/) sidecar. Its domain schema, `.lokf/calm.yaml`, is the copy `just lokf-adapt` writes from `src/calm/schema/calm.yaml`, and `just lokf-adapt-check` says when it is stale. Edit the source, never the copy. A release carries the copy as `schema-<tag>-calm.yaml`.
+`.lokf/` holds this project's [KTL](https://w3id.org/ktl/) sidecar. Its domain schema, `.lokf/schema/calm.yaml`, is the copy `just lokf-adapt` writes from `src/calm/schema/calm.yaml`, and `just lokf-adapt-check` says when it is stale. Edit the source, never the copy. A release carries the copy as `schema-<tag>-calm.yaml`.
 
 In Obsidian, add these to the *Known LOKF types* setting of the KTL Registrar and KTL Curator plugins:
 

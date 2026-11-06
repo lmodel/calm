@@ -14,8 +14,8 @@ TREE = ROOT.parent
 # neighbour is the schema asset of a release, downloaded and checked against
 # the release's .sha256 and its build-provenance attestation, and pinned here
 # by that checksum.
-COPY = TREE / ".lokf" / "calm.yaml"
-LOKF = TREE / ".lokf" / "lokf.yaml"
+COPY = TREE / ".lokf" / "schema" / "calm.yaml"
+LOKF = TREE / ".lokf" / "schema" / "lokf.yaml"
 NEIGHBOURS = {
     # lmodel/ai-governance-framework v0.1.0, schema-v0.1.0-ai-governance-framework.yaml
     "ai-governance-framework.yaml": "5c853b7ffe526a8610c1b98a152e3321fb8db11a63007c3419cfb18a0e5d948d",
