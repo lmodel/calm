@@ -25,7 +25,7 @@ status: draft
 
 # CALM Hub API
 
-`calm-3.json` gives CALM Hub's API as a node of type `service`, with a REST interface and a detailed architecture of its own.[^calm-3.json] Its code is `calm-hub/` in FINOS's tree.[^finos-readme.md]
+`calm-3.json` describes CALM Hub's API as a node of type `service`. The node has a REST interface and a detailed architecture of its own.[^calm-3.json] Its code is `calm-hub/` in FINOS's tree.[^finos-readme.md]
 
 [^calm-3.json]: calm/architecture/calm-3.json, node calm-hub
 [^finos-readme.md]: README.md

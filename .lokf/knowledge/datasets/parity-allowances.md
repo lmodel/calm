@@ -21,7 +21,7 @@ status: draft
 
 # Parity allowances
 
-`probes.yaml` lists values to validate against one definition of each set, and says where the generated set may be wider or narrower, and why.[^probes.yaml] `structural.yaml` lists the six definitions whose shape differs, each an equivalent form, a gap of LinkML's or a fault of CALM's.[^structural.yaml]
+`probes.yaml` lists values to validate against one definition of each set. It says where the generated set may be wider or narrower, and why.[^probes.yaml] `structural.yaml` lists the six definitions whose shape differs. Each is an equivalent form, a gap of LinkML's or a fault of CALM's.[^structural.yaml]
 
 [^probes.yaml]: .linkml/parity/probes.yaml
 [^structural.yaml]: .linkml/parity/structural.yaml

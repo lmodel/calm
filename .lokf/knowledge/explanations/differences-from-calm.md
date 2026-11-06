@@ -21,6 +21,10 @@ status: draft
 
 # Where the model differs from CALM's files
 
-`metadata` accepts any value and a decorator's `data` may be empty, because LinkML cannot state CALM's rules there.[^about.md] A controls map holds a control under every key, where CALM leaves a key outside its pattern unchecked.[^about.md] `core.json` misplaces `additionalProperties`, `units.json` closes an empty root, and CALM's cron pattern refuses its own examples.[^about.md]
+`metadata` accepts any value, and a decorator's `data` may be empty, because LinkML cannot state CALM's rules there.[^about.md] A controls map holds a control under every key, where CALM leaves a key outside its pattern unchecked.[^about.md] Three faults of CALM's own files are not repeated:
+
+- `core.json` misplaces `additionalProperties`.
+- `units.json` closes an empty root.
+- CALM's cron pattern refuses its own examples.[^about.md]
 
 [^about.md]: .linkml/docs/about.md, Where the model differs from CALM's files

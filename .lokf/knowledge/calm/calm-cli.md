@@ -23,7 +23,7 @@ status: draft
 
 # CALM CLI
 
-`calm-3.json` gives the CLI as a node of type `service`.[^calm-3.json] Its code is `cli/` in FINOS's tree.[^finos-readme.md]
+`calm-3.json` describes the CLI as a node of type `service`.[^calm-3.json] Its code is `cli/` in FINOS's tree.[^finos-readme.md]
 
 [^calm-3.json]: calm/architecture/calm-3.json, node calm-cli
 [^finos-readme.md]: README.md

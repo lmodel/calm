@@ -17,6 +17,6 @@ status: draft
 
 # Lint and docs (lint-and-docs.yaml)
 
-Each job reads only this project's paths, and the word budgets are 1,000 for CONTRIBUTING.md and 900 for SECURITY.md.[^lint-and-docs.yaml]
+Each job reads only this project's paths. The word budgets are 1,000 for CONTRIBUTING.md and 900 for SECURITY.md.[^lint-and-docs.yaml]
 
 [^lint-and-docs.yaml]: .github/workflows/lint-and-docs.yaml

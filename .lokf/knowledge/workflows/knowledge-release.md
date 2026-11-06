@@ -17,6 +17,6 @@ status: draft
 
 # Knowledge release (knowledge-release.yaml)
 
-It is a copy of the KTL sidecar's template.[^knowledge-release.yaml]
+The workflow is a copy of the KTL sidecar's template.[^knowledge-release.yaml]
 
 [^knowledge-release.yaml]: .github/workflows/knowledge-release.yaml

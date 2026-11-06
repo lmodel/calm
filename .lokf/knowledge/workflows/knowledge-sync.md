@@ -17,6 +17,6 @@ status: draft
 
 # Knowledge sync (knowledge-sync.yaml)
 
-It is a copy of the KTL sidecar's template.[^knowledge-sync.yaml]
+The workflow is a copy of the KTL sidecar's template.[^knowledge-sync.yaml]
 
 [^knowledge-sync.yaml]: .github/workflows/knowledge-sync.yaml

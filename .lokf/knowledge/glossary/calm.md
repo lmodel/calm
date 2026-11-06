@@ -20,6 +20,6 @@ status: draft
 
 # CALM
 
-CALM describes an architecture's nodes, relationships, flows and controls, and its documents are JSON.[^linkml-readme.md] Its schema is published in finos/calm-schema.[^linkml-readme.md]
+CALM describes an architecture's nodes, relationships, flows and controls, and its documents are JSON.[^linkml-readme.md] FINOS publishes its schema in finos/calm-schema.[^linkml-readme.md]
 
 [^linkml-readme.md]: .linkml/README.md, What it models

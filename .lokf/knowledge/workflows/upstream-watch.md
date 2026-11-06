@@ -20,7 +20,7 @@ status: draft
 
 # Upstream watch (upstream-watch.yaml)
 
-The workflow runs every Monday.[^upstream-watch.yaml] A new calm-schema tag, a moved pin, a changed pinned file or a changed licence fails it; unreleased schema work and a newer FINOS tree are reported for information.[^check_upstream_release.py]
+The workflow runs every Monday.[^upstream-watch.yaml] A new calm-schema tag, a moved pin, a changed pinned file or a changed licence fails it. The watch reports unreleased schema work and a newer FINOS tree for information.[^check_upstream_release.py]
 
 [^upstream-watch.yaml]: .github/workflows/upstream-watch.yaml
 [^check_upstream_release.py]: .linkml/scripts/check_upstream_release.py, the docstring

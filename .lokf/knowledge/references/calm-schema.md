@@ -25,7 +25,7 @@ status: draft
 
 # CALM Meta Schema (finos/calm-schema)
 
-FINOS publishes CALM's schema in finos/calm-schema, and serves each release at the address in its files' `$id`.[^linkml-readme.md] This project pins the tag v1.3, commit `47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d`, and holds its files unchanged under `.linkml/upstream/calm-schema/v1.3/`.[^upstream_pins.tsv] FINOS moved the schema there from architecture-as-code in October 2026.[^about.md]
+FINOS publishes CALM's schema in finos/calm-schema, and serves each release at the address in its files' `$id`.[^linkml-readme.md] This project pins the tag v1.3, commit `47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d`. It holds that release's files unchanged under `.linkml/upstream/calm-schema/v1.3/`.[^upstream_pins.tsv] FINOS moved the schema there from architecture-as-code in October 2026.[^about.md]
 
 [^linkml-readme.md]: .linkml/README.md, What it models
 [^upstream_pins.tsv]: .linkml/scripts/upstream_pins.tsv

@@ -17,6 +17,6 @@ status: draft
 
 # Security policy
 
-A vulnerability goes through GitHub's private reporting, not an issue.[^security.md] The upstream watch reads calm-schema and architecture-as-code through the GitHub API alone.[^security.md]
+Report a vulnerability through GitHub's private reporting, not in an issue.[^security.md] The upstream watch reads calm-schema and architecture-as-code through the GitHub API alone.[^security.md]
 
 [^security.md]: .github/SECURITY.md

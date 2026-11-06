@@ -32,6 +32,10 @@ status: draft
 
 # Publish Architecture
 
-`calm-3.json` gives the flow `flow-publish-architecture` as three transitions: the user invokes the CLI, the CLI sends the architecture to CALM Hub's API, and the API stores it in MongoDB.[^calm-3.json]
+`calm-3.json` describes the flow `flow-publish-architecture` in three transitions:
+
+1. The user invokes the CLI.
+2. The CLI sends the architecture to CALM Hub's API.
+3. The API stores it in MongoDB.[^calm-3.json]
 
 [^calm-3.json]: calm/architecture/calm-3.json, flow flow-publish-architecture

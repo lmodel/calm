@@ -21,6 +21,6 @@ status: draft
 
 # Example data
 
-Each file is named for the class it exemplifies, and a valid example must pass both sets while a counter-example must fail both.[^test_data.py] They sit under `problem/` because linkml-validate and the example runner read slot names, not CALM's keys.[^test_data.py]
+Each file's name starts with the class it exemplifies. A valid example must pass both sets, and a counter-example must fail both.[^test_data.py] They sit under `problem/` because linkml-validate and the example runner read slot names, not CALM's keys.[^test_data.py]
 
 [^test_data.py]: .linkml/tests/test_data.py, the docstring

@@ -32,6 +32,6 @@ status: draft
 
 # CLI to CALM Hub
 
-`calm-3.json` gives the relationship `cli-to-hub` as a connection from `calm-cli` to the `calm-hub-rest-api` interface of `calm-hub`, over HTTPS.[^calm-3.json]
+`calm-3.json` describes the relationship `cli-to-hub` as a connection over HTTPS. It runs from `calm-cli` to the `calm-hub-rest-api` interface of `calm-hub`.[^calm-3.json]
 
 [^calm-3.json]: calm/architecture/calm-3.json, relationship cli-to-hub

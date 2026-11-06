@@ -17,6 +17,6 @@ status: draft
 
 # Build and test (main.yaml)
 
-It runs in `.linkml/`, lints on Python 3.13 only, and checks `meta/` and the adapt copy there too.[^main.yaml]
+The workflow runs in `.linkml/`. It lints on Python 3.13 only, and checks `meta/` and the adapt copy there too.[^main.yaml]
 
 [^main.yaml]: .github/workflows/main.yaml

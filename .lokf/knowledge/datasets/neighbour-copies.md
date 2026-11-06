@@ -21,6 +21,6 @@ status: draft
 
 # Neighbour copies
 
-Each neighbour is the schema asset of a release, checked against its `.sha256` and its build-provenance attestation, and pinned by checksum in `NEIGHBOURS`.[^test_schema_rules.py] A key the copy shares with a neighbour is listed, so a new one fails the test.[^test_schema_rules.py]
+Each neighbour is the schema asset of a release, checked against its `.sha256` and its build-provenance attestation, and pinned by checksum in `NEIGHBOURS`.[^test_schema_rules.py] The test lists each key the copy shares with a neighbour, so a new shared key fails it.[^test_schema_rules.py]
 
 [^test_schema_rules.py]: .linkml/tests/test_schema_rules.py, NEIGHBOURS

@@ -18,6 +18,6 @@ status: draft
 
 # Alias (of a slot)
 
-A slot whose name differs from CALM's key carries the key as its alias.[^calm.yaml] Six slots list CALM's key under `aliases` instead, so that only CALM's files carry it: five hold a key LOKF defines with another meaning, and one holds `$schema`.[^calm.yaml]
+A slot whose name differs from CALM's key carries the key as its alias.[^calm.yaml] Six slots list CALM's key under `aliases` instead, so that only CALM's files carry it. Five hold a key LOKF defines with another meaning, and one holds `$schema`.[^calm.yaml]
 
 [^calm.yaml]: .linkml/src/calm/schema/calm.yaml, comments

@@ -17,6 +17,6 @@ status: draft
 
 # Knowledge registrar (knowledge-registrar.yaml)
 
-It is a copy of the KTL sidecar's template.[^knowledge-registrar.yaml]
+The workflow is a copy of the KTL sidecar's template.[^knowledge-registrar.yaml]
 
 [^knowledge-registrar.yaml]: .github/workflows/knowledge-registrar.yaml

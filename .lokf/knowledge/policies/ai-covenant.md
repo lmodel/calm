@@ -17,6 +17,6 @@ status: draft
 
 # AI covenant
 
-Everything contributed is its contributor's, whatever tools helped.[^ai_covenant.md] An element of the schema renders a definition of CALM's files, and a difference from CALM is listed with its reason.[^ai_covenant.md]
+Each contributor owns what they contribute, whatever tools helped.[^ai_covenant.md] An element of the schema renders a definition of CALM's files, and a difference from CALM is listed with its reason.[^ai_covenant.md]
 
 [^ai_covenant.md]: .linkml/AI_COVENANT.md

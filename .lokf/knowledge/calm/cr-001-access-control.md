@@ -22,7 +22,7 @@ status: draft
 
 # Access Control (CR-001)
 
-CALM's `control-requirement.json` gives `CR-001`, Access Control, as the example of a control requirement.[^upstream-control-requirement.json] `tests/data/problem/valid/` holds the same example.[^problem]
+CALM's `control-requirement.json` uses `CR-001`, Access Control, as its example of a control requirement.[^upstream-control-requirement.json] `tests/data/problem/valid/` holds the same example.[^problem]
 
 [^upstream-control-requirement.json]: .linkml/upstream/calm-schema/v1.3/schema/control-requirement.json, examples
 [^problem]: .linkml/tests/data/problem

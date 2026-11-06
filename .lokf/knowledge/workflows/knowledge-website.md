@@ -17,6 +17,6 @@ status: draft
 
 # Knowledge website (knowledge-website.yaml)
 
-It is a copy of the KTL website's template.[^knowledge-website.yaml]
+The workflow is a copy of the KTL website's template.[^knowledge-website.yaml]
 
 [^knowledge-website.yaml]: .github/workflows/knowledge-website.yaml

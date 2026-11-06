@@ -34,7 +34,12 @@ Each class, enum and type that renders a definition of CALM's names it in `exact
 
 ## How CALM's files are generated
 
-`scripts/calm_meta.py` runs gen-json-schema once and writes `meta/`. Each module becomes its file, each definition takes the key its exact mapping names, and a class with no counterpart in CALM's files is written inline where it is used. The script repairs five faults of linkml 1.12.1's generator and states by rule four things LinkML cannot: an enum offered beside a free string, as `node-type-definition` is; a type as a definition, as `cron-expression` is; the one array CALM names, `option-type`; and a key a slot lists under `aliases`. Its docstring names each. The `--split`, `--draft` and `--def-name-style` options proposed for gen-json-schema would take over most of its routing.
+`scripts/calm_meta.py` runs gen-json-schema once and writes `meta/`. Each module becomes its file, each definition takes the key its exact mapping names, and a class with no counterpart in CALM's files is written inline where it is used. The script repairs five faults of linkml 1.12.1's generator, and its docstring names each. It also writes by rule four things LinkML cannot state:
+
+- an enum offered beside a free string, as `node-type-definition` is;
+- a type as a definition, as `cron-expression` is;
+- the one array CALM names, `option-type`;
+- a key a slot lists under `aliases`. The `--split`, `--draft` and `--def-name-style` options proposed for gen-json-schema would take over most of its routing.
 
 ## Where the model differs from CALM's files
 

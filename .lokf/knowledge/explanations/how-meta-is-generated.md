@@ -23,7 +23,7 @@ status: draft
 
 # How CALM's files are generated from the model
 
-The script runs the generator once, makes each module its file, and writes a class with no counterpart in CALM's files inline where it is used.[^about.md] It repairs five faults of linkml 1.12.1's generator and states four things LinkML cannot, each named in its docstring.[^calm_meta.py] The `--split`, `--draft` and `--def-name-style` options proposed for gen-json-schema would do most of its routing.[^about.md]
+The script runs the generator once and makes each module its file. It writes a class with no counterpart in CALM's files inline, where it is used.[^about.md] It repairs five faults of linkml 1.12.1's generator and states four things LinkML cannot, each named in its docstring.[^calm_meta.py] The `--split`, `--draft` and `--def-name-style` options proposed for gen-json-schema would do most of its routing.[^about.md]
 
 [^about.md]: .linkml/docs/about.md, How CALM's files are generated
 [^calm_meta.py]: .linkml/scripts/calm_meta.py, the docstring

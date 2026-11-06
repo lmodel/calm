@@ -2,6 +2,7 @@
 
 ## 2026-11-06
 
+* **Prose**: reworded 26 concept bodies in plain English. No fact, link, number or frontmatter changed.
 * **Changed**: the descriptions of the CALM Meta Schema and the documentation site name no bare web address, which the index bullets repeat and markdownlint refuses.
 * **Changed**: How the model keeps CALM's form; it now names all six slots that list CALM's key under `aliases`, as `.linkml/docs/about.md` does.
 * **Changed**: Knowledge sources map; FINOS's own paths are listed as left out on purpose, with their reason.

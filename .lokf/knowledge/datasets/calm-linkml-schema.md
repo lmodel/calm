@@ -24,7 +24,7 @@ status: draft
 
 # The CALM LinkML schema
 
-The umbrella `calm.yaml` imports nine modules, and each renders one of CALM's files.[^about.md] A slot keeps CALM's key as its alias, and where CALM describes an element, the description is CALM's own words.[^about.md] `linkml_schema` at the repository's root is a link to this folder.[^linkml-readme.md]
+The umbrella `calm.yaml` imports nine modules, and each renders one of CALM's files.[^about.md] A slot keeps CALM's key as its alias. Where CALM describes an element, the description is CALM's own words.[^about.md] `linkml_schema` at the repository's root is a link to this folder.[^linkml-readme.md]
 
 [^about.md]: .linkml/docs/about.md, How the modules fit together
 [^linkml-readme.md]: .linkml/README.md, Repository Structure

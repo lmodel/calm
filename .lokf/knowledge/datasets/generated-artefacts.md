@@ -26,7 +26,7 @@ status: draft
 
 # Generated artefacts
 
-`just gen-project` writes `project/` and the datamodel, and `just gen-doc` the schema pages and the merged schema under `docs/schema/`.[^contributing.md] The JSON Schema in `project/` keeps slot names; CALM's form is in `meta/`.[^docs-index.md]
+`just gen-project` writes `project/` and the datamodel. `just gen-doc` writes the schema pages and the merged schema under `docs/schema/`.[^contributing.md] The JSON Schema in `project/` keeps slot names. CALM's form is in `meta/`.[^docs-index.md]
 
 [^contributing.md]: .linkml/CONTRIBUTING.md, What this project is
 [^docs-index.md]: .linkml/docs/index.md, Validating a CALM document
