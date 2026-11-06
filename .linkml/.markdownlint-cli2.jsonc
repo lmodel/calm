@@ -20,6 +20,8 @@
     ".linkml/docs/elements/**",
     ".linkml/docs/templates-linkml/**",
     ".linkml/project/**",
+    // FINOS's calm-schema release, copied unchanged and held to its hashes.
+    ".linkml/upstream/**",
     ".linkml/examples/output/**",
     ".linkml/.venv/**",
     // What website/ generates from the files above, which are linted where they are.
