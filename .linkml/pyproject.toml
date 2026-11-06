@@ -11,7 +11,7 @@ authors = [
   {name = "Noel McLoughlin", email = "noel.mcloughlin@gmail.com"},
 ]
 license = "Apache-2.0"
-license-files = ["../LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["version"]
@@ -57,11 +57,23 @@ target-version = "py310"
 [tool.codespell]
 skip = [
   "LICENSE",
+  "NOTICE",
   "pyproject.toml",
   "uv.lock",
   "project/*",
   "src/calm/datamodel/calm_pydantic.py",
   "src/calm/datamodel/calm.py",
+  # CALM's files, their generated copies and FINOS's tree are copied or written,
+  # not written here, as are the neighbours' released adapt copies.
+  "meta/*",
+  "upstream/*",
+  "tests/upstream_tree.tsv",
+  "tests/neighbours/*",
+  # Copied in by the KTL sidecar sync or written by npm, not by hand.
+  ".lokf/scripts/*",
+  ".lokf/lokf.yaml",
+  "website/package-lock.json",
+  ".github/release/package-lock.json",
 ]
 
 # Reminder: words have to be lowercased for the ignore-words-list
@@ -80,4 +92,12 @@ extend-exclude = [
   "project/*",
   "src/calm/datamodel/calm_pydantic.py",
   "src/calm/datamodel/calm.py",
+  "meta/*",
+  "upstream/*",
+  "tests/upstream_tree.tsv",
+  "tests/neighbours/*",
+  ".lokf/scripts/*",
+  ".lokf/lokf.yaml",
+  "website/package-lock.json",
+  ".github/release/package-lock.json",
 ]
