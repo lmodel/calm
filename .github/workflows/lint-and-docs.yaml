@@ -68,6 +68,7 @@ jobs:
             .github/workflows/knowledge-registrar.yaml
             .github/workflows/knowledge-release.yaml
             .github/workflows/knowledge-sync.yaml
+            .github/workflows/knowledge-website.yaml
 
   word-budgets:
     name: Hold the governance files to their word budgets
