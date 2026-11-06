@@ -899,7 +899,10 @@ class CalmTimeUnit(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/lmodel/calm/calm_units'})
 
     unit_of_time: CalmTimeUnitName = Field(default=..., description="""The unit of time (e.g., seconds, minutes, hours).""", json_schema_extra = { "linkml_meta": {'aliases': ['unit'], 'domain_of': ['CalmTimeUnit']} })
-    value: float = Field(default=..., description="""The numeric value representing the amount of time.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmTimeUnit']} })
+    value: Decimal = Field(default=..., description="""The numeric value representing the amount of time.""", ge=0, json_schema_extra = { "linkml_meta": {'comments': ['CALM gives the value as a JSON number. A decimal keeps it exact '
+                      'in RDF and Python, where a float would round it, and renders as '
+                      'number too.'],
+         'domain_of': ['CalmTimeUnit']} })
 
 
 class CalmRateUnit(ConfiguredBaseModel):
@@ -912,7 +915,10 @@ class CalmRateUnit(ConfiguredBaseModel):
                       {'object': {'per': 'millisecond', 'rate': 5}}],
          'from_schema': 'https://w3id.org/lmodel/calm/calm_units'})
 
-    rate: float = Field(default=..., description="""The numeric value representing the rate.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['CalmRateUnit']} })
+    rate: Decimal = Field(default=..., description="""The numeric value representing the rate.""", ge=0, json_schema_extra = { "linkml_meta": {'comments': ['CALM gives the rate as a JSON number. A decimal keeps it exact '
+                      'in RDF and Python, where a float would round it, and renders as '
+                      'number too.'],
+         'domain_of': ['CalmRateUnit']} })
     per: CalmRateInterval = Field(default=..., description="""The time unit defining the rate interval.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CalmRateUnit']} })
 
 

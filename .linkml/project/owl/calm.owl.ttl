@@ -564,7 +564,8 @@ calm:protocol a owl:ObjectProperty ;
 calm:rate a owl:DatatypeProperty ;
 	rdfs:label "rate" ;
 	skos:definition "The numeric value representing the rate." ;
-	skos:inScheme calm:calm_units .
+	skos:inScheme calm:calm_units ;
+	skos:note "CALM gives the rate as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." .
 calm:relationship_type a owl:ObjectProperty ;
 	rdfs:label "relationship_type" ;
 	skos:definition "The kind of the relationship and the nodes it links." ;
@@ -624,7 +625,8 @@ calm:valid_from a owl:DatatypeProperty ;
 calm:value a owl:DatatypeProperty ;
 	rdfs:label "value" ;
 	skos:definition "The numeric value representing the amount of time." ;
-	skos:inScheme calm:calm_units .
+	skos:inScheme calm:calm_units ;
+	skos:note "CALM gives the value as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." .
 _:c14n0 rdf:first calm:CalmNodeTypeDefinition\#data-asset ;
 	rdf:rest rdf:nil .
 _:c14n1 a owl:Restriction ;
@@ -754,7 +756,7 @@ _:c14n139 a owl:Restriction ;
 	owl:minCardinality 0 ;
 	owl:onProperty calm:requirement_url .
 _:c14n14 a owl:Restriction ;
-	owl:allValuesFrom _:c14n306 ;
+	owl:allValuesFrom _:c14n312 ;
 	owl:onProperty calm:rate .
 _:c14n140 a owl:Restriction ;
 	owl:allValuesFrom calm:CalmMetadata ;
@@ -1178,7 +1180,7 @@ _:c14n275 a owl:Restriction ;
 	owl:maxCardinality 1 ;
 	owl:onProperty calm:composed_of .
 _:c14n276 a owl:Restriction ;
-	owl:allValuesFrom _:c14n312 ;
+	owl:allValuesFrom _:c14n306 ;
 	owl:onProperty calm:value .
 _:c14n277 rdf:first calm:CalmTransitionDirection\#destination-to-source ;
 	rdf:rest rdf:nil .
@@ -1271,7 +1273,7 @@ _:c14n303 a rdfs:Datatype ;
 	owl:withRestrictions _:c14n307 .
 _:c14n304 rdf:first _:c14n303 ;
 	rdf:rest rdf:nil .
-_:c14n305 rdf:first xsd:float ;
+_:c14n305 rdf:first xsd:decimal ;
 	rdf:rest _:c14n304 .
 _:c14n306 a rdfs:Datatype ;
 	owl:intersectionOf _:c14n305 .
@@ -1285,7 +1287,7 @@ _:c14n31 rdf:first "moment" ;
 	rdf:rest rdf:nil .
 _:c14n310 rdf:first _:c14n309 ;
 	rdf:rest rdf:nil .
-_:c14n311 rdf:first xsd:float ;
+_:c14n311 rdf:first xsd:decimal ;
 	rdf:rest _:c14n310 .
 _:c14n312 a rdfs:Datatype ;
 	owl:intersectionOf _:c14n311 .

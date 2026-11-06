@@ -256,7 +256,7 @@ linkml:Sparqlpath xsd:string
 }
 
 <CalmRateUnit> CLOSED {
-    (  $<CalmRateUnit_tes> (  <rate> @linkml:Float ;
+    (  $<CalmRateUnit_tes> (  <rate> @linkml:Decimal ;
           <per> [ <https://w3id.org/lmodel/calm/CalmRateInterval#nanosecond>
              <https://w3id.org/lmodel/calm/CalmRateInterval#microsecond>
              <https://w3id.org/lmodel/calm/CalmRateInterval#millisecond> <https://w3id.org/lmodel/calm/CalmRateInterval#second>
@@ -314,7 +314,7 @@ linkml:Sparqlpath xsd:string
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#days> <https://w3id.org/lmodel/calm/CalmTimeUnitName#weeks>
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#months> <https://w3id.org/lmodel/calm/CalmTimeUnitName#quarters>
              <https://w3id.org/lmodel/calm/CalmTimeUnitName#years> ] ;
-          <value> @linkml:Float
+          <value> @linkml:Decimal
        ) ;
        rdf:type [ <CalmTimeUnit> ] ?
     )

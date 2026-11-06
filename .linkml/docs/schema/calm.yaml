@@ -1549,25 +1549,31 @@ slots:
   calmTimeUnit__value:
     name: calmTimeUnit__value
     description: The numeric value representing the amount of time.
+    comments:
+    - CALM gives the value as a JSON number. A decimal keeps it exact in RDF and Python,
+      where a float would round it, and renders as number too.
     from_schema: https://w3id.org/lmodel/calm/calm_units
     slot_uri: calm:value
     alias: value
     owner: CalmTimeUnit
     domain_of:
     - CalmTimeUnit
-    range: float
+    range: decimal
     required: true
     minimum_value: 0
   calmRateUnit__rate:
     name: calmRateUnit__rate
     description: The numeric value representing the rate.
+    comments:
+    - CALM gives the rate as a JSON number. A decimal keeps it exact in RDF and Python,
+      where a float would round it, and renders as number too.
     from_schema: https://w3id.org/lmodel/calm/calm_units
     slot_uri: calm:rate
     alias: rate
     owner: CalmRateUnit
     domain_of:
     - CalmRateUnit
-    range: float
+    range: decimal
     required: true
     minimum_value: 0
   calmRateUnit__per:
@@ -2541,7 +2547,10 @@ classes:
       value:
         name: value
         description: The numeric value representing the amount of time.
-        range: float
+        comments:
+        - CALM gives the value as a JSON number. A decimal keeps it exact in RDF and
+          Python, where a float would round it, and renders as number too.
+        range: decimal
         required: true
         minimum_value: 0
     class_uri: calm:CalmTimeUnit
@@ -2569,7 +2578,10 @@ classes:
       rate:
         name: rate
         description: The numeric value representing the rate.
-        range: float
+        comments:
+        - CALM gives the rate as a JSON number. A decimal keeps it exact in RDF and
+          Python, where a float would round it, and renders as number too.
+        range: decimal
         required: true
         minimum_value: 0
       per:

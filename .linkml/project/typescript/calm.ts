@@ -472,7 +472,7 @@ export interface CalmTimeUnit {
     /** The unit of time (e.g., seconds, minutes, hours). */
     unit_of_time: string,
     /** The numeric value representing the amount of time. */
-    value: number,
+    value: string,
 }
 
 
@@ -481,7 +481,7 @@ export interface CalmTimeUnit {
  */
 export interface CalmRateUnit {
     /** The numeric value representing the rate. */
-    rate: number,
+    rate: string,
     /** The time unit defining the rate interval. */
     per: string,
 }

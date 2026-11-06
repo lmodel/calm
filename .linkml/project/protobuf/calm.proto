@@ -217,7 +217,7 @@ message CalmNodeMoment {
 // A unit representing a rate (e.g., operations per second).
 message CalmRateUnit {
   // The numeric value representing the rate.
-  float rate = 1;
+  string rate = 1;
   // The time unit defining the rate interval.
   CalmRateInterval per = 2;
 }
@@ -263,7 +263,7 @@ message CalmTimeUnit {
   // The unit of time (e.g., seconds, minutes, hours).
   CalmTimeUnitName unit_of_time = 1;
   // The numeric value representing the amount of time.
-  float value = 2;
+  string value = 2;
 }
 // One step of a flow, across one relationship of the architecture.
 message CalmTransition {

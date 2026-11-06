@@ -281,14 +281,14 @@ CREATE INDEX "ix_CalmControlRequirement_id" ON "CalmControlRequirement" (id);
 CREATE TABLE "CalmTimeUnit" (
 	id INTEGER NOT NULL,
 	unit_of_time VARCHAR(12) NOT NULL,
-	value FLOAT NOT NULL,
+	value NUMERIC NOT NULL,
 	PRIMARY KEY (id)
 );
 CREATE INDEX "ix_CalmTimeUnit_id" ON "CalmTimeUnit" (id);
 
 CREATE TABLE "CalmRateUnit" (
 	id INTEGER NOT NULL,
-	rate FLOAT NOT NULL,
+	rate NUMERIC NOT NULL,
 	per VARCHAR(11) NOT NULL,
 	PRIMARY KEY (id)
 );
@@ -379,8 +379,8 @@ CREATE TABLE "CalmInteractsType_nodes" (
 	PRIMARY KEY ("CalmInteractsType_id", nodes),
 	FOREIGN KEY("CalmInteractsType_id") REFERENCES "CalmInteractsType" (id)
 );
-CREATE INDEX "ix_CalmInteractsType_nodes_CalmInteractsType_id" ON "CalmInteractsType_nodes" ("CalmInteractsType_id");
 CREATE INDEX "ix_CalmInteractsType_nodes_nodes" ON "CalmInteractsType_nodes" (nodes);
+CREATE INDEX "ix_CalmInteractsType_nodes_CalmInteractsType_id" ON "CalmInteractsType_nodes" ("CalmInteractsType_id");
 
 CREATE TABLE "CalmDeployedInType_nodes" (
 	"CalmDeployedInType_id" INTEGER,
@@ -388,8 +388,8 @@ CREATE TABLE "CalmDeployedInType_nodes" (
 	PRIMARY KEY ("CalmDeployedInType_id", nodes),
 	FOREIGN KEY("CalmDeployedInType_id") REFERENCES "CalmDeployedInType" (id)
 );
-CREATE INDEX "ix_CalmDeployedInType_nodes_nodes" ON "CalmDeployedInType_nodes" (nodes);
 CREATE INDEX "ix_CalmDeployedInType_nodes_CalmDeployedInType_id" ON "CalmDeployedInType_nodes" ("CalmDeployedInType_id");
+CREATE INDEX "ix_CalmDeployedInType_nodes_nodes" ON "CalmDeployedInType_nodes" (nodes);
 
 CREATE TABLE "CalmComposedOfType_nodes" (
 	"CalmComposedOfType_id" INTEGER,
@@ -509,8 +509,8 @@ CREATE TABLE "CalmDecorator_applies-to" (
 	PRIMARY KEY ("CalmDecorator_id", "applies-to"),
 	FOREIGN KEY("CalmDecorator_id") REFERENCES "CalmDecorator" (id)
 );
-CREATE INDEX "ix_CalmDecorator_applies-to_CalmDecorator_id" ON "CalmDecorator_applies-to" ("CalmDecorator_id");
 CREATE INDEX "ix_CalmDecorator_applies-to_applies-to" ON "CalmDecorator_applies-to" ("applies-to");
+CREATE INDEX "ix_CalmDecorator_applies-to_CalmDecorator_id" ON "CalmDecorator_applies-to" ("CalmDecorator_id");
 
 CREATE TABLE "CalmRelationship" (
 	id INTEGER NOT NULL,
@@ -574,8 +574,8 @@ CREATE TABLE "CalmNodeMoment_interfaces" (
 	PRIMARY KEY ("CalmNodeMoment_id", interfaces),
 	FOREIGN KEY("CalmNodeMoment_id") REFERENCES "CalmNodeMoment" (id)
 );
-CREATE INDEX "ix_CalmNodeMoment_interfaces_CalmNodeMoment_id" ON "CalmNodeMoment_interfaces" ("CalmNodeMoment_id");
 CREATE INDEX "ix_CalmNodeMoment_interfaces_interfaces" ON "CalmNodeMoment_interfaces" (interfaces);
+CREATE INDEX "ix_CalmNodeMoment_interfaces_CalmNodeMoment_id" ON "CalmNodeMoment_interfaces" ("CalmNodeMoment_id");
 
 CREATE TABLE "CalmDecision_nodes" (
 	"CalmDecision_id" INTEGER,
@@ -592,8 +592,8 @@ CREATE TABLE "CalmDecision_relationships" (
 	PRIMARY KEY ("CalmDecision_id", relationships),
 	FOREIGN KEY("CalmDecision_id") REFERENCES "CalmDecision" (id)
 );
-CREATE INDEX "ix_CalmDecision_relationships_CalmDecision_id" ON "CalmDecision_relationships" ("CalmDecision_id");
 CREATE INDEX "ix_CalmDecision_relationships_relationships" ON "CalmDecision_relationships" (relationships);
+CREATE INDEX "ix_CalmDecision_relationships_CalmDecision_id" ON "CalmDecision_relationships" ("CalmDecision_id");
 
 CREATE TABLE "CalmDecision_controls" (
 	"CalmDecision_id" INTEGER,

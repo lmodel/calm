@@ -16,7 +16,7 @@ import lombok.*;
 @EqualsAndHashCode(callSuper=false)
 public class CalmRateUnit  {
 
-  private float rate;
+  private BigDecimal rate;
   private String per;
 
 

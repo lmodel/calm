@@ -112,7 +112,7 @@
     },
     "rate": {
       "@id": "calm:rate",
-      "@type": "xsd:float"
+      "@type": "xsd:decimal"
     },
     "relationship-type": {
       "@id": "calm:relationship_type"
@@ -163,7 +163,7 @@
     },
     "value": {
       "@id": "calm:value",
-      "@type": "xsd:float"
+      "@type": "xsd:decimal"
     }
   }
 }

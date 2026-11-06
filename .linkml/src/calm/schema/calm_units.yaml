@@ -74,7 +74,11 @@ classes:
         required: true
       value:
         description: The numeric value representing the amount of time.
-        range: float
+        comments:
+          - >-
+            CALM gives the value as a JSON number. A decimal keeps it exact in RDF
+            and Python, where a float would round it, and renders as number too.
+        range: decimal
         minimum_value: 0
         required: true
 
@@ -95,7 +99,11 @@ classes:
     attributes:
       rate:
         description: The numeric value representing the rate.
-        range: float
+        comments:
+          - >-
+            CALM gives the rate as a JSON number. A decimal keeps it exact in RDF
+            and Python, where a float would round it, and renders as number too.
+        range: decimal
         minimum_value: 0
         required: true
       per:

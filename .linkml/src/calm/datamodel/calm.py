@@ -55,8 +55,8 @@ from rdflib import (
     URIRef
 )
 
-from linkml_runtime.linkml_model.types import Date, Float, Integer, String
-from linkml_runtime.utils.metamodelcore import XSDDate
+from linkml_runtime.linkml_model.types import Date, Decimal, Integer, String
+from linkml_runtime.utils.metamodelcore import Decimal, XSDDate
 
 metamodel_version = "1.12.0"
 version = "1.3"
@@ -955,7 +955,7 @@ class CalmTimeUnit(YAMLRoot):
     class_model_uri: ClassVar[URIRef] = CALM.CalmTimeUnit
 
     unit_of_time: Union[str, "CalmTimeUnitName"] = None
-    value: float = None
+    value: Decimal = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.unit_of_time):
@@ -965,8 +965,8 @@ class CalmTimeUnit(YAMLRoot):
 
         if self._is_empty(self.value):
             self.MissingRequiredField("value")
-        if not isinstance(self.value, float):
-            self.value = float(self.value)
+        if not isinstance(self.value, Decimal):
+            self.value = Decimal(self.value)
 
         super().__post_init__(**kwargs)
 
@@ -983,14 +983,14 @@ class CalmRateUnit(YAMLRoot):
     class_name: ClassVar[str] = "CalmRateUnit"
     class_model_uri: ClassVar[URIRef] = CALM.CalmRateUnit
 
-    rate: float = None
+    rate: Decimal = None
     per: Union[str, "CalmRateInterval"] = None
 
     def __post_init__(self, *_: str, **kwargs: Any):
         if self._is_empty(self.rate):
             self.MissingRequiredField("rate")
-        if not isinstance(self.rate, float):
-            self.rate = float(self.rate)
+        if not isinstance(self.rate, Decimal):
+            self.rate = Decimal(self.rate)
 
         if self._is_empty(self.per):
             self.MissingRequiredField("per")
@@ -1459,10 +1459,10 @@ slots.calmTimeUnit__unit_of_time = Slot(uri=CALM.unit_of_time, name="calmTimeUni
                    model_uri=CALM.calmTimeUnit__unit_of_time, domain=None, range=Union[str, "CalmTimeUnitName"])
 
 slots.calmTimeUnit__value = Slot(uri=CALM.value, name="calmTimeUnit__value", curie=CALM.curie('value'),
-                   model_uri=CALM.calmTimeUnit__value, domain=None, range=float)
+                   model_uri=CALM.calmTimeUnit__value, domain=None, range=Decimal)
 
 slots.calmRateUnit__rate = Slot(uri=CALM.rate, name="calmRateUnit__rate", curie=CALM.curie('rate'),
-                   model_uri=CALM.calmRateUnit__rate, domain=None, range=float)
+                   model_uri=CALM.calmRateUnit__rate, domain=None, range=Decimal)
 
 slots.calmRateUnit__per = Slot(uri=CALM.per, name="calmRateUnit__per", curie=CALM.curie('per'),
                    model_uri=CALM.calmRateUnit__per, domain=None, range=Union[str, "CalmRateInterval"])

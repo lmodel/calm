@@ -17,7 +17,7 @@ import lombok.*;
 public class CalmTimeUnit  {
 
   private String unitOfTime;
-  private float value;
+  private BigDecimal value;
 
 
 }
