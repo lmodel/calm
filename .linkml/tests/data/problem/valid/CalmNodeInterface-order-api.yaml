@@ -1,0 +1,4 @@
+# One end of a connection.
+node: order-service
+interfaces:
+  - order-api

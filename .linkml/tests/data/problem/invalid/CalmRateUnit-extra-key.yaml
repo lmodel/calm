@@ -1,0 +1,4 @@
+# A rate unit has no key beyond rate and per.
+rate: 30
+per: second
+burst: 2

@@ -1,0 +1,4 @@
+# CALM's own example of a control requirement.
+control-id: CR-001
+name: Access Control
+description: Ensure that access to sensitive information is restricted.

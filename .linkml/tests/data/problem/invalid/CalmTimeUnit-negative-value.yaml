@@ -1,0 +1,3 @@
+# An amount of time is not negative.
+unit: seconds
+value: -1

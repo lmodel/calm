@@ -1,0 +1,6 @@
+# A moment points to its architecture.
+description: The pilot.
+name: Pilot
+node-type: moment
+unique-id: pilot
+valid-from: '2026-01-05'

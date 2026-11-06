@@ -1,0 +1,1304 @@
+{
+    "$defs": {
+        "CalmArchitecture": {
+            "additionalProperties": true,
+            "description": "A CALM architecture document: the nodes of a system, the relationships between them, its business flows, and the controls that apply to it.",
+            "properties": {
+                "adrs": {
+                    "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControls"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The controls that apply to the whole architecture."
+                },
+                "flows": {
+                    "description": "The business flows that run across the architecture.",
+                    "items": {
+                        "$ref": "#/$defs/CalmFlow"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about the architecture."
+                },
+                "nodes": {
+                    "description": "The components of the architecture.",
+                    "items": {
+                        "$ref": "#/$defs/CalmNode"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "relationships": {
+                    "description": "The links between the architecture's nodes.",
+                    "items": {
+                        "$ref": "#/$defs/CalmRelationship"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "CalmArchitecture",
+            "type": "object"
+        },
+        "CalmComposedOfType": {
+            "additionalProperties": true,
+            "description": "A relationship in which nodes make up a container node.",
+            "properties": {
+                "container": {
+                    "description": "The unique-id of the node the others make up.",
+                    "type": "string"
+                },
+                "nodes": {
+                    "description": "The unique-ids of the nodes it is made of.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                }
+            },
+            "required": [
+                "container",
+                "nodes"
+            ],
+            "title": "CalmComposedOfType",
+            "type": "object"
+        },
+        "CalmConnectsType": {
+            "additionalProperties": true,
+            "description": "A relationship in which one node connects to another through their interfaces.",
+            "properties": {
+                "destination_end": {
+                    "$ref": "#/$defs/CalmNodeInterface",
+                    "description": "The end the connection reaches."
+                },
+                "source_end": {
+                    "$ref": "#/$defs/CalmNodeInterface",
+                    "description": "The end that opens the connection."
+                }
+            },
+            "required": [
+                "source_end",
+                "destination_end"
+            ],
+            "title": "CalmConnectsType",
+            "type": "object"
+        },
+        "CalmControl": {
+            "additionalProperties": true,
+            "description": "One control in a controls map, with the requirements that define it.",
+            "properties": {
+                "description": {
+                    "description": "A description of a control and how it applies to a given architecture",
+                    "type": "string"
+                },
+                "requirements": {
+                    "description": "The requirements this control applies, each with its configuration.",
+                    "items": {
+                        "$ref": "#/$defs/CalmControlDetail"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "description",
+                "requirements"
+            ],
+            "title": "CalmControl",
+            "type": "object"
+        },
+        "CalmControlConfig": {
+            "additionalProperties": true,
+            "description": "A configuration object, free in shape, that meets a control requirement.",
+            "title": "CalmControlConfig",
+            "type": "object"
+        },
+        "CalmControlDetail": {
+            "additionalProperties": true,
+            "description": "A control requirement this control applies, with its configuration given by address or inline, but not both.",
+            "oneOf": [
+                {
+                    "properties": {
+                        "config_url": {}
+                    },
+                    "required": [
+                        "config_url"
+                    ]
+                },
+                {
+                    "properties": {
+                        "config": {}
+                    },
+                    "required": [
+                        "config"
+                    ]
+                }
+            ],
+            "properties": {
+                "config": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControlConfig"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Inline configuration of how the control requirement schema is met"
+                },
+                "config_url": {
+                    "description": "The configuration of how the control requirement schema is met",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "requirement_url": {
+                    "description": "The requirement schema that specifies how a control should be defined",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "requirement_url"
+            ],
+            "title": "CalmControlDetail",
+            "type": "object"
+        },
+        "CalmControlRequirement": {
+            "additionalProperties": true,
+            "description": "A control requirement: what a control must achieve, which a control detail's requirement-url points to.",
+            "examples": [
+                {
+                    "control-id": "CR-001",
+                    "description": "Ensure that access to sensitive information is restricted.",
+                    "name": "Access Control"
+                }
+            ],
+            "properties": {
+                "control_id": {
+                    "description": "The unique identifier of this control, which has the potential to be used for linking evidence",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "A more detailed description of the control and information on what a developer needs to consider",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "The name of the control requirement that provides contextual meaning within a given domain",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "control_id",
+                "name",
+                "description"
+            ],
+            "title": "CalmControlRequirement",
+            "type": "object"
+        },
+        "CalmControls": {
+            "additionalProperties": {
+                "anyOf": [
+                    {
+                        "$ref": "#/$defs/CalmControl"
+                    },
+                    {
+                        "type": "null"
+                    }
+                ]
+            },
+            "description": "The controls that apply to an architecture element, each under a key of letters, digits and hyphens.",
+            "title": "CalmControls",
+            "type": "object"
+        },
+        "CalmDecision": {
+            "additionalProperties": true,
+            "description": "One option of a choice, naming the nodes, relationships and controls it would add.",
+            "properties": {
+                "controls": {
+                    "description": "The keys of the controls this option adds.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "description": "What choosing this option means.",
+                    "type": "string"
+                },
+                "nodes": {
+                    "description": "The unique-ids of the nodes this option adds.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "relationships": {
+                    "description": "The unique-ids of the relationships this option adds.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "description",
+                "nodes",
+                "relationships"
+            ],
+            "title": "CalmDecision",
+            "type": "object"
+        },
+        "CalmDecorator": {
+            "additionalProperties": false,
+            "description": "Supplementary information about elements of one or more architectures, kept apart from the architectures themselves.",
+            "properties": {
+                "applies_to": {
+                    "description": "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "data": {
+                    "$ref": "#/$defs/CalmDecoratorData",
+                    "description": "Free-form JSON object containing the decorator's data"
+                },
+                "decorator_schema": {
+                    "description": "URI of the schema that this decorator conforms to, for example a decorator standard",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "decorator_type": {
+                    "description": "Type of decorator - a free-form string identifying the decorator category",
+                    "type": "string"
+                },
+                "target_architectures": {
+                    "description": "Array of file paths or URLs referencing the CALM architectures this decorator targets",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "target_type": {
+                    "description": "Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements.",
+                    "items": {
+                        "$ref": "#/$defs/CalmDecoratorTargetType"
+                    },
+                    "minItems": 1,
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "unique_id": {
+                    "description": "Unique identifier for this decorator",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "decorator_type",
+                "target_architectures",
+                "applies_to",
+                "data"
+            ],
+            "title": "CalmDecorator",
+            "type": "object"
+        },
+        "CalmDecoratorData": {
+            "additionalProperties": true,
+            "description": "The decorator's data, an object free in shape.",
+            "title": "CalmDecoratorData",
+            "type": "object"
+        },
+        "CalmDecoratorTargetType": {
+            "description": "The kinds of CALM document a decorator can target.",
+            "enum": [
+                "architecture"
+            ],
+            "title": "CalmDecoratorTargetType",
+            "type": "string"
+        },
+        "CalmDeployedInType": {
+            "additionalProperties": true,
+            "description": "A relationship in which nodes are deployed in a container node.",
+            "properties": {
+                "container": {
+                    "description": "The unique-id of the node the others are deployed in.",
+                    "type": "string"
+                },
+                "nodes": {
+                    "description": "The unique-ids of the deployed nodes.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                }
+            },
+            "required": [
+                "container",
+                "nodes"
+            ],
+            "title": "CalmDeployedInType",
+            "type": "object"
+        },
+        "CalmEvidence": {
+            "additionalProperties": true,
+            "description": "Evidence that a control's configuration is met, by the paths where it is kept.",
+            "properties": {
+                "control_config_url": {
+                    "description": "URI for the control configuration this evidence relates to",
+                    "type": "string"
+                },
+                "evidence_paths": {
+                    "description": "Paths to the evidence relating to a specific control",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "unique_id": {
+                    "description": "CALM unique-id for future linking and uniquely defining this evidence",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "evidence_paths",
+                "control_config_url"
+            ],
+            "title": "CalmEvidence",
+            "type": "object"
+        },
+        "CalmEvidenceDocument": {
+            "additionalProperties": true,
+            "description": "An evidence document, which holds one piece of evidence for a control.",
+            "properties": {
+                "evidence": {
+                    "$ref": "#/$defs/CalmEvidence",
+                    "description": "The evidence this document holds."
+                }
+            },
+            "required": [
+                "evidence"
+            ],
+            "title": "CalmEvidenceDocument",
+            "type": "object"
+        },
+        "CalmFlow": {
+            "additionalProperties": false,
+            "description": "A business flow, as an ordered list of transitions across the architecture's relationships.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControls"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The controls that apply to this flow."
+                },
+                "description": {
+                    "description": "Detailed description of the flow's purpose",
+                    "type": "string"
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about this flow."
+                },
+                "name": {
+                    "description": "Descriptive name for the business flow",
+                    "type": "string"
+                },
+                "requirement_url": {
+                    "description": "Link to a detailed requirement document",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "transitions": {
+                    "description": "The steps of the flow, each across one relationship.",
+                    "items": {
+                        "$ref": "#/$defs/CalmTransition"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "unique_id": {
+                    "description": "Unique identifier for the flow",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "name",
+                "description",
+                "transitions"
+            ],
+            "title": "CalmFlow",
+            "type": "object"
+        },
+        "CalmInteractsType": {
+            "additionalProperties": true,
+            "description": "A relationship in which an actor interacts with nodes.",
+            "properties": {
+                "actor": {
+                    "description": "The unique-id of the node that acts.",
+                    "type": "string"
+                },
+                "nodes": {
+                    "description": "The unique-ids of the nodes it interacts with.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                }
+            },
+            "required": [
+                "actor",
+                "nodes"
+            ],
+            "title": "CalmInteractsType",
+            "type": "object"
+        },
+        "CalmInterfaceConfig": {
+            "additionalProperties": true,
+            "description": "A configuration object, free in shape, that an interface definition's schema checks.",
+            "title": "CalmInterfaceConfig",
+            "type": "object"
+        },
+        "CalmInterfaceDefinition": {
+            "additionalProperties": false,
+            "description": "A modular interface definition referencing an external schema",
+            "properties": {
+                "config": {
+                    "$ref": "#/$defs/CalmInterfaceConfig",
+                    "description": "Inline configuration conforming to the external interface schema"
+                },
+                "definition_url": {
+                    "description": "URI of the external schema this interface configuration conforms to",
+                    "type": "string"
+                },
+                "unique_id": {
+                    "description": "Unique identifier for this interface instance",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "definition_url",
+                "config"
+            ],
+            "title": "CalmInterfaceDefinition",
+            "type": "object"
+        },
+        "CalmInterfaceType": {
+            "additionalProperties": true,
+            "description": "An interface given by its own keys, such as a host and port, rather than by an external schema.",
+            "properties": {
+                "unique_id": {
+                    "description": "The interface's identifier, unique within the architecture.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id"
+            ],
+            "title": "CalmInterfaceType",
+            "type": "object"
+        },
+        "CalmMetadata": {
+            "additionalProperties": true,
+            "description": "Free-form metadata, as an object or a list of objects.",
+            "title": "CalmMetadata",
+            "type": [
+                "null",
+                "boolean",
+                "object",
+                "number",
+                "string"
+            ]
+        },
+        "CalmNode": {
+            "additionalProperties": true,
+            "description": "A component of the architecture, such as a system, service, database or actor, with its interfaces and controls.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControls"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The controls that apply to this node."
+                },
+                "description": {
+                    "description": "What the node is and does.",
+                    "type": "string"
+                },
+                "details": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmNodeDetails"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Where a more detailed architecture of this node is, and the pattern it must follow."
+                },
+                "interfaces": {
+                    "description": "The interfaces the node exposes.",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/CalmInterfaceDefinition"
+                            },
+                            {
+                                "$ref": "#/$defs/CalmInterfaceType"
+                            }
+                        ]
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about this node."
+                },
+                "name": {
+                    "description": "The node's name.",
+                    "type": "string"
+                },
+                "node_type": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmNodeTypeDefinition"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "What kind of node this is, one of CALM's built-in types or any other name."
+                },
+                "unique_id": {
+                    "description": "The node's identifier, unique within the architecture.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "node_type",
+                "name",
+                "description"
+            ],
+            "title": "CalmNode",
+            "type": "object"
+        },
+        "CalmNodeDetails": {
+            "additionalProperties": false,
+            "description": "References from a node to a more detailed architecture and to the pattern it must follow.",
+            "properties": {
+                "detailed_architecture": {
+                    "description": "The address of an architecture document that describes this node in detail.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "required_pattern": {
+                    "description": "The address of a pattern that the detailed architecture must follow.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "CalmNodeDetails",
+            "type": "object"
+        },
+        "CalmNodeInterface": {
+            "additionalProperties": true,
+            "description": "One end of a connection, naming a node and, optionally, which of its interfaces.",
+            "properties": {
+                "interfaces": {
+                    "description": "The unique-ids of the node's interfaces this end uses.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "node": {
+                    "description": "The unique-id of the node at this end.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "node"
+            ],
+            "title": "CalmNodeInterface",
+            "type": "object"
+        },
+        "CalmNodeMoment": {
+            "additionalProperties": true,
+            "allOf": [
+                {
+                    "properties": {
+                        "node_type": {
+                            "const": "moment"
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "details": {}
+                    },
+                    "required": [
+                        "details"
+                    ]
+                },
+                {
+                    "not": {
+                        "required": [
+                            "interfaces"
+                        ]
+                    },
+                    "properties": {
+                        "interfaces": {}
+                    }
+                }
+            ],
+            "description": "A moment of a timeline: a node of type moment, with no interfaces, whose details point to the architecture of that moment.",
+            "properties": {
+                "adrs": {
+                    "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControls"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The controls that apply to this node."
+                },
+                "description": {
+                    "description": "What the node is and does.",
+                    "type": "string"
+                },
+                "details": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmNodeDetails"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Where a more detailed architecture of this node is, and the pattern it must follow."
+                },
+                "interfaces": {
+                    "description": "The interfaces the node exposes.",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/CalmInterfaceDefinition"
+                            },
+                            {
+                                "$ref": "#/$defs/CalmInterfaceType"
+                            }
+                        ]
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about this node."
+                },
+                "name": {
+                    "description": "The node's name.",
+                    "type": "string"
+                },
+                "node_type": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmNodeTypeDefinition"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "description": "What kind of node this is, one of CALM's built-in types or any other name."
+                },
+                "unique_id": {
+                    "description": "The node's identifier, unique within the architecture.",
+                    "type": "string"
+                },
+                "valid_from": {
+                    "description": "The date when this architecture moment came into effect.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "unique_id",
+                "node_type",
+                "name",
+                "description"
+            ],
+            "title": "CalmNodeMoment",
+            "type": "object"
+        },
+        "CalmNodeTypeDefinition": {
+            "description": "CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any other string.",
+            "enum": [
+                "actor",
+                "ecosystem",
+                "system",
+                "service",
+                "database",
+                "network",
+                "ldap",
+                "webclient",
+                "data-asset"
+            ],
+            "title": "CalmNodeTypeDefinition",
+            "type": "string"
+        },
+        "CalmProtocol": {
+            "description": "The protocol a relationship uses.",
+            "enum": [
+                "HTTP",
+                "HTTPS",
+                "FTP",
+                "SFTP",
+                "JDBC",
+                "WebSocket",
+                "SocketIO",
+                "LDAP",
+                "AMQP",
+                "TLS",
+                "mTLS",
+                "TCP"
+            ],
+            "title": "CalmProtocol",
+            "type": "string"
+        },
+        "CalmRateInterval": {
+            "description": "The interval a rate is counted over.",
+            "enum": [
+                "nanosecond",
+                "microsecond",
+                "millisecond",
+                "second",
+                "minute",
+                "hour",
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+            ],
+            "title": "CalmRateInterval",
+            "type": "string"
+        },
+        "CalmRateUnit": {
+            "additionalProperties": false,
+            "description": "A unit representing a rate (e.g., operations per second).",
+            "examples": [
+                {
+                    "per": "second",
+                    "rate": 30
+                },
+                {
+                    "per": "minute",
+                    "rate": 1000
+                },
+                {
+                    "per": "millisecond",
+                    "rate": 5
+                }
+            ],
+            "properties": {
+                "per": {
+                    "$ref": "#/$defs/CalmRateInterval",
+                    "description": "The time unit defining the rate interval."
+                },
+                "rate": {
+                    "description": "The numeric value representing the rate.",
+                    "minimum": 0,
+                    "type": "number"
+                }
+            },
+            "required": [
+                "rate",
+                "per"
+            ],
+            "title": "CalmRateUnit",
+            "type": "object"
+        },
+        "CalmRelationship": {
+            "additionalProperties": true,
+            "description": "A link between nodes, of one of CALM's kinds, or a choice between options.",
+            "properties": {
+                "controls": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmControls"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The controls that apply to this relationship."
+                },
+                "description": {
+                    "description": "What the relationship is for.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about this relationship."
+                },
+                "protocol": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmProtocol"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The protocol a connection uses."
+                },
+                "relationship_type": {
+                    "$ref": "#/$defs/CalmRelationshipType",
+                    "description": "The kind of the relationship and the nodes it links."
+                },
+                "unique_id": {
+                    "description": "The relationship's identifier, unique within the architecture.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "unique_id",
+                "relationship_type"
+            ],
+            "title": "CalmRelationship",
+            "type": "object"
+        },
+        "CalmRelationshipType": {
+            "additionalProperties": true,
+            "description": "The kind of a relationship, given by exactly one of its keys: interacts, connects, deployed-in, composed-of or options.",
+            "oneOf": [
+                {
+                    "properties": {
+                        "deployed_in": {}
+                    },
+                    "required": [
+                        "deployed_in"
+                    ]
+                },
+                {
+                    "properties": {
+                        "composed_of": {}
+                    },
+                    "required": [
+                        "composed_of"
+                    ]
+                },
+                {
+                    "properties": {
+                        "interacts": {}
+                    },
+                    "required": [
+                        "interacts"
+                    ]
+                },
+                {
+                    "properties": {
+                        "connects": {}
+                    },
+                    "required": [
+                        "connects"
+                    ]
+                },
+                {
+                    "properties": {
+                        "options": {
+                            "items": {},
+                            "type": "array"
+                        }
+                    },
+                    "required": [
+                        "options"
+                    ]
+                }
+            ],
+            "properties": {
+                "composed_of": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmComposedOfType"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Nodes that make up a container node."
+                },
+                "connects": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmConnectsType"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "A connection from one node's interfaces to another's."
+                },
+                "deployed_in": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmDeployedInType"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Nodes deployed in a container node."
+                },
+                "interacts": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmInteractsType"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "An actor that interacts with nodes."
+                },
+                "options": {
+                    "description": "Decisions between options, each naming the nodes and relationships it would add.",
+                    "items": {
+                        "$ref": "#/$defs/CalmDecision"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "CalmRelationshipType",
+            "type": "object"
+        },
+        "CalmTimeUnit": {
+            "additionalProperties": false,
+            "description": "A unit of time with a value and a unit type.",
+            "examples": [
+                {
+                    "unit": "seconds",
+                    "value": 30
+                },
+                {
+                    "unit": "minutes",
+                    "value": 15
+                },
+                {
+                    "unit": "hours",
+                    "value": 1
+                },
+                {
+                    "unit": "days",
+                    "value": 7
+                }
+            ],
+            "properties": {
+                "unit_of_time": {
+                    "$ref": "#/$defs/CalmTimeUnitName",
+                    "description": "The unit of time (e.g., seconds, minutes, hours)."
+                },
+                "value": {
+                    "description": "The numeric value representing the amount of time.",
+                    "minimum": 0,
+                    "type": "number"
+                }
+            },
+            "required": [
+                "unit_of_time",
+                "value"
+            ],
+            "title": "CalmTimeUnit",
+            "type": "object"
+        },
+        "CalmTimeUnitName": {
+            "description": "The units a time unit counts in.",
+            "enum": [
+                "nanoseconds",
+                "microseconds",
+                "milliseconds",
+                "seconds",
+                "minutes",
+                "hours",
+                "days",
+                "weeks",
+                "months",
+                "quarters",
+                "years"
+            ],
+            "title": "CalmTimeUnitName",
+            "type": "string"
+        },
+        "CalmTimeline": {
+            "additionalProperties": true,
+            "description": "A timeline document, listing the moments of an architecture and naming the current one.",
+            "properties": {
+                "current_moment": {
+                    "description": "The unique-id of the current architecture moment within the timeline.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "metadata": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmMetadata"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Free-form metadata about this timeline."
+                },
+                "moments": {
+                    "description": "A list of significant architecture states or points in time, each represented as a 'moment'.",
+                    "items": {
+                        "$ref": "#/$defs/CalmNodeMoment"
+                    },
+                    "type": "array"
+                }
+            },
+            "required": [
+                "moments"
+            ],
+            "title": "CalmTimeline",
+            "type": "object"
+        },
+        "CalmTransition": {
+            "additionalProperties": true,
+            "description": "One step of a flow, across one relationship of the architecture.",
+            "properties": {
+                "description": {
+                    "description": "Functional summary of what is happening in the transition",
+                    "type": "string"
+                },
+                "direction": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/CalmTransitionDirection"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Which way along the relationship the step goes."
+                },
+                "relationship_unique_id": {
+                    "description": "Unique identifier for the relationship in the architecture",
+                    "type": "string"
+                },
+                "sequence_number": {
+                    "description": "Indicates the sequence of the relationship in the flow",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "relationship_unique_id",
+                "sequence_number",
+                "description"
+            ],
+            "title": "CalmTransition",
+            "type": "object"
+        },
+        "CalmTransitionDirection": {
+            "description": "The direction of a transition along its relationship.",
+            "enum": [
+                "source-to-destination",
+                "destination-to-source"
+            ],
+            "title": "CalmTransitionDirection",
+            "type": "string"
+        }
+    },
+    "$id": "https://w3id.org/lmodel/calm",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": true,
+    "description": "A CALM architecture document: the nodes of a system, the relationships between them, its business flows, and the controls that apply to it.",
+    "metamodel_version": "1.12.0",
+    "properties": {
+        "adrs": {
+            "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation.",
+            "items": {
+                "type": "string"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "controls": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/CalmControls"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The controls that apply to the whole architecture."
+        },
+        "flows": {
+            "description": "The business flows that run across the architecture.",
+            "items": {
+                "$ref": "#/$defs/CalmFlow"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "metadata": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/CalmMetadata"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "Free-form metadata about the architecture."
+        },
+        "nodes": {
+            "description": "The components of the architecture.",
+            "items": {
+                "$ref": "#/$defs/CalmNode"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "relationships": {
+            "description": "The links between the architecture's nodes.",
+            "items": {
+                "$ref": "#/$defs/CalmRelationship"
+            },
+            "type": [
+                "array",
+                "null"
+            ]
+        }
+    },
+    "title": "calm",
+    "type": "object",
+    "version": "1.3"
+}

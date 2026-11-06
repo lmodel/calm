@@ -1,0 +1,10 @@
+# A decorator targets at least one architecture.
+unique-id: deploy-1
+type: deployment
+target-type:
+  - architecture
+target: []
+applies-to:
+  - order-service
+data:
+  status: completed

@@ -1,0 +1,3 @@
+# An inline configuration is an object.
+requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+config: api-gateway

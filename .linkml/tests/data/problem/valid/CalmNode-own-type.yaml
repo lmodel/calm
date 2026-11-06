@@ -1,0 +1,5 @@
+# A node may name a type of its own.
+unique-id: market-feed
+node-type: message-queue
+name: Market Feed
+description: The market feed.

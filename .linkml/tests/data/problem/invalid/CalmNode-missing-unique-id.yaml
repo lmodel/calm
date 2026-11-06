@@ -1,0 +1,4 @@
+# A node needs a unique-id.
+description: The order service.
+name: Order Service
+node-type: service

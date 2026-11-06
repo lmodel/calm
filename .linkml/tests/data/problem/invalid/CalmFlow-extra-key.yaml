@@ -1,0 +1,19 @@
+# A flow holds its own keys only.
+unique-id: place-order
+name: Place an order
+description: A customer places an order through the gateway.
+transitions:
+  - relationship-unique-id: customer-uses-gateway
+    sequence-number: 1
+    description: The customer submits the order.
+  - relationship-unique-id: gateway-to-orders
+    sequence-number: 2
+    description: The gateway forwards it.
+    direction: source-to-destination
+controls:
+  security:
+    description: Only the gateway may reach the order service.
+    requirements:
+      - requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+        config-url: https://example.org/controls/permitted-connection.config.json
+owner: x

@@ -1,0 +1,12 @@
+# linkml-lint reads this file from the directory `just lint` runs in.
+# The recommended rules apply, with the naming rule fitted to CALM's values, so
+# that CALM's documents validate unchanged. Permissible values keep CALM's
+# spelling (HTTPS, WebSocket, mTLS, data-asset, source-to-destination), so the
+# naming rule leaves them out. Class, enum and slot names keep the rule's usual
+# form.
+extends: recommended
+rules:
+  standard_naming:
+    level: error
+    exclude_type:
+      - permissible_value

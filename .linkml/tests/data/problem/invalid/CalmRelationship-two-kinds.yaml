@@ -1,0 +1,15 @@
+# A relationship is of one kind.
+protocol: HTTPS
+relationship-type:
+  connects:
+    source:
+      node: api-gateway
+    destination:
+      node: order-service
+      interfaces:
+        - order-api
+  interacts:
+    actor: a
+    nodes:
+      - b
+unique-id: gateway-to-orders

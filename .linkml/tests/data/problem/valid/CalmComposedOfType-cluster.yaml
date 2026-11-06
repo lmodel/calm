@@ -1,0 +1,4 @@
+# A cluster made of one node.
+container: cluster
+nodes:
+  - api-gateway

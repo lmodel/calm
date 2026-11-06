@@ -1,0 +1,103 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+# Named like lmodel/slsa's slsa-linkml, so the PyPI name says what it holds;
+# the import package stays calm. PyPI publishing is off.
+name = "calm-linkml"
+description = "FINOS CALM 1.3 (LinkML)"
+authors = [
+  {name = "Noel McLoughlin", email = "noel.mcloughlin@gmail.com"},
+]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+dependencies = [
+  "linkml-runtime >=1.9.4",
+]
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.26.0",
+    "linkml>=1.12.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/calm"]
+
+# See https://hatch.pypa.io/latest/config/build/#file-selection for how to
+# explicitly include files other than default into the build distributions.
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+# Ref.: https://github.com/ninoseki/uv-dynamic-versioning/
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+fallback-version = "0.0.0"
+
+# Ref.: https://docs.pytest.org/en/stable/reference/reference.html#configuration-options
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# https://docs.astral.sh/ruff/configuration/
+[tool.ruff]
+exclude = [
+    "src/calm/_version.py",
+]
+# Set oldest supported Python version
+target-version = "py310"
+
+# Ref.: https://github.com/codespell-project/codespell
+[tool.codespell]
+skip = [
+  "LICENSE",
+  "NOTICE",
+  "pyproject.toml",
+  "uv.lock",
+  "project/*",
+  "src/calm/datamodel/calm_pydantic.py",
+  "src/calm/datamodel/calm.py",
+  # CALM's files, their generated copies and FINOS's tree are copied or written,
+  # not written here, as are the neighbours' released adapt copies.
+  "meta/*",
+  "upstream/*",
+  "tests/upstream_tree.tsv",
+  "tests/neighbours/*",
+  # Copied in by the KTL sidecar sync or written by npm, not by hand.
+  ".lokf/scripts/*",
+  ".lokf/schema/lokf.yaml",
+  "website/package-lock.json",
+  ".github/release/package-lock.json",
+]
+
+# Reminder: words have to be lowercased for the ignore-words-list
+ignore-words-list = "linke"
+quiet-level = 3
+
+# Ref.: https://github.com/crate-ci/typos (spell checker)
+[tool.typos.default.extend-words]
+linke = "linke"
+
+[tool.typos.files]
+extend-exclude = [
+  "LICENSE",
+  "uv.lock",
+  "pyproject.toml",
+  "project/*",
+  "src/calm/datamodel/calm_pydantic.py",
+  "src/calm/datamodel/calm.py",
+  "meta/*",
+  "upstream/*",
+  "tests/upstream_tree.tsv",
+  "tests/neighbours/*",
+  ".lokf/scripts/*",
+  ".lokf/schema/lokf.yaml",
+  "website/package-lock.json",
+  ".github/release/package-lock.json",
+]

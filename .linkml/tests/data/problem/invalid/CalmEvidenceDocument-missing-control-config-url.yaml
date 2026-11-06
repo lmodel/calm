@@ -1,0 +1,4 @@
+# Evidence names the configuration it supports.
+evidence:
+  unique-id: e
+  evidence-paths: []

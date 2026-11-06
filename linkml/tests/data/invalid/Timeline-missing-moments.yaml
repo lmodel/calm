@@ -1,5 +1,0 @@
-# INVALID Timeline: missing required field 'moments'.
-# Violation: moments is required on Timeline.
-# Class: Timeline
-current_moment: moment-2026-q2
-# moments: intentionally omitted - required field

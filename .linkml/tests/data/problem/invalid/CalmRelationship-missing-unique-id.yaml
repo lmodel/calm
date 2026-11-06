@@ -1,0 +1,6 @@
+# A relationship has a unique-id.
+relationship-type:
+  interacts:
+    actor: customer
+    nodes:
+      - api-gateway

@@ -1,0 +1,4 @@
+# An actor that uses one node.
+actor: customer
+nodes:
+  - api-gateway

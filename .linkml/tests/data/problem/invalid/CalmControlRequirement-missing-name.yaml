@@ -1,0 +1,3 @@
+# A control requirement has a name.
+control-id: CR-001
+description: Ensure that access to sensitive information is restricted.

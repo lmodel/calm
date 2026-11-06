@@ -1,0 +1,3 @@
+# An interaction names its actor.
+nodes:
+  - api-gateway

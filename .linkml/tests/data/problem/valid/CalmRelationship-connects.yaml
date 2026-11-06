@@ -1,0 +1,11 @@
+# A connection over HTTPS.
+unique-id: gateway-to-orders
+relationship-type:
+  connects:
+    source:
+      node: api-gateway
+    destination:
+      node: order-service
+      interfaces:
+        - order-api
+protocol: HTTPS

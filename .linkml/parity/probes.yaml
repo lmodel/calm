@@ -1,0 +1,99 @@
+# Values that tests/test_parity.py validates against one definition of each set,
+# CALM's published files and the files the model gives. Each must get the same
+# verdict from both, unless `expect` says the generated set is wider (it accepts
+# what CALM refuses) or narrower, and `reason` says why.
+probes:
+  - {pointer: "core.json#/defs/node-type-definition", value: service, expect: same}
+  - {pointer: "core.json#/defs/node-type-definition", value: message-queue, expect: same}
+  - {pointer: "core.json#/defs/node-type-definition", value: 5, expect: same}
+  - {pointer: "core.json#/defs/protocol", value: mTLS, expect: same}
+  - {pointer: "core.json#/defs/protocol", value: https, expect: same}
+  - {pointer: "core.json#/defs/option-type", value: [], expect: same}
+  - pointer: "core.json#/defs/option-type"
+    value: [{description: d, nodes: [a], relationships: [r]}]
+    expect: same
+  - {pointer: "core.json#/defs/option-type", value: [{description: d}], expect: same}
+  - {pointer: "core.json#/defs/metadata", value: {}, expect: same}
+  - {pointer: "core.json#/defs/metadata", value: [{}], expect: same}
+  - pointer: "core.json#/defs/metadata"
+    value: text
+    expect: wider
+    reason: >-
+      LinkML cannot state "an object, or a list of objects", so the model's
+      metadata takes any value.
+  - pointer: "core.json#/defs/metadata"
+    value: [1]
+    expect: wider
+    reason: As above, a list of anything is accepted.
+  - pointer: "core.json"
+    value: {additionalProperties: false}
+    expect: wider
+    reason: >-
+      CALM's core.json puts additionalProperties: false inside properties, so it
+      refuses an architecture with a key named additionalProperties, which a
+      pattern may carry. The model does not repeat the fault.
+  - {pointer: "core.json#/defs/interacts-type", value: {actor: a, nodes: []}, expect: same}
+  - pointer: "core.json#/defs/relationship"
+    value: {unique-id: r, relationship-type: {connects: {source: {node: a}, destination: {node: b}}}}
+    expect: same
+  - pointer: "core.json#/defs/relationship"
+    value: {unique-id: r, relationship-type: {}}
+    expect: same
+  - pointer: "control.json#/defs/controls"
+    value: {security: {description: d, requirements: [{requirement-url: u, config-url: c}]}}
+    expect: same
+  - {pointer: "control.json#/defs/controls", value: {security: 5}, expect: same}
+  - {pointer: "control.json#/defs/controls", value: {security: null}, expect: same}
+  - pointer: "control.json#/defs/controls"
+    value: {"bad key!": 5}
+    expect: narrower
+    reason: >-
+      CALM gives the key pattern with patternProperties alone, so a key outside
+      the pattern is not checked at all. LinkML cannot state a key pattern, and
+      the model holds every value to a control.
+  - {pointer: "control.json#/defs/control-detail", value: {requirement-url: u, config: {}}, expect: same}
+  - pointer: "control.json#/defs/control-detail"
+    value: {requirement-url: u, config: {}, config-url: c}
+    expect: same
+  - {pointer: "control.json#/defs/control-detail", value: {requirement-url: u}, expect: same}
+  - {pointer: "control.json#/defs/control-detail", value: {requirement-url: u, config: s}, expect: same}
+  - {pointer: "interface.json#/defs/interface-definition", value: {unique-id: i, definition-url: u, config: {}}, expect: same}
+  - pointer: "interface.json#/defs/interface-definition"
+    value: {unique-id: i, definition-url: u, config: {}, port: 80}
+    expect: same
+  - {pointer: "interface.json#/defs/interface-type", value: {unique-id: i, port: 80}, expect: same}
+  - {pointer: "interface.json#/defs/node-interface", value: {interfaces: [i]}, expect: same}
+  - pointer: "timeline.json#/defs/node-moment"
+    value: {unique-id: m, node-type: moment, name: n, description: d, details: {}, interfaces: []}
+    expect: same
+  - pointer: "timeline.json#/defs/node-moment"
+    value: {unique-id: m, node-type: moment, name: n, description: d, details: {}, valid-from: "2026-13-01"}
+    expect: same
+  - pointer: "timeline.json"
+    value: {moments: [{unique-id: m, node-type: system, name: n, description: d, details: {}}]}
+    expect: same
+  - {pointer: "units.json#/defs/time-unit", value: {unit: seconds, value: 30}, expect: same}
+  - {pointer: "units.json#/defs/time-unit", value: {unit: seconds, value: -1}, expect: same}
+  - {pointer: "units.json#/defs/time-unit", value: {unit: second, value: 1}, expect: same}
+  - {pointer: "units.json#/defs/rate-unit", value: {rate: 5, per: millisecond, burst: 2}, expect: same}
+  - {pointer: "units.json#/defs/cron-expression", value: "0 0 1 1 0", expect: same}
+  - {pointer: "units.json#/defs/cron-expression", value: "0 0 * * 0", expect: same}
+  - pointer: "units.json"
+    value: {x: 1}
+    expect: wider
+    reason: >-
+      CALM's units.json closes its root, which defines nothing and is never
+      validated against; the model gives no root there.
+  - pointer: "decorators.json#/defs/decorator"
+    value: {unique-id: d, type: t, target: [a.json], applies-to: [n], data: {k: v}, target-type: [architecture, architecture]}
+    expect: same
+  - pointer: "decorators.json#/defs/decorator"
+    value: {unique-id: d, type: t, target: [a.json], applies-to: [n], data: {}}
+    expect: wider
+    reason: CALM asks for at least one key in data, which LinkML cannot state.
+  - pointer: "decorators.json#/defs/decorator"
+    value: {unique-id: d, type: t, target: [a.json], applies-to: [n], data: {k: v}, note: x}
+    expect: same
+  - {pointer: "evidence.json", value: {evidence: {unique-id: e, evidence-paths: [], control-config-url: u}}, expect: same}
+  - {pointer: "evidence.json", value: {evidence: {unique-id: e}}, expect: same}
+  - {pointer: "control-requirement.json", value: {control-id: c, name: n}, expect: same}

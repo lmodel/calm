@@ -1,0 +1,166 @@
+---
+id: https://w3id.org/lmodel/calm/calm_units
+name: calm_units
+title: Common Architecture Language Model Units
+description: >-
+  Amounts of time, rates and cron schedules, for patterns and standards to
+  reference.
+version: '1.3'
+source: https://github.com/finos/calm-schema/blob/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema/units.json
+license: Apache-2.0
+see_also:
+  - https://lmodel.github.io/calm
+  - https://calm.finos.org/release/1.3/meta/units.json
+comments:
+  - >-
+    Renders units.json of CALM 1.3, in CALM's own words wherever CALM gives a title
+    or a description. CALM gives the file no description, so the module's is this
+    project's. No other file refers to these definitions.
+
+prefixes:
+  calm: https://w3id.org/lmodel/calm/
+  calm_meta: https://calm.finos.org/release/1.3/meta/
+  linkml: https://w3id.org/linkml/
+default_prefix: calm
+default_range: string
+
+imports:
+  - linkml:types
+
+types:
+
+  CalmCronExpression:
+    typeof: string
+    title: Cron Expression
+    description: A valid Unix-style cron expression.
+    pattern: ^([0-5]?\d)\s([01]?\d|2[0-3])\s(3[01]|[12]\d|0?[1-9])\s(1[0-2]|0?[1-9])\s([0-6])$
+    exact_mappings:
+      - calm_meta:units.json#/defs/cron-expression
+    comments:
+      - >-
+        CALM's pattern accepts only numbers, so it refuses all three of CALM's own
+        examples, each of which holds an asterisk. The build copies the examples
+        as CALM gives them, and tests/test_parity.py records the fault.
+    examples:
+      - value: 0 0 * * 0
+      - value: 30 14 1 * 5
+      - value: 15 10 * * *
+
+classes:
+
+  CalmTimeUnit:
+    description: A unit of time with a value and a unit type.
+    exact_mappings:
+      - calm_meta:units.json#/defs/time-unit
+    examples:
+      - object:
+          unit: seconds
+          value: 30
+      - object:
+          unit: minutes
+          value: 15
+      - object:
+          unit: hours
+          value: 1
+      - object:
+          unit: days
+          value: 7
+    attributes:
+      unit_of_time:
+        aliases:
+          - unit
+        description: The unit of time (e.g., seconds, minutes, hours).
+        range: CalmTimeUnitName
+        required: true
+      value:
+        description: The numeric value representing the amount of time.
+        comments:
+          - >-
+            CALM gives the value as a JSON number. A decimal keeps it exact in RDF
+            and Python, where a float would round it, and renders as number too.
+        range: decimal
+        minimum_value: 0
+        required: true
+
+  CalmRateUnit:
+    description: A unit representing a rate (e.g., operations per second).
+    exact_mappings:
+      - calm_meta:units.json#/defs/rate-unit
+    examples:
+      - object:
+          rate: 30
+          per: second
+      - object:
+          rate: 1000
+          per: minute
+      - object:
+          rate: 5
+          per: millisecond
+    attributes:
+      rate:
+        description: The numeric value representing the rate.
+        comments:
+          - >-
+            CALM gives the rate as a JSON number. A decimal keeps it exact in RDF
+            and Python, where a float would round it, and renders as number too.
+        range: decimal
+        minimum_value: 0
+        required: true
+      per:
+        description: The time unit defining the rate interval.
+        range: CalmRateInterval
+        required: true
+
+enums:
+
+  CalmTimeUnitName:
+    description: The units a time unit counts in.
+    permissible_values:
+      nanoseconds:
+        description: Billionths of a second.
+      microseconds:
+        description: Millionths of a second.
+      milliseconds:
+        description: Thousandths of a second.
+      seconds:
+        description: Seconds.
+      minutes:
+        description: Minutes.
+      hours:
+        description: Hours.
+      days:
+        description: Days.
+      weeks:
+        description: Weeks.
+      months:
+        description: Calendar months.
+      quarters:
+        description: Quarters of a year.
+      years:
+        description: Years.
+
+  CalmRateInterval:
+    description: The interval a rate is counted over.
+    permissible_values:
+      nanosecond:
+        description: Per billionth of a second.
+      microsecond:
+        description: Per millionth of a second.
+      millisecond:
+        description: Per thousandth of a second.
+      second:
+        description: Per second.
+      minute:
+        description: Per minute.
+      hour:
+        description: Per hour.
+      day:
+        description: Per day.
+      week:
+        description: Per week.
+      month:
+        description: Per calendar month.
+      quarter:
+        description: Per quarter of a year.
+      year:
+        description: Per year.

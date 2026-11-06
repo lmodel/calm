@@ -1,0 +1,3 @@
+# A deployment names at least one node.
+container: cluster
+nodes: []

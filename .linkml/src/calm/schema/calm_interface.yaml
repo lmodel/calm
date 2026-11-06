@@ -1,0 +1,82 @@
+---
+id: https://w3id.org/lmodel/calm/calm_interface
+name: calm_interface
+title: Common Architecture Language Model Interfaces
+description: >-
+  The interfaces a node exposes, and the reference from one end of a connection to
+  a node and its interfaces.
+version: '1.3'
+source: https://github.com/finos/calm-schema/blob/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema/interface.json
+license: Apache-2.0
+see_also:
+  - https://lmodel.github.io/calm
+  - https://calm.finos.org/release/1.3/meta/interface.json
+comments:
+  - >-
+    Renders interface.json of CALM 1.3, in CALM's own words wherever CALM gives a
+    title or a description. CALM gives the file no description, so the module's is
+    this project's.
+
+prefixes:
+  calm: https://w3id.org/lmodel/calm/
+  calm_meta: https://calm.finos.org/release/1.3/meta/
+  linkml: https://w3id.org/linkml/
+default_prefix: calm
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  CalmInterfaceDefinition:
+    description: A modular interface definition referencing an external schema
+    exact_mappings:
+      - calm_meta:interface.json#/defs/interface-definition
+    attributes:
+      unique_id:
+        alias: unique-id
+        description: Unique identifier for this interface instance
+        required: true
+      definition_url:
+        alias: definition-url
+        description: URI of the external schema this interface configuration conforms to
+        required: true
+      config:
+        description: Inline configuration conforming to the external interface schema
+        range: CalmInterfaceConfig
+        inlined: true
+        required: true
+
+  CalmInterfaceConfig:
+    description: A configuration object, free in shape, that an interface definition's schema checks.
+    extra_slots:
+      allowed: true
+
+  CalmInterfaceType:
+    description: >-
+      An interface given by its own keys, such as a host and port, rather than by
+      an external schema.
+    exact_mappings:
+      - calm_meta:interface.json#/defs/interface-type
+    extra_slots:
+      allowed: true
+    attributes:
+      unique_id:
+        alias: unique-id
+        description: The interface's identifier, unique within the architecture.
+        required: true
+
+  CalmNodeInterface:
+    description: One end of a connection, naming a node and, optionally, which of its interfaces.
+    exact_mappings:
+      - calm_meta:interface.json#/defs/node-interface
+    extra_slots:
+      allowed: true
+    attributes:
+      node:
+        description: The unique-id of the node at this end.
+        required: true
+      interfaces:
+        description: The unique-ids of the node's interfaces this end uses.
+        multivalued: true

@@ -1,0 +1,5 @@
+# A name is a string.
+description: The order service.
+name: 5
+node-type: service
+unique-id: order-service

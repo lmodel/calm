@@ -1,0 +1,4 @@
+# A time unit holds two keys only.
+unit: seconds
+value: 1
+approx: true

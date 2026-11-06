@@ -1,0 +1,4 @@
+# Evidence names its paths.
+evidence:
+  unique-id: scan-1
+  control-config-url: https://example.org/controls/permitted-connection.config.json

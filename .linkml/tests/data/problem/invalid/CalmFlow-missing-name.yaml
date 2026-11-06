@@ -1,0 +1,7 @@
+# A flow has a name.
+unique-id: place-order
+description: A customer places an order through the gateway.
+transitions:
+  - relationship-unique-id: customer-uses-gateway
+    sequence-number: 1
+    description: The customer submits the order.

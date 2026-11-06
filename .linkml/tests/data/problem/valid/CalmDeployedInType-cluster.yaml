@@ -1,0 +1,5 @@
+# Two nodes deployed in a cluster.
+container: cluster
+nodes:
+  - order-service
+  - order-store

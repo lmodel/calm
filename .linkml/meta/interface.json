@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/interface.json",
+  "title": "Common Architecture Language Model Interfaces",
+  "description": "The interfaces a node exposes, and the reference from one end of a connection to a node and its interfaces.",
+  "defs": {
+    "interface-definition": {
+      "description": "A modular interface definition referencing an external schema",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "Unique identifier for this interface instance",
+          "type": "string"
+        },
+        "definition-url": {
+          "description": "URI of the external schema this interface configuration conforms to",
+          "type": "string"
+        },
+        "config": {
+          "description": "Inline configuration conforming to the external interface schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "unique-id",
+        "definition-url",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "interface-type": {
+      "description": "An interface given by its own keys, such as a host and port, rather than by an external schema.",
+      "type": "object",
+      "properties": {
+        "unique-id": {
+          "description": "The interface's identifier, unique within the architecture.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique-id"
+      ],
+      "additionalProperties": true
+    },
+    "node-interface": {
+      "description": "One end of a connection, naming a node and, optionally, which of its interfaces.",
+      "type": "object",
+      "properties": {
+        "node": {
+          "description": "The unique-id of the node at this end.",
+          "type": "string"
+        },
+        "interfaces": {
+          "description": "The unique-ids of the node's interfaces this end uses.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "node"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

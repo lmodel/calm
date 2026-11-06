@@ -1,0 +1,12 @@
+# A decorator holds its own keys only.
+unique-id: deploy-1
+type: deployment
+target-type:
+  - architecture
+target:
+  - order-system.architecture.json
+applies-to:
+  - order-service
+data:
+  status: completed
+owner: x

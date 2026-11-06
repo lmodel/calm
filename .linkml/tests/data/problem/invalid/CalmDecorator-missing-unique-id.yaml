@@ -1,0 +1,8 @@
+# A decorator has a unique-id.
+type: deployment
+target:
+  - order-system.architecture.json
+applies-to:
+  - order-service
+data:
+  status: completed

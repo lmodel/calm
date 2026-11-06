@@ -1,0 +1,6 @@
+# A controls map with one control.
+security:
+  description: Only the gateway may reach the order service.
+  requirements:
+    - requirement-url: https://calm.finos.org/controls/permitted-connection.requirement.json
+      config-url: https://example.org/controls/permitted-connection.config.json

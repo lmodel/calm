@@ -1,0 +1,18 @@
+# A timeline of two moments.
+current-moment: go-live
+moments:
+  - unique-id: pilot
+    node-type: moment
+    name: Pilot
+    description: The pilot.
+    details:
+      detailed-architecture: https://example.org/pilot.json
+    valid-from: '2026-01-05'
+  - unique-id: go-live
+    node-type: moment
+    name: Go-live
+    description: The first release.
+    details:
+      detailed-architecture: https://example.org/live.json
+    adrs:
+      - https://example.org/adr/0002.md

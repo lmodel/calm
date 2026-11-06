@@ -1,0 +1,12 @@
+# A target type is listed once.
+unique-id: deploy-1
+type: deployment
+target-type:
+  - architecture
+  - architecture
+target:
+  - order-system.architecture.json
+applies-to:
+  - order-service
+data:
+  status: completed

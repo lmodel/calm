@@ -1,0 +1,96 @@
+---
+id: https://w3id.org/lmodel/calm/calm_decorators
+name: calm_decorators
+title: Common Architecture Language Model Decorators
+description: >-
+  Decorators attach supplementary information to multiple nodes and relationships
+  simultaneously, enabling cross-cutting concerns like guides, threat models,
+  business context, and deployment information
+version: '1.3'
+source: https://github.com/finos/calm-schema/blob/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema/decorators.json
+license: Apache-2.0
+see_also:
+  - https://lmodel.github.io/calm
+  - https://calm.finos.org/release/1.3/meta/decorators.json
+comments:
+  - >-
+    Renders decorators.json of CALM 1.3, in CALM's own words wherever CALM gives a
+    title or a description.
+
+prefixes:
+  calm: https://w3id.org/lmodel/calm/
+  calm_meta: https://calm.finos.org/release/1.3/meta/
+  linkml: https://w3id.org/linkml/
+default_prefix: calm
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  CalmDecorator:
+    description: >-
+      Supplementary information about elements of one or more architectures, kept
+      apart from the architectures themselves.
+    exact_mappings:
+      - calm_meta:decorators.json#/defs/decorator
+    attributes:
+      decorator_schema:
+        aliases:
+          - $schema
+        description: URI of the schema that this decorator conforms to, for example a decorator standard
+      unique_id:
+        alias: unique-id
+        description: Unique identifier for this decorator
+        required: true
+      decorator_type:
+        aliases:
+          - type
+        description: Type of decorator - a free-form string identifying the decorator category
+        required: true
+      target_type:
+        alias: target-type
+        description: >-
+          Optional array of the types of CALM document that this decorator can
+          target. The only type is architecture, because applies-to holds the
+          unique-ids of architecture elements.
+        range: CalmDecoratorTargetType
+        multivalued: true
+        minimum_cardinality: 1
+        list_elements_unique: true
+      target_architectures:
+        aliases:
+          - target
+        description: Array of file paths or URLs referencing the CALM architectures this decorator targets
+        multivalued: true
+        minimum_cardinality: 1
+        required: true
+      applies_to:
+        alias: applies-to
+        description: Array of unique-ids referencing nodes, relationships, flows, or other architecture elements
+        multivalued: true
+        minimum_cardinality: 1
+        required: true
+      data:
+        description: Free-form JSON object containing the decorator's data
+        range: CalmDecoratorData
+        inlined: true
+        required: true
+
+  CalmDecoratorData:
+    description: The decorator's data, an object free in shape.
+    comments:
+      - >-
+        CALM requires at least one key, which LinkML cannot state, so an empty
+        object is accepted here.
+    extra_slots:
+      allowed: true
+
+enums:
+
+  CalmDecoratorTargetType:
+    description: The kinds of CALM document a decorator can target.
+    permissible_values:
+      architecture:
+        description: An architecture document.

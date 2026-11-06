@@ -1,0 +1,100 @@
+FINOS CALM LinkML Schema (calm)
+Copyright 2026 Noel McLoughlin
+
+This repository is a fork of FINOS's Architecture as Code project. Everything in
+it is under the Apache License, Version 2.0, and the copyright in each part is
+its author's, as this notice sets out by path.
+
+The schema project, everything under .linkml/, and what this project adds beside
+FINOS's tree (.lokf/, knowledge_bundle, linkml_schema, website/, llms.txt,
+.releaserc.json, .github/SECURITY.md, .github/dependabot.yml,
+.github/PULL_REQUEST_TEMPLATE/, .github/scripts/, .github/release/, and the
+workflows knowledge-*.yaml, lint-and-docs.yaml, main.yaml, semantic-release.yml
+and upstream-watch.yaml) is this project's, licensed under the Apache License,
+Version 2.0 (see LICENSE beside this file), except for what the sections below
+list.
+
+Everything else is FINOS's, unchanged, and under FINOS's terms: LICENSE and
+NOTICE at the repository's root.
+
+CALM
+----
+
+CALM, the Common Architecture Language Model, is published by FINOS in
+https://github.com/finos/calm-schema under the Apache License, Version 2.0:
+
+  calm-schema - FINOS
+  Copyright 2026 - FINOS info@finos.org
+
+  This product includes software developed at the Fintech Open Source
+  Foundation (https://www.finos.org/).
+
+upstream/calm-schema/v1.3/ holds calm-schema's files at the tag v1.3 (commit
+47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d), unchanged, with its LICENSE and
+NOTICE.
+
+src/calm/schema/ models those files. Its structure is this project's, and the
+titles of its modules and every description CALM gives an element are CALM's
+words. meta/ is generated from it; calm.json and calm-timeline.json there are
+copies of CALM's files, unchanged. src/calm/datamodel/, project/ and
+docs/schema/ are generated from the schema too.
+
+FINOS, its logo and CALM's name are FINOS's. This project is not a FINOS
+project, and its use of them does not imply FINOS's endorsement.
+
+linkml-project-copier
+---------------------
+
+This project was generated from linkml-project-copier
+(https://github.com/linkml/linkml-project-copier), and its justfile,
+configuration and documentation scaffolding derive from that template:
+
+  The MIT License (MIT)
+  Copyright (c) 2025 David Linke
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the
+  following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+  NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+  USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+linkml-sidecar
+--------------
+
+scripts/linkml-preflight.sh and the linkml-link recipe in project.justfile are
+copies of the linkml-sidecar templates
+(https://github.com/noelmcloughlin/linkml-sidecar), licensed under the Apache
+License, Version 2.0.
+
+Knowledge bundle
+----------------
+
+This product maintains its documentation as a Linked Open Knowledge Format
+(LOKF) bundle under .lokf/: https://lokf.nolan-nichols.com/specification/
+
+LOKF is a semantic profile of the Open Knowledge Format (OKF) specification
+by Google Cloud Platform:
+https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md
+
+The scripts under .lokf/scripts/ and .lokf/m365/ and the
+knowledge-librarian, knowledge-registrar, knowledge-release and
+knowledge-sync workflows under .github/workflows/ are copies of the
+ktl-sidecar templates in knowledge-trust-ladder
+(https://github.com/noelmcloughlin/knowledge-trust-ladder). The site under
+website/ and the knowledge-website workflow derive from the ktl-website
+templates in the same repository, and website/NOTICE lists the part
+adapted from the LOKF toolkit's site. All of them are licensed under the
+Apache License, Version 2.0.

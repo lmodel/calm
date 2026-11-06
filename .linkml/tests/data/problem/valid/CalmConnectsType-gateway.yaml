@@ -1,0 +1,7 @@
+# One node connecting to another's interface.
+source:
+  node: api-gateway
+destination:
+  node: order-service
+  interfaces:
+    - order-api

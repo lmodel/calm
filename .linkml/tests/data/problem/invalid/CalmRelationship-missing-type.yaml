@@ -1,0 +1,3 @@
+# A relationship needs its type.
+protocol: HTTPS
+unique-id: gateway-to-orders

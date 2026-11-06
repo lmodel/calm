@@ -1,0 +1,80 @@
+---
+# https://pre-commit.com/
+# Run it from the repository's root: uvx pre-commit run -c .linkml/.pre-commit-config.yaml
+# The hooks read only what this project adds beside FINOS's tree, which a test holds
+# to its pin. No hook may rewrite a file this repository does not write by hand: what
+# the LinkML generators, calm_meta.py and `lokf adapt` write, which the next run would
+# rewrite back; calm-schema's pinned files; the neighbours' released copies, which
+# tests hold to their checksums; npm's lockfile for the release tools; and the KTL
+# sidecar's scripts, which the weekly sync replaces.
+files: >-
+  (?x)^(
+    \.linkml/|
+    \.lokf/|
+    website/|
+    llms\.txt$|
+    \.github/(workflows/(knowledge-|lint-and-docs|main\.yaml|semantic-release|upstream-watch)|scripts/|release/|SECURITY|dependabot|PULL_REQUEST_TEMPLATE/)
+  )
+exclude: >-
+  (?x)^(
+    \.linkml/src/calm/datamodel/|
+    \.linkml/project/|
+    \.linkml/meta/|
+    \.linkml/upstream/|
+    \.linkml/docs/schema/|
+    \.linkml/tests/upstream_tree\.tsv$|
+    \.linkml/scripts/upstream_pins\.tsv$|
+    \.linkml/tests/neighbours/|
+    \.lokf/(scripts|m365)/|
+    \.lokf/schema/(lokf|calm)\.yaml$|
+    \.github/release/package-lock\.json$
+  )
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude: ^\.linkml/\.copier-answers\.yml$
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [-c=.linkml/.yamllint.yaml]
+        exclude: ^\.linkml/\.copier-answers\.yml$
+        verbose: true  # Show warnings.
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+        args: [--toml=.linkml/pyproject.toml]
+        additional_dependencies:
+          - tomli
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.46.3
+    hooks:
+      - id: typos
+        args: [--config=.linkml/pyproject.toml]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.15.14
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [--config=.linkml/pyproject.toml, --fix, --exit-non-zero-on-fix]
+      # Run the formatter.
+      - id: ruff-format
+        args: [--config=.linkml/pyproject.toml]
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.11.16
+    hooks:
+      - id: uv-lock

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/release/1.3/meta/timeline.json",
+  "title": "Common Architecture Language Model (CALM) Timelines Vocab",
+  "description": "A timeline of an architecture: the moments at which it changed, each a node that points to the architecture of that moment.",
+  "type": "object",
+  "properties": {
+    "current-moment": {
+      "description": "The unique-id of the current architecture moment within the timeline.",
+      "type": "string"
+    },
+    "moments": {
+      "description": "A list of significant architecture states or points in time, each represented as a 'moment'.",
+      "type": "array",
+      "items": {
+        "$ref": "#/defs/node-moment"
+      }
+    },
+    "metadata": {
+      "description": "Free-form metadata about this timeline.",
+      "$ref": "core.json#/defs/metadata"
+    }
+  },
+  "required": [
+    "moments"
+  ],
+  "additionalProperties": true,
+  "defs": {
+    "node-moment": {
+      "description": "A moment of a timeline: a node of type moment, with no interfaces, whose details point to the architecture of that moment.",
+      "type": "object",
+      "properties": {
+        "valid-from": {
+          "description": "The date when this architecture moment came into effect.",
+          "type": "string",
+          "format": "date"
+        },
+        "adrs": {
+          "description": "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unique-id": {
+          "description": "The node's identifier, unique within the architecture.",
+          "type": "string"
+        },
+        "node-type": {
+          "description": "What kind of node this is, one of CALM's built-in types or any other name.",
+          "$ref": "core.json#/defs/node-type-definition"
+        },
+        "name": {
+          "description": "The node's name.",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the node is and does.",
+          "type": "string"
+        },
+        "details": {
+          "description": "Where a more detailed architecture of this node is, and the pattern it must follow.",
+          "type": "object",
+          "properties": {
+            "detailed-architecture": {
+              "description": "The address of an architecture document that describes this node in detail.",
+              "type": "string"
+            },
+            "required-pattern": {
+              "description": "The address of a pattern that the detailed architecture must follow.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "interfaces": {
+          "description": "The interfaces the node exposes.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "interface.json#/defs/interface-definition"
+              },
+              {
+                "$ref": "interface.json#/defs/interface-type"
+              }
+            ]
+          }
+        },
+        "controls": {
+          "description": "The controls that apply to this node.",
+          "$ref": "control.json#/defs/controls"
+        },
+        "metadata": {
+          "description": "Free-form metadata about this node.",
+          "$ref": "core.json#/defs/metadata"
+        }
+      },
+      "required": [
+        "unique-id",
+        "node-type",
+        "name",
+        "description"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "properties": {
+            "node-type": {
+              "const": "moment"
+            }
+          }
+        },
+        {
+          "properties": {
+            "details": {}
+          },
+          "required": [
+            "details"
+          ]
+        },
+        {
+          "properties": {
+            "interfaces": {}
+          },
+          "not": {
+            "required": [
+              "interfaces"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
