@@ -6,6 +6,8 @@ The `v0.0.0` tag is a baseline, not a release: it marks where versioning starts 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-06
+
 ### Added
 
 - **A schema of CALM 1.3**, one module per file of calm-schema's v1.3 release, with `Calm` classes that keep CALM's keys as aliases and CALM's descriptions word for word.
