@@ -6,6 +6,8 @@ The `v0.0.0` tag is a baseline, not a release: it marks where versioning starts 
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-07
+
 ### Fixed
 
 - **Dependabot no longer opens pull requests on FINOS's tree.** It had opened one to move FINOS's `@sveltejs/kit` from 2.70.2 to 3.0.0, which could only fail the test that holds FINOS's files to the merged commit. `.github/dependabot.yml` now ignores every dependency in each directory where FINOS keeps an npm or Maven manifest, and two tests hold those directories, and the github-actions entry's exclusions, to FINOS's tree.
