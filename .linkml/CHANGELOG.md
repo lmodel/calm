@@ -6,6 +6,8 @@ The `v0.0.0` tag is a baseline, not a release: it marks where versioning starts 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-07
+
 ### Fixed
 
 - **The knowledge librarian workflow can install its skill.** KTL v0.62.0's install step lists the skill in the checkout's `.git/info/exclude`, so FINOS's root `.gitignore` stays as upstream has it. Under v0.61.0 the workflow stopped before the agent ran.
