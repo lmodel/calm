@@ -1,0 +1,1811 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix linkml: <https://w3id.org/linkml/> .
+@prefix pav: <http://purl.org/pav/> .
+@prefix schema1: <http://schema.org/> .
+<https://w3id.org/lmodel/calm/AMQP> linkml:description "Advanced Message Queuing Protocol." .
+<https://w3id.org/lmodel/calm/CalmArchitecture> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:note "An architecture is itself a JSON Schema document, so it may carry JSON Schema's keys, such as $schema, beside CALM's own." ;
+	linkml:attributes <https://w3id.org/lmodel/calm/adrs> , <https://w3id.org/lmodel/calm/controls> , <https://w3id.org/lmodel/calm/flows> , <https://w3id.org/lmodel/calm/metadata> , <https://w3id.org/lmodel/calm/nodes> , <https://w3id.org/lmodel/calm/relationships> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmArchitecture"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmArchitecture"^^xsd:anyURI ;
+	linkml:description "A CALM architecture document: the nodes of a system, the relationships between them, its business flows, and the controls that apply to it." ;
+	linkml:extra_slots _:c14n38 ;
+	linkml:slot_usage _:c14n11 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmArchitecture__adrs> , <https://w3id.org/lmodel/calm/calmArchitecture__controls> , <https://w3id.org/lmodel/calm/calmArchitecture__flows> , <https://w3id.org/lmodel/calm/calmArchitecture__metadata> , <https://w3id.org/lmodel/calm/calmArchitecture__nodes> , <https://w3id.org/lmodel/calm/calmArchitecture__relationships> ;
+	linkml:tree_root true .
+<https://w3id.org/lmodel/calm/CalmComposedOfType> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/composed-of-type"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/container> , <https://w3id.org/lmodel/calm/nodes> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmComposedOfType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmComposedOfType"^^xsd:anyURI ;
+	linkml:description "A relationship in which nodes make up a container node." ;
+	linkml:extra_slots _:c14n52 ;
+	linkml:slot_usage _:c14n55 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmComposedOfType__container> , <https://w3id.org/lmodel/calm/calmComposedOfType__nodes> .
+<https://w3id.org/lmodel/calm/CalmConnectsType> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/connects-type"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/destination_end> , <https://w3id.org/lmodel/calm/source_end> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmConnectsType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmConnectsType"^^xsd:anyURI ;
+	linkml:description "A relationship in which one node connects to another through their interfaces." ;
+	linkml:extra_slots _:c14n77 ;
+	linkml:slot_usage _:c14n16 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmConnectsType__destination_end> , <https://w3id.org/lmodel/calm/calmConnectsType__source_end> .
+<https://w3id.org/lmodel/calm/CalmControl> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/requirements> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmControl"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmControl"^^xsd:anyURI ;
+	linkml:description "One control in a controls map, with the requirements that define it." ;
+	linkml:extra_slots _:c14n5 ;
+	linkml:slot_usage _:c14n1 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmControl__description> , <https://w3id.org/lmodel/calm/calmControl__requirements> .
+<https://w3id.org/lmodel/calm/CalmControlConfig> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmControlConfig"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmControlConfig"^^xsd:anyURI ;
+	linkml:description "A configuration object, free in shape, that meets a control requirement." ;
+	linkml:extra_slots _:c14n57 ;
+	linkml:slot_usage _:c14n25 .
+<https://w3id.org/lmodel/calm/CalmControlDetail> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:control.json#/defs/control-detail"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/config> , <https://w3id.org/lmodel/calm/config_url> , <https://w3id.org/lmodel/calm/requirement_url> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmControlDetail"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmControlDetail"^^xsd:anyURI ;
+	linkml:description "A control requirement this control applies, with its configuration given by address or inline, but not both." ;
+	linkml:exactly_one_of _:c14n17 , _:c14n82 ;
+	linkml:extra_slots _:c14n59 ;
+	linkml:slot_usage _:c14n56 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmControlDetail__config> , <https://w3id.org/lmodel/calm/calmControlDetail__config_url> , <https://w3id.org/lmodel/calm/calmControlDetail__requirement_url> .
+<https://w3id.org/lmodel/calm/CalmControlRequirement> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:control-requirement.json"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control_requirement"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/control_id> , <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/name> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmControlRequirement"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmControlRequirement"^^xsd:anyURI ;
+	linkml:description "A control requirement: what a control must achieve, which a control detail's requirement-url points to." ;
+	linkml:examples _:c14n4 ;
+	linkml:extra_slots _:c14n32 ;
+	linkml:slot_usage _:c14n42 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmControlRequirement__control_id> , <https://w3id.org/lmodel/calm/calmControlRequirement__description> , <https://w3id.org/lmodel/calm/calmControlRequirement__name> .
+<https://w3id.org/lmodel/calm/CalmControls> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:control.json#/defs/controls"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:note "CALM states the key pattern with patternProperties, which LinkML cannot state, so any key is accepted here. CALM itself leaves a key outside the pattern unchecked." ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmControls"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmControls"^^xsd:anyURI ;
+	linkml:description "The controls that apply to an architecture element, each under a key of letters, digits and hyphens." ;
+	linkml:extra_slots _:c14n51 ;
+	linkml:slot_usage _:c14n72 .
+<https://w3id.org/lmodel/calm/CalmCronExpression> dcterms:title "Cron Expression" ;
+	a linkml:TypeDefinition ;
+	skos:exactMatch "calm_meta:units.json#/defs/cron-expression"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	skos:note "CALM's pattern accepts only numbers, so it refuses all three of CALM's own examples, each of which holds an asterisk. The build copies the examples as CALM gives them, and tests/test_parity.py records the fault." ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmCronExpression"^^xsd:anyURI ;
+	linkml:description "A valid Unix-style cron expression." ;
+	linkml:examples _:c14n3 , _:c14n64 , _:c14n83 ;
+	linkml:pattern "^([0-5]?\\d)\\s([01]?\\d|2[0-3])\\s(3[01]|[12]\\d|0?[1-9])\\s(1[0-2]|0?[1-9])\\s([0-6])$" ;
+	linkml:typeof <https://w3id.org/lmodel/calm/string> ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/CalmDecision> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/decision"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/controls> , <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/nodes> , <https://w3id.org/lmodel/calm/relationships> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmDecision"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmDecision"^^xsd:anyURI ;
+	linkml:description "One option of a choice, naming the nodes, relationships and controls it would add." ;
+	linkml:extra_slots _:c14n8 ;
+	linkml:slot_usage _:c14n31 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmDecision__controls> , <https://w3id.org/lmodel/calm/calmDecision__description> , <https://w3id.org/lmodel/calm/calmDecision__nodes> , <https://w3id.org/lmodel/calm/calmDecision__relationships> .
+<https://w3id.org/lmodel/calm/CalmDecorator> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:decorators.json#/defs/decorator"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/applies_to> , <https://w3id.org/lmodel/calm/data> , <https://w3id.org/lmodel/calm/decorator_schema> , <https://w3id.org/lmodel/calm/decorator_type> , <https://w3id.org/lmodel/calm/target_architectures> , <https://w3id.org/lmodel/calm/target_type> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmDecorator"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmDecorator"^^xsd:anyURI ;
+	linkml:description "Supplementary information about elements of one or more architectures, kept apart from the architectures themselves." ;
+	linkml:slot_usage _:c14n24 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmDecorator__applies_to> , <https://w3id.org/lmodel/calm/calmDecorator__data> , <https://w3id.org/lmodel/calm/calmDecorator__decorator_schema> , <https://w3id.org/lmodel/calm/calmDecorator__decorator_type> , <https://w3id.org/lmodel/calm/calmDecorator__target_architectures> , <https://w3id.org/lmodel/calm/calmDecorator__target_type> , <https://w3id.org/lmodel/calm/calmDecorator__unique_id> .
+<https://w3id.org/lmodel/calm/CalmDecoratorData> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:note "CALM requires at least one key, which LinkML cannot state, so an empty object is accepted here." ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmDecoratorData"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmDecoratorData"^^xsd:anyURI ;
+	linkml:description "The decorator's data, an object free in shape." ;
+	linkml:extra_slots _:c14n58 ;
+	linkml:slot_usage _:c14n53 .
+<https://w3id.org/lmodel/calm/CalmDecoratorTargetType> skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmDecoratorTargetType"^^xsd:anyURI ;
+	linkml:description "The kinds of CALM document a decorator can target." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/architecture> .
+<https://w3id.org/lmodel/calm/CalmDeployedInType> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/deployed-in-type"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/container> , <https://w3id.org/lmodel/calm/nodes> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmDeployedInType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmDeployedInType"^^xsd:anyURI ;
+	linkml:description "A relationship in which nodes are deployed in a container node." ;
+	linkml:extra_slots _:c14n45 ;
+	linkml:slot_usage _:c14n6 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmDeployedInType__container> , <https://w3id.org/lmodel/calm/calmDeployedInType__nodes> .
+<https://w3id.org/lmodel/calm/CalmEvidence> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/control_config_url> , <https://w3id.org/lmodel/calm/evidence_paths> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmEvidence"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmEvidence"^^xsd:anyURI ;
+	linkml:description "Evidence that a control's configuration is met, by the paths where it is kept." ;
+	linkml:extra_slots _:c14n0 ;
+	linkml:slot_usage _:c14n65 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmEvidence__control_config_url> , <https://w3id.org/lmodel/calm/calmEvidence__evidence_paths> , <https://w3id.org/lmodel/calm/calmEvidence__unique_id> .
+<https://w3id.org/lmodel/calm/CalmEvidenceDocument> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:evidence.json"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/evidence> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmEvidenceDocument"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmEvidenceDocument"^^xsd:anyURI ;
+	linkml:description "An evidence document, which holds one piece of evidence for a control." ;
+	linkml:extra_slots _:c14n29 ;
+	linkml:slot_usage _:c14n41 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmEvidenceDocument__evidence> .
+<https://w3id.org/lmodel/calm/CalmFlow> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:flow.json#/defs/flow"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/controls> , <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/metadata> , <https://w3id.org/lmodel/calm/name> , <https://w3id.org/lmodel/calm/requirement_url> , <https://w3id.org/lmodel/calm/transitions> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmFlow"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmFlow"^^xsd:anyURI ;
+	linkml:description "A business flow, as an ordered list of transitions across the architecture's relationships." ;
+	linkml:slot_usage _:c14n34 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmFlow__controls> , <https://w3id.org/lmodel/calm/calmFlow__description> , <https://w3id.org/lmodel/calm/calmFlow__metadata> , <https://w3id.org/lmodel/calm/calmFlow__name> , <https://w3id.org/lmodel/calm/calmFlow__requirement_url> , <https://w3id.org/lmodel/calm/calmFlow__transitions> , <https://w3id.org/lmodel/calm/calmFlow__unique_id> .
+<https://w3id.org/lmodel/calm/CalmInteractsType> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/interacts-type"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/actor> , <https://w3id.org/lmodel/calm/nodes> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmInteractsType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmInteractsType"^^xsd:anyURI ;
+	linkml:description "A relationship in which an actor interacts with nodes." ;
+	linkml:extra_slots _:c14n67 ;
+	linkml:slot_usage _:c14n39 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmInteractsType__actor> , <https://w3id.org/lmodel/calm/calmInteractsType__nodes> .
+<https://w3id.org/lmodel/calm/CalmInterfaceConfig> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmInterfaceConfig"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmInterfaceConfig"^^xsd:anyURI ;
+	linkml:description "A configuration object, free in shape, that an interface definition's schema checks." ;
+	linkml:extra_slots _:c14n37 ;
+	linkml:slot_usage _:c14n75 .
+<https://w3id.org/lmodel/calm/CalmInterfaceDefinition> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:interface.json#/defs/interface-definition"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/config> , <https://w3id.org/lmodel/calm/definition_url> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmInterfaceDefinition"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmInterfaceDefinition"^^xsd:anyURI ;
+	linkml:description "A modular interface definition referencing an external schema" ;
+	linkml:slot_usage _:c14n89 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmInterfaceDefinition__config> , <https://w3id.org/lmodel/calm/calmInterfaceDefinition__definition_url> , <https://w3id.org/lmodel/calm/calmInterfaceDefinition__unique_id> .
+<https://w3id.org/lmodel/calm/CalmInterfaceType> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:interface.json#/defs/interface-type"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmInterfaceType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmInterfaceType"^^xsd:anyURI ;
+	linkml:description "An interface given by its own keys, such as a host and port, rather than by an external schema." ;
+	linkml:extra_slots _:c14n85 ;
+	linkml:slot_usage _:c14n79 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmInterfaceType__unique_id> .
+<https://w3id.org/lmodel/calm/CalmMetadata> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/metadata"^^xsd:anyURI , "linkml:Any"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:note "LinkML cannot state \"an object, or a list of objects\", so the class takes any value, and the build writes it as a schema that accepts any value." ;
+	linkml:class_uri "https://w3id.org/linkml/Any"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmMetadata"^^xsd:anyURI ;
+	linkml:description "Free-form metadata, as an object or a list of objects." ;
+	linkml:slot_usage _:c14n22 .
+<https://w3id.org/lmodel/calm/CalmNode> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/node"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/controls> , <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/details> , <https://w3id.org/lmodel/calm/interfaces> , <https://w3id.org/lmodel/calm/metadata> , <https://w3id.org/lmodel/calm/name> , <https://w3id.org/lmodel/calm/node_type> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmNode"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmNode"^^xsd:anyURI ;
+	linkml:description "A component of the architecture, such as a system, service, database or actor, with its interfaces and controls." ;
+	linkml:extra_slots _:c14n80 ;
+	linkml:slot_usage _:c14n71 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmNode__controls> , <https://w3id.org/lmodel/calm/calmNode__description> , <https://w3id.org/lmodel/calm/calmNode__details> , <https://w3id.org/lmodel/calm/calmNode__interfaces> , <https://w3id.org/lmodel/calm/calmNode__metadata> , <https://w3id.org/lmodel/calm/calmNode__name> , <https://w3id.org/lmodel/calm/calmNode__node_type> , <https://w3id.org/lmodel/calm/calmNode__unique_id> .
+<https://w3id.org/lmodel/calm/CalmNodeDetails> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/detailed_architecture> , <https://w3id.org/lmodel/calm/required_pattern> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmNodeDetails"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmNodeDetails"^^xsd:anyURI ;
+	linkml:description "References from a node to a more detailed architecture and to the pattern it must follow." ;
+	linkml:slot_usage _:c14n81 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmNodeDetails__detailed_architecture> , <https://w3id.org/lmodel/calm/calmNodeDetails__required_pattern> .
+<https://w3id.org/lmodel/calm/CalmNodeInterface> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:interface.json#/defs/node-interface"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/interfaces> , <https://w3id.org/lmodel/calm/node> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmNodeInterface"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmNodeInterface"^^xsd:anyURI ;
+	linkml:description "One end of a connection, naming a node and, optionally, which of its interfaces." ;
+	linkml:extra_slots _:c14n47 ;
+	linkml:slot_usage _:c14n18 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmNodeInterface__interfaces> , <https://w3id.org/lmodel/calm/calmNodeInterface__node> .
+<https://w3id.org/lmodel/calm/CalmNodeMoment> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:timeline.json#/defs/node-moment"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:note "The three conditions on inherited slots are class rules, not slot_usage, because gen-shacl refuses equals_string on a slot that also has any_of." ;
+	linkml:all_of _:c14n30 , _:c14n49 , _:c14n74 ;
+	linkml:attributes <https://w3id.org/lmodel/calm/adrs> , <https://w3id.org/lmodel/calm/valid_from> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmNodeMoment"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmNodeMoment"^^xsd:anyURI ;
+	linkml:description "A moment of a timeline: a node of type moment, with no interfaces, whose details point to the architecture of that moment." ;
+	linkml:extra_slots _:c14n15 ;
+	linkml:is_a <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:slot_usage _:c14n50 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmNodeMoment__adrs> , <https://w3id.org/lmodel/calm/calmNodeMoment__valid_from> , <https://w3id.org/lmodel/calm/calmNode__controls> , <https://w3id.org/lmodel/calm/calmNode__description> , <https://w3id.org/lmodel/calm/calmNode__details> , <https://w3id.org/lmodel/calm/calmNode__interfaces> , <https://w3id.org/lmodel/calm/calmNode__metadata> , <https://w3id.org/lmodel/calm/calmNode__name> , <https://w3id.org/lmodel/calm/calmNode__node_type> , <https://w3id.org/lmodel/calm/calmNode__unique_id> .
+<https://w3id.org/lmodel/calm/CalmNodeTypeDefinition> skos:exactMatch "calm_meta:core.json#/defs/node-type-definition"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmNodeTypeDefinition"^^xsd:anyURI ;
+	linkml:description "CALM's built-in node types. A node may also name a type of its own, so the build publishes this list open to any other string." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/actor> , <https://w3id.org/lmodel/calm/data-asset> , <https://w3id.org/lmodel/calm/database> , <https://w3id.org/lmodel/calm/ecosystem> , <https://w3id.org/lmodel/calm/ldap> , <https://w3id.org/lmodel/calm/network> , <https://w3id.org/lmodel/calm/service> , <https://w3id.org/lmodel/calm/system> , <https://w3id.org/lmodel/calm/webclient> .
+<https://w3id.org/lmodel/calm/CalmProtocol> skos:exactMatch "calm_meta:core.json#/defs/protocol"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmProtocol"^^xsd:anyURI ;
+	linkml:description "The protocol a relationship uses." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/AMQP> , <https://w3id.org/lmodel/calm/FTP> , <https://w3id.org/lmodel/calm/HTTP> , <https://w3id.org/lmodel/calm/HTTPS> , <https://w3id.org/lmodel/calm/JDBC> , <https://w3id.org/lmodel/calm/LDAP> , <https://w3id.org/lmodel/calm/SFTP> , <https://w3id.org/lmodel/calm/SocketIO> , <https://w3id.org/lmodel/calm/TCP> , <https://w3id.org/lmodel/calm/TLS> , <https://w3id.org/lmodel/calm/WebSocket> , <https://w3id.org/lmodel/calm/mTLS> .
+<https://w3id.org/lmodel/calm/CalmRateInterval> skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmRateInterval"^^xsd:anyURI ;
+	linkml:description "The interval a rate is counted over." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/day> , <https://w3id.org/lmodel/calm/hour> , <https://w3id.org/lmodel/calm/microsecond> , <https://w3id.org/lmodel/calm/millisecond> , <https://w3id.org/lmodel/calm/minute> , <https://w3id.org/lmodel/calm/month> , <https://w3id.org/lmodel/calm/nanosecond> , <https://w3id.org/lmodel/calm/quarter> , <https://w3id.org/lmodel/calm/second> , <https://w3id.org/lmodel/calm/week> , <https://w3id.org/lmodel/calm/year> .
+<https://w3id.org/lmodel/calm/CalmRateUnit> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:units.json#/defs/rate-unit"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/per> , <https://w3id.org/lmodel/calm/rate> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmRateUnit"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmRateUnit"^^xsd:anyURI ;
+	linkml:description "A unit representing a rate (e.g., operations per second)." ;
+	linkml:examples _:c14n91 , _:c14n92 , _:c14n93 ;
+	linkml:slot_usage _:c14n44 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmRateUnit__per> , <https://w3id.org/lmodel/calm/calmRateUnit__rate> .
+<https://w3id.org/lmodel/calm/CalmRelationship> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:core.json#/defs/relationship"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/controls> , <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/metadata> , <https://w3id.org/lmodel/calm/protocol> , <https://w3id.org/lmodel/calm/relationship_type> , <https://w3id.org/lmodel/calm/unique_id> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmRelationship"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmRelationship"^^xsd:anyURI ;
+	linkml:description "A link between nodes, of one of CALM's kinds, or a choice between options." ;
+	linkml:extra_slots _:c14n14 ;
+	linkml:slot_usage _:c14n63 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmRelationship__controls> , <https://w3id.org/lmodel/calm/calmRelationship__description> , <https://w3id.org/lmodel/calm/calmRelationship__metadata> , <https://w3id.org/lmodel/calm/calmRelationship__protocol> , <https://w3id.org/lmodel/calm/calmRelationship__relationship_type> , <https://w3id.org/lmodel/calm/calmRelationship__unique_id> .
+<https://w3id.org/lmodel/calm/CalmRelationshipType> a linkml:ClassDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/composed_of> , <https://w3id.org/lmodel/calm/connects> , <https://w3id.org/lmodel/calm/deployed_in> , <https://w3id.org/lmodel/calm/interacts> , <https://w3id.org/lmodel/calm/options> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmRelationshipType"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmRelationshipType"^^xsd:anyURI ;
+	linkml:description "The kind of a relationship, given by exactly one of its keys: interacts, connects, deployed-in, composed-of or options." ;
+	linkml:exactly_one_of _:c14n26 , _:c14n40 , _:c14n48 , _:c14n76 , _:c14n9 ;
+	linkml:extra_slots _:c14n68 ;
+	linkml:slot_usage _:c14n43 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmRelationshipType__composed_of> , <https://w3id.org/lmodel/calm/calmRelationshipType__connects> , <https://w3id.org/lmodel/calm/calmRelationshipType__deployed_in> , <https://w3id.org/lmodel/calm/calmRelationshipType__interacts> , <https://w3id.org/lmodel/calm/calmRelationshipType__options> .
+<https://w3id.org/lmodel/calm/CalmTimeUnit> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:units.json#/defs/time-unit"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/unit_of_time> , <https://w3id.org/lmodel/calm/value> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmTimeUnit"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmTimeUnit"^^xsd:anyURI ;
+	linkml:description "A unit of time with a value and a unit type." ;
+	linkml:examples _:c14n94 , _:c14n95 , _:c14n96 , _:c14n97 ;
+	linkml:slot_usage _:c14n2 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmTimeUnit__unit_of_time> , <https://w3id.org/lmodel/calm/calmTimeUnit__value> .
+<https://w3id.org/lmodel/calm/CalmTimeUnitName> skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmTimeUnitName"^^xsd:anyURI ;
+	linkml:description "The units a time unit counts in." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/days> , <https://w3id.org/lmodel/calm/hours> , <https://w3id.org/lmodel/calm/microseconds> , <https://w3id.org/lmodel/calm/milliseconds> , <https://w3id.org/lmodel/calm/minutes> , <https://w3id.org/lmodel/calm/months> , <https://w3id.org/lmodel/calm/nanoseconds> , <https://w3id.org/lmodel/calm/quarters> , <https://w3id.org/lmodel/calm/seconds> , <https://w3id.org/lmodel/calm/weeks> , <https://w3id.org/lmodel/calm/years> .
+<https://w3id.org/lmodel/calm/CalmTimeline> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:timeline.json"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/current_moment> , <https://w3id.org/lmodel/calm/metadata> , <https://w3id.org/lmodel/calm/moments> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmTimeline"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmTimeline"^^xsd:anyURI ;
+	linkml:description "A timeline document, listing the moments of an architecture and naming the current one." ;
+	linkml:extra_slots _:c14n13 ;
+	linkml:slot_usage _:c14n84 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmTimeline__current_moment> , <https://w3id.org/lmodel/calm/calmTimeline__metadata> , <https://w3id.org/lmodel/calm/calmTimeline__moments> .
+<https://w3id.org/lmodel/calm/CalmTransition> a linkml:ClassDefinition ;
+	skos:exactMatch "calm_meta:flow.json#/defs/transition"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	linkml:attributes <https://w3id.org/lmodel/calm/description> , <https://w3id.org/lmodel/calm/direction> , <https://w3id.org/lmodel/calm/relationship_unique_id> , <https://w3id.org/lmodel/calm/sequence_number> ;
+	linkml:class_uri "https://w3id.org/lmodel/calm/CalmTransition"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmTransition"^^xsd:anyURI ;
+	linkml:description "One step of a flow, across one relationship of the architecture." ;
+	linkml:extra_slots _:c14n88 ;
+	linkml:slot_usage _:c14n87 ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmTransition__description> , <https://w3id.org/lmodel/calm/calmTransition__direction> , <https://w3id.org/lmodel/calm/calmTransition__relationship_unique_id> , <https://w3id.org/lmodel/calm/calmTransition__sequence_number> .
+<https://w3id.org/lmodel/calm/CalmTransitionDirection> skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	linkml:definition_uri "https://w3id.org/lmodel/calm/CalmTransitionDirection"^^xsd:anyURI ;
+	linkml:description "The direction of a transition along its relationship." ;
+	linkml:permissible_values <https://w3id.org/lmodel/calm/destination-to-source> , <https://w3id.org/lmodel/calm/source-to-destination> .
+<https://w3id.org/lmodel/calm/FTP> linkml:description "File Transfer Protocol." .
+<https://w3id.org/lmodel/calm/HTTP> linkml:description "Hypertext Transfer Protocol." .
+<https://w3id.org/lmodel/calm/HTTPS> linkml:description "HTTP over TLS." .
+<https://w3id.org/lmodel/calm/JDBC> linkml:description "Java Database Connectivity." .
+<https://w3id.org/lmodel/calm/LDAP> linkml:description "Lightweight Directory Access Protocol." .
+<https://w3id.org/lmodel/calm/SFTP> linkml:description "SSH File Transfer Protocol." .
+<https://w3id.org/lmodel/calm/SocketIO> linkml:description "The Socket.IO protocol." .
+<https://w3id.org/lmodel/calm/TCP> linkml:description "Transmission Control Protocol." .
+<https://w3id.org/lmodel/calm/TLS> linkml:description "Transport Layer Security." .
+<https://w3id.org/lmodel/calm/WebSocket> linkml:description "The WebSocket protocol." .
+<https://w3id.org/lmodel/calm/actor> a linkml:SlotDefinition ;
+	linkml:description "A person or system outside the architecture that acts on it." , "The unique-id of the node that acts." ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/adrs> a linkml:SlotDefinition ;
+	linkml:description "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation." , "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed." ;
+	linkml:multivalued true .
+<https://w3id.org/lmodel/calm/applies_to> a linkml:SlotDefinition ;
+	skos:prefLabel "applies-to" ;
+	linkml:description "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements" ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/architecture> linkml:description "An architecture document." .
+<https://w3id.org/lmodel/calm/boolean> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"boolean\"." ;
+	skos:exactMatch "schema:Boolean"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "Bool" ;
+	linkml:definition_uri "https://w3id.org/linkml/Boolean"^^xsd:anyURI ;
+	linkml:description "A binary (true or false) value" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "bool" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#boolean"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calm> dcterms:license "Apache-2.0" ;
+	dcterms:source "https://github.com/finos/calm-schema/tree/47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d/schema"^^xsd:anyURI ;
+	dcterms:title "FINOS CALM" ;
+	pav:version "1.3" ;
+	schema1:keywords "CALM" , "FINOS" , "architecture as code" , "software architecture" ;
+	a linkml:SchemaDefinition ;
+	rdfs:seeAlso "https://calm.finos.org/"^^xsd:anyURI , "https://github.com/finos/calm-schema"^^xsd:anyURI , "https://lmodel.github.io/calm"^^xsd:anyURI ;
+	skos:note "A reference to a node, relationship or moment is its unique-id, a string, as CALM gives it. No slot is an identifier: gen-python in linkml 1.12.1 names an identifier's type from its alias, and the hyphen in unique-id makes that name invalid Python." , "A slot whose name differs from CALM's key carries the key as its alias, such as unique_id for unique-id. scripts/calm_meta.py writes CALM's files with the aliases as keys, which plain gen-json-schema does only with --preserve-names." , "Six slots list CALM's key under aliases instead, so that only CALM's files carry it. Five are source_end, destination_end, target_architectures, unit_of_time and decorator_type, because LOKF defines source, target, unit and type with other meanings, and a composite's JSON-LD context gives each key one IRI. The sixth, decorator_schema, holds $schema, which gen-python would make an attribute's name." , "calm.json and calm-timeline.json declare CALM's vocabulary beside JSON Schema's own and hold no definition, so no module renders them; the build copies them from upstream/." ;
+	sh:declare _:c14n28 , _:c14n46 , _:c14n70 , _:c14n90 ;
+	linkml:annotations _:c14n23 , _:c14n54 , _:c14n60 , _:c14n62 ;
+	linkml:classes <https://w3id.org/lmodel/calm/CalmArchitecture> , <https://w3id.org/lmodel/calm/CalmComposedOfType> , <https://w3id.org/lmodel/calm/CalmConnectsType> , <https://w3id.org/lmodel/calm/CalmControl> , <https://w3id.org/lmodel/calm/CalmControlConfig> , <https://w3id.org/lmodel/calm/CalmControlDetail> , <https://w3id.org/lmodel/calm/CalmControlRequirement> , <https://w3id.org/lmodel/calm/CalmControls> , <https://w3id.org/lmodel/calm/CalmDecision> , <https://w3id.org/lmodel/calm/CalmDecorator> , <https://w3id.org/lmodel/calm/CalmDecoratorData> , <https://w3id.org/lmodel/calm/CalmDeployedInType> , <https://w3id.org/lmodel/calm/CalmEvidence> , <https://w3id.org/lmodel/calm/CalmEvidenceDocument> , <https://w3id.org/lmodel/calm/CalmFlow> , <https://w3id.org/lmodel/calm/CalmInteractsType> , <https://w3id.org/lmodel/calm/CalmInterfaceConfig> , <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> , <https://w3id.org/lmodel/calm/CalmInterfaceType> , <https://w3id.org/lmodel/calm/CalmMetadata> , <https://w3id.org/lmodel/calm/CalmNode> , <https://w3id.org/lmodel/calm/CalmNodeDetails> , <https://w3id.org/lmodel/calm/CalmNodeInterface> , <https://w3id.org/lmodel/calm/CalmNodeMoment> , <https://w3id.org/lmodel/calm/CalmRateUnit> , <https://w3id.org/lmodel/calm/CalmRelationship> , <https://w3id.org/lmodel/calm/CalmRelationshipType> , <https://w3id.org/lmodel/calm/CalmTimeUnit> , <https://w3id.org/lmodel/calm/CalmTimeline> , <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:default_prefix "calm" ;
+	linkml:default_range <https://w3id.org/lmodel/calm/string> ;
+	linkml:description "A LinkML model of CALM 1.3, the Common Architecture Language Model of FINOS's Architecture as Code project. Each module renders one file of the CALM Meta Schema and keeps CALM's keys, so a CALM document validates here unchanged, and CALM's JSON Schema files can be generated from the model." ;
+	linkml:enums <https://w3id.org/lmodel/calm/CalmDecoratorTargetType> , <https://w3id.org/lmodel/calm/CalmNodeTypeDefinition> , <https://w3id.org/lmodel/calm/CalmProtocol> , <https://w3id.org/lmodel/calm/CalmRateInterval> , <https://w3id.org/lmodel/calm/CalmTimeUnitName> , <https://w3id.org/lmodel/calm/CalmTransitionDirection> ;
+	linkml:id "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	linkml:imports "calm_control"^^xsd:anyURI , "calm_control_requirement"^^xsd:anyURI , "calm_core"^^xsd:anyURI , "calm_decorators"^^xsd:anyURI , "calm_evidence"^^xsd:anyURI , "calm_flow"^^xsd:anyURI , "calm_interface"^^xsd:anyURI , "calm_timeline"^^xsd:anyURI , "calm_units"^^xsd:anyURI , "linkml:types"^^xsd:anyURI ;
+	linkml:metamodel_version "1.12.0" ;
+	linkml:slots <https://w3id.org/lmodel/calm/calmArchitecture__adrs> , <https://w3id.org/lmodel/calm/calmArchitecture__controls> , <https://w3id.org/lmodel/calm/calmArchitecture__flows> , <https://w3id.org/lmodel/calm/calmArchitecture__metadata> , <https://w3id.org/lmodel/calm/calmArchitecture__nodes> , <https://w3id.org/lmodel/calm/calmArchitecture__relationships> , <https://w3id.org/lmodel/calm/calmComposedOfType__container> , <https://w3id.org/lmodel/calm/calmComposedOfType__nodes> , <https://w3id.org/lmodel/calm/calmConnectsType__destination_end> , <https://w3id.org/lmodel/calm/calmConnectsType__source_end> , <https://w3id.org/lmodel/calm/calmControlDetail__config> , <https://w3id.org/lmodel/calm/calmControlDetail__config_url> , <https://w3id.org/lmodel/calm/calmControlDetail__requirement_url> , <https://w3id.org/lmodel/calm/calmControlRequirement__control_id> , <https://w3id.org/lmodel/calm/calmControlRequirement__description> , <https://w3id.org/lmodel/calm/calmControlRequirement__name> , <https://w3id.org/lmodel/calm/calmControl__description> , <https://w3id.org/lmodel/calm/calmControl__requirements> , <https://w3id.org/lmodel/calm/calmDecision__controls> , <https://w3id.org/lmodel/calm/calmDecision__description> , <https://w3id.org/lmodel/calm/calmDecision__nodes> , <https://w3id.org/lmodel/calm/calmDecision__relationships> , <https://w3id.org/lmodel/calm/calmDecorator__applies_to> , <https://w3id.org/lmodel/calm/calmDecorator__data> , <https://w3id.org/lmodel/calm/calmDecorator__decorator_schema> , <https://w3id.org/lmodel/calm/calmDecorator__decorator_type> , <https://w3id.org/lmodel/calm/calmDecorator__target_architectures> , <https://w3id.org/lmodel/calm/calmDecorator__target_type> , <https://w3id.org/lmodel/calm/calmDecorator__unique_id> , <https://w3id.org/lmodel/calm/calmDeployedInType__container> , <https://w3id.org/lmodel/calm/calmDeployedInType__nodes> , <https://w3id.org/lmodel/calm/calmEvidenceDocument__evidence> , <https://w3id.org/lmodel/calm/calmEvidence__control_config_url> , <https://w3id.org/lmodel/calm/calmEvidence__evidence_paths> , <https://w3id.org/lmodel/calm/calmEvidence__unique_id> , <https://w3id.org/lmodel/calm/calmFlow__controls> , <https://w3id.org/lmodel/calm/calmFlow__description> , <https://w3id.org/lmodel/calm/calmFlow__metadata> , <https://w3id.org/lmodel/calm/calmFlow__name> , <https://w3id.org/lmodel/calm/calmFlow__requirement_url> , <https://w3id.org/lmodel/calm/calmFlow__transitions> , <https://w3id.org/lmodel/calm/calmFlow__unique_id> , <https://w3id.org/lmodel/calm/calmInteractsType__actor> , <https://w3id.org/lmodel/calm/calmInteractsType__nodes> , <https://w3id.org/lmodel/calm/calmInterfaceDefinition__config> , <https://w3id.org/lmodel/calm/calmInterfaceDefinition__definition_url> , <https://w3id.org/lmodel/calm/calmInterfaceDefinition__unique_id> , <https://w3id.org/lmodel/calm/calmInterfaceType__unique_id> , <https://w3id.org/lmodel/calm/calmNodeDetails__detailed_architecture> , <https://w3id.org/lmodel/calm/calmNodeDetails__required_pattern> , <https://w3id.org/lmodel/calm/calmNodeInterface__interfaces> , <https://w3id.org/lmodel/calm/calmNodeInterface__node> , <https://w3id.org/lmodel/calm/calmNodeMoment__adrs> , <https://w3id.org/lmodel/calm/calmNodeMoment__valid_from> , <https://w3id.org/lmodel/calm/calmNode__controls> , <https://w3id.org/lmodel/calm/calmNode__description> , <https://w3id.org/lmodel/calm/calmNode__details> , <https://w3id.org/lmodel/calm/calmNode__interfaces> , <https://w3id.org/lmodel/calm/calmNode__metadata> , <https://w3id.org/lmodel/calm/calmNode__name> , <https://w3id.org/lmodel/calm/calmNode__node_type> , <https://w3id.org/lmodel/calm/calmNode__unique_id> , <https://w3id.org/lmodel/calm/calmRateUnit__per> , <https://w3id.org/lmodel/calm/calmRateUnit__rate> , <https://w3id.org/lmodel/calm/calmRelationshipType__composed_of> , <https://w3id.org/lmodel/calm/calmRelationshipType__connects> , <https://w3id.org/lmodel/calm/calmRelationshipType__deployed_in> , <https://w3id.org/lmodel/calm/calmRelationshipType__interacts> , <https://w3id.org/lmodel/calm/calmRelationshipType__options> , <https://w3id.org/lmodel/calm/calmRelationship__controls> , <https://w3id.org/lmodel/calm/calmRelationship__description> , <https://w3id.org/lmodel/calm/calmRelationship__metadata> , <https://w3id.org/lmodel/calm/calmRelationship__protocol> , <https://w3id.org/lmodel/calm/calmRelationship__relationship_type> , <https://w3id.org/lmodel/calm/calmRelationship__unique_id> , <https://w3id.org/lmodel/calm/calmTimeUnit__unit_of_time> , <https://w3id.org/lmodel/calm/calmTimeUnit__value> , <https://w3id.org/lmodel/calm/calmTimeline__current_moment> , <https://w3id.org/lmodel/calm/calmTimeline__metadata> , <https://w3id.org/lmodel/calm/calmTimeline__moments> , <https://w3id.org/lmodel/calm/calmTransition__description> , <https://w3id.org/lmodel/calm/calmTransition__direction> , <https://w3id.org/lmodel/calm/calmTransition__relationship_unique_id> , <https://w3id.org/lmodel/calm/calmTransition__sequence_number> ;
+	linkml:source_file "calm.yaml" ;
+	linkml:source_file_date "2026-11-06T17:17:12"^^xsd:dateTime ;
+	linkml:source_file_size 3943 ;
+	linkml:types <https://w3id.org/lmodel/calm/CalmCronExpression> , <https://w3id.org/lmodel/calm/boolean> , <https://w3id.org/lmodel/calm/curie> , <https://w3id.org/lmodel/calm/date> , <https://w3id.org/lmodel/calm/date_or_datetime> , <https://w3id.org/lmodel/calm/datetime> , <https://w3id.org/lmodel/calm/decimal> , <https://w3id.org/lmodel/calm/double> , <https://w3id.org/lmodel/calm/float> , <https://w3id.org/lmodel/calm/integer> , <https://w3id.org/lmodel/calm/jsonpath> , <https://w3id.org/lmodel/calm/jsonpointer> , <https://w3id.org/lmodel/calm/ncname> , <https://w3id.org/lmodel/calm/nodeidentifier> , <https://w3id.org/lmodel/calm/objectidentifier> , <https://w3id.org/lmodel/calm/sparqlpath> , <https://w3id.org/lmodel/calm/string> , <https://w3id.org/lmodel/calm/time> , <https://w3id.org/lmodel/calm/uri> , <https://w3id.org/lmodel/calm/uriorcurie> .
+<https://w3id.org/lmodel/calm/calmArchitecture__adrs> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "adrs" ;
+	linkml:description "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to the architecture. These can be URLs or references to internal documentation." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/adrs"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmArchitecture__controls> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "controls" ;
+	linkml:description "The controls that apply to the whole architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControls> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/controls"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmArchitecture__flows> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "flows" ;
+	linkml:description "The business flows that run across the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/flows"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmArchitecture__metadata> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "metadata" ;
+	linkml:description "Free-form metadata about the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/metadata"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmArchitecture__nodes> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "nodes" ;
+	linkml:description "The components of the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/nodes"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmArchitecture__relationships> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm"^^xsd:anyURI ;
+	skos:prefLabel "relationships" ;
+	linkml:description "The links between the architecture's nodes." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmArchitecture> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/relationships"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmComposedOfType__container> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "container" ;
+	linkml:description "The unique-id of the node the others make up." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/container"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmComposedOfType__nodes> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "nodes" ;
+	linkml:description "The unique-ids of the nodes it is made of." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/nodes"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmConnectsType__destination_end> a linkml:SlotDefinition ;
+	skos:altLabel "destination" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "destination_end" ;
+	linkml:description "The end the connection reaches." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/destination_end"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmConnectsType__source_end> a linkml:SlotDefinition ;
+	skos:altLabel "source" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "source_end" ;
+	linkml:description "The end that opens the connection." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/source_end"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlDetail__config> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:prefLabel "config" ;
+	linkml:description "Inline configuration of how the control requirement schema is met" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControlConfig> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/config"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlDetail__config_url> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:prefLabel "config-url" ;
+	linkml:description "The configuration of how the control requirement schema is met" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/config_url"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlDetail__requirement_url> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:prefLabel "requirement-url" ;
+	linkml:description "The requirement schema that specifies how a control should be defined" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/requirement_url"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlRequirement__control_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control_requirement"^^xsd:anyURI ;
+	skos:prefLabel "control-id" ;
+	linkml:description "The unique identifier of this control, which has the potential to be used for linking evidence" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/control_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlRequirement__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control_requirement"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "A more detailed description of the control and information on what a developer needs to consider" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControlRequirement__name> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control_requirement"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/name"^^xsd:anyURI ;
+	skos:prefLabel "name" ;
+	linkml:description "The name of the control requirement that provides contextual meaning within a given domain" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControlRequirement> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/name"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControl__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "A description of a control and how it applies to a given architecture" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControl> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControl> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmControl__requirements> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_control"^^xsd:anyURI ;
+	skos:prefLabel "requirements" ;
+	linkml:description "The requirements this control applies, each with its configuration." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmControl> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmControl> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/requirements"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecision__controls> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "controls" ;
+	linkml:description "The keys of the controls this option adds." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/controls"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecision__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "What choosing this option means." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecision__nodes> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "nodes" ;
+	linkml:description "The unique-ids of the nodes this option adds." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/nodes"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecision__relationships> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "relationships" ;
+	linkml:description "The unique-ids of the relationships this option adds." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/relationships"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__applies_to> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "applies-to" ;
+	linkml:description "Array of unique-ids referencing nodes, relationships, flows, or other architecture elements" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/applies_to"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__data> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "data" ;
+	linkml:description "Free-form JSON object containing the decorator's data" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecoratorData> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/data"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__decorator_schema> a linkml:SlotDefinition ;
+	skos:altLabel "$schema" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "decorator_schema" ;
+	linkml:description "URI of the schema that this decorator conforms to, for example a decorator standard" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/decorator_schema"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__decorator_type> a linkml:SlotDefinition ;
+	skos:altLabel "type" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "decorator_type" ;
+	linkml:description "Type of decorator - a free-form string identifying the decorator category" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/decorator_type"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__target_architectures> a linkml:SlotDefinition ;
+	skos:altLabel "target" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "target_architectures" ;
+	linkml:description "Array of file paths or URLs referencing the CALM architectures this decorator targets" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/target_architectures"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__target_type> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "target-type" ;
+	linkml:description "Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:list_elements_unique true ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecoratorTargetType> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/target_type"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDecorator__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_decorators"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "Unique identifier for this decorator" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDecorator> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDeployedInType__container> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "container" ;
+	linkml:description "The unique-id of the node the others are deployed in." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/container"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmDeployedInType__nodes> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "nodes" ;
+	linkml:description "The unique-ids of the deployed nodes." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/nodes"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmEvidenceDocument__evidence> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	skos:prefLabel "evidence" ;
+	linkml:description "The evidence this document holds." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmEvidenceDocument> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmEvidenceDocument> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/evidence"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmEvidence__control_config_url> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	skos:prefLabel "control-config-url" ;
+	linkml:description "URI for the control configuration this evidence relates to" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/control_config_url"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmEvidence__evidence_paths> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	skos:prefLabel "evidence-paths" ;
+	linkml:description "Paths to the evidence relating to a specific control" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/evidence_paths"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmEvidence__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_evidence"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "CALM unique-id for future linking and uniquely defining this evidence" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__controls> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "controls" ;
+	linkml:description "The controls that apply to this flow." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControls> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/controls"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "Detailed description of the flow's purpose" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__metadata> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "metadata" ;
+	linkml:description "Free-form metadata about this flow." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/metadata"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__name> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/name"^^xsd:anyURI ;
+	skos:prefLabel "name" ;
+	linkml:description "Descriptive name for the business flow" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/name"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__requirement_url> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "requirement-url" ;
+	linkml:description "Link to a detailed requirement document" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/requirement_url"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__transitions> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "transitions" ;
+	linkml:description "The steps of the flow, each across one relationship." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/transitions"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmFlow__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "Unique identifier for the flow" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmFlow> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInteractsType__actor> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "actor" ;
+	linkml:description "The unique-id of the node that acts." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/actor"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInteractsType__nodes> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "nodes" ;
+	linkml:description "The unique-ids of the nodes it interacts with." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/nodes"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInterfaceDefinition__config> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "config" ;
+	linkml:description "Inline configuration conforming to the external interface schema" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInterfaceConfig> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/config"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInterfaceDefinition__definition_url> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "definition-url" ;
+	linkml:description "URI of the external schema this interface configuration conforms to" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/definition_url"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInterfaceDefinition__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "Unique identifier for this interface instance" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmInterfaceType__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "The interface's identifier, unique within the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmInterfaceType> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmInterfaceType> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeDetails__detailed_architecture> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "detailed-architecture" ;
+	linkml:description "The address of an architecture document that describes this node in detail." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/detailed_architecture"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeDetails__required_pattern> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "required-pattern" ;
+	linkml:description "The address of a pattern that the detailed architecture must follow." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/required_pattern"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeInterface__interfaces> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "interfaces" ;
+	linkml:description "The unique-ids of the node's interfaces this end uses." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/interfaces"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeInterface__node> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_interface"^^xsd:anyURI ;
+	skos:prefLabel "node" ;
+	linkml:description "The unique-id of the node at this end." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/node"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeMoment__adrs> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:prefLabel "adrs" ;
+	linkml:description "External links to ADRs (Architecture Decision Records) or similar documents that provide context or decisions related to why the architecture changed." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/adrs"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNodeMoment__valid_from> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:prefLabel "valid-from" ;
+	linkml:description "The date when this architecture moment came into effect." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:range <https://w3id.org/lmodel/calm/date> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/valid_from"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__controls> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "controls" ;
+	linkml:description "The controls that apply to this node." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControls> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/controls"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "What the node is and does." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__details> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "details" ;
+	linkml:description "Where a more detailed architecture of this node is, and the pattern it must follow." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/details"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__interfaces> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "interfaces" ;
+	linkml:any_of _:c14n66 , _:c14n78 ;
+	linkml:description "The interfaces the node exposes." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/interfaces"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__metadata> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "metadata" ;
+	linkml:description "Free-form metadata about this node." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/metadata"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__name> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/name"^^xsd:anyURI ;
+	skos:prefLabel "name" ;
+	linkml:description "The node's name." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/name"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__node_type> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "node-type" ;
+	linkml:any_of _:c14n19 , _:c14n86 ;
+	linkml:description "What kind of node this is, one of CALM's built-in types or any other name." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/node_type"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmNode__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "The node's identifier, unique within the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRateUnit__per> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	skos:prefLabel "per" ;
+	linkml:description "The time unit defining the rate interval." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRateUnit> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRateUnit> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRateInterval> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/per"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRateUnit__rate> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	skos:note "CALM gives the rate as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." ;
+	skos:prefLabel "rate" ;
+	linkml:description "The numeric value representing the rate." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRateUnit> ;
+	linkml:minimum_value "0"^^linkml:\@id ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRateUnit> ;
+	linkml:range <https://w3id.org/lmodel/calm/decimal> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/rate"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationshipType__composed_of> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "composed-of" ;
+	linkml:description "Nodes that make up a container node." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/composed_of"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationshipType__connects> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "connects" ;
+	linkml:description "A connection from one node's interfaces to another's." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/connects"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationshipType__deployed_in> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "deployed-in" ;
+	linkml:description "Nodes deployed in a container node." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/deployed_in"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationshipType__interacts> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "interacts" ;
+	linkml:description "An actor that interacts with nodes." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/interacts"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationshipType__options> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "options" ;
+	linkml:description "Decisions between options, each naming the nodes and relationships it would add." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/options"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__controls> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "controls" ;
+	linkml:description "The controls that apply to this relationship." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControls> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/controls"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "What the relationship is for." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__metadata> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "metadata" ;
+	linkml:description "Free-form metadata about this relationship." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/metadata"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__protocol> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "protocol" ;
+	linkml:description "The protocol a connection uses." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmProtocol> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/protocol"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__relationship_type> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "relationship-type" ;
+	linkml:description "The kind of the relationship and the nodes it links." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/relationship_type"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmRelationship__unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_core"^^xsd:anyURI ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "The relationship's identifier, unique within the architecture." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTimeUnit__unit_of_time> a linkml:SlotDefinition ;
+	skos:altLabel "unit" ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	skos:prefLabel "unit_of_time" ;
+	linkml:description "The unit of time (e.g., seconds, minutes, hours)." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTimeUnit> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTimeUnit> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTimeUnitName> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/unit_of_time"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTimeUnit__value> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_units"^^xsd:anyURI ;
+	skos:note "CALM gives the value as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." ;
+	skos:prefLabel "value" ;
+	linkml:description "The numeric value representing the amount of time." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTimeUnit> ;
+	linkml:minimum_value "0"^^linkml:\@id ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTimeUnit> ;
+	linkml:range <https://w3id.org/lmodel/calm/decimal> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/value"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTimeline__current_moment> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:prefLabel "current-moment" ;
+	linkml:description "The unique-id of the current architecture moment within the timeline." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/current_moment"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTimeline__metadata> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:prefLabel "metadata" ;
+	linkml:description "Free-form metadata about this timeline." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/metadata"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTimeline__moments> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_timeline"^^xsd:anyURI ;
+	skos:prefLabel "moments" ;
+	linkml:description "A list of significant architecture states or points in time, each represented as a 'moment'." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:inlined true ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTimeline> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/moments"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTransition__description> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:mappingRelation "http://schema.org/description"^^xsd:anyURI ;
+	skos:prefLabel "description" ;
+	linkml:description "Functional summary of what is happening in the transition" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "http://schema.org/description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTransition__direction> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "direction" ;
+	linkml:description "Which way along the relationship the step goes." ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:ifabsent "string(source-to-destination)" ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTransitionDirection> ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/direction"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTransition__relationship_unique_id> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "relationship-unique-id" ;
+	linkml:description "Unique identifier for the relationship in the architecture" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:range <https://w3id.org/lmodel/calm/string> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/relationship_unique_id"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/calmTransition__sequence_number> a linkml:SlotDefinition ;
+	skos:inScheme "https://w3id.org/lmodel/calm/calm_flow"^^xsd:anyURI ;
+	skos:prefLabel "sequence-number" ;
+	linkml:description "Indicates the sequence of the relationship in the flow" ;
+	linkml:domain_of <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:owner <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:range <https://w3id.org/lmodel/calm/integer> ;
+	linkml:required true ;
+	linkml:slot_uri "https://w3id.org/lmodel/calm/sequence_number"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/composed_of> a linkml:SlotDefinition ;
+	skos:prefLabel "composed-of" ;
+	linkml:description "Nodes that make up a container node." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmComposedOfType> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/config> a linkml:SlotDefinition ;
+	linkml:description "Inline configuration conforming to the external interface schema" , "Inline configuration of how the control requirement schema is met" ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControlConfig> , <https://w3id.org/lmodel/calm/CalmInterfaceConfig> ;
+	linkml:required true ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/config_url> a linkml:SlotDefinition ;
+	skos:prefLabel "config-url" ;
+	linkml:description "The configuration of how the control requirement schema is met" ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/connects> a linkml:SlotDefinition ;
+	linkml:description "A connection from one node's interfaces to another's." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmConnectsType> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/container> a linkml:SlotDefinition ;
+	linkml:description "The unique-id of the node the others are deployed in." , "The unique-id of the node the others make up." ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/control_config_url> a linkml:SlotDefinition ;
+	skos:prefLabel "control-config-url" ;
+	linkml:description "URI for the control configuration this evidence relates to" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/control_id> a linkml:SlotDefinition ;
+	skos:prefLabel "control-id" ;
+	linkml:description "The unique identifier of this control, which has the potential to be used for linking evidence" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/controls> a linkml:SlotDefinition ;
+	linkml:description "The controls that apply to the whole architecture." , "The controls that apply to this flow." , "The controls that apply to this node." , "The controls that apply to this relationship." , "The keys of the controls this option adds." ;
+	linkml:inlined true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControls> .
+<https://w3id.org/lmodel/calm/curie> dcterms:conformsTo "https://www.w3.org/TR/curie/" ;
+	a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"curie\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	skos:note "in RDF serializations this MUST be expanded to a URI" , "in non-RDF serializations MAY be serialized as the compact representation" ;
+	linkml:base "Curie" ;
+	linkml:definition_uri "https://w3id.org/linkml/Curie"^^xsd:anyURI ;
+	linkml:description "a compact URI" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/current_moment> a linkml:SlotDefinition ;
+	skos:prefLabel "current-moment" ;
+	linkml:description "The unique-id of the current architecture moment within the timeline." .
+<https://w3id.org/lmodel/calm/data-asset> dcterms:title "data asset" ;
+	linkml:description "A body of data the architecture holds or moves." .
+<https://w3id.org/lmodel/calm/data> a linkml:SlotDefinition ;
+	linkml:description "Free-form JSON object containing the decorator's data" ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecoratorData> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/database> linkml:description "A store of data." .
+<https://w3id.org/lmodel/calm/date> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"date\"." , "URI is dateTime because OWL reasoners don't work with straight date or time" ;
+	skos:exactMatch "schema:Date"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "XSDDate" ;
+	linkml:definition_uri "https://w3id.org/linkml/Date"^^xsd:anyURI ;
+	linkml:description "a date (year, month and day) in an idealized calendar" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#date"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/date_or_datetime> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"date_or_datetime\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/linkml/DateOrDatetime"^^xsd:anyURI ;
+	linkml:description "Either a date or a datetime" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "https://w3id.org/linkml/DateOrDatetime"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/datetime> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"datetime\"." ;
+	skos:exactMatch "schema:DateTime"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "XSDDateTime" ;
+	linkml:definition_uri "https://w3id.org/linkml/Datetime"^^xsd:anyURI ;
+	linkml:description "The combination of a date and time" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#dateTime"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/day> linkml:description "Per day." .
+<https://w3id.org/lmodel/calm/days> linkml:description "Days." .
+<https://w3id.org/lmodel/calm/decimal> a linkml:TypeDefinition ;
+	skos:broadMatch "schema:Number"^^xsd:anyURI ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"decimal\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "Decimal" ;
+	linkml:definition_uri "https://w3id.org/linkml/Decimal"^^xsd:anyURI ;
+	linkml:description "A real number with arbitrary precision that conforms to the xsd:decimal specification" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#decimal"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/decorator_schema> a linkml:SlotDefinition ;
+	skos:altLabel "$schema" ;
+	linkml:description "URI of the schema that this decorator conforms to, for example a decorator standard" .
+<https://w3id.org/lmodel/calm/decorator_type> a linkml:SlotDefinition ;
+	skos:altLabel "type" ;
+	linkml:description "Type of decorator - a free-form string identifying the decorator category" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/definition_url> a linkml:SlotDefinition ;
+	skos:prefLabel "definition-url" ;
+	linkml:description "URI of the external schema this interface configuration conforms to" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/deployed_in> a linkml:SlotDefinition ;
+	skos:prefLabel "deployed-in" ;
+	linkml:description "Nodes deployed in a container node." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDeployedInType> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/description> a linkml:SlotDefinition ;
+	linkml:description "A description of a control and how it applies to a given architecture" , "A more detailed description of the control and information on what a developer needs to consider" , "Detailed description of the flow's purpose" , "Functional summary of what is happening in the transition" , "What choosing this option means." , "What the node is and does." , "What the relationship is for." ;
+	linkml:required true ;
+	linkml:slot_uri "schema:description"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/destination-to-source> dcterms:title "destination to source" ;
+	linkml:description "From the relationship's destination back to its source." .
+<https://w3id.org/lmodel/calm/destination_end> a linkml:SlotDefinition ;
+	skos:altLabel "destination" ;
+	linkml:description "The end the connection reaches." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/detailed_architecture> a linkml:SlotDefinition ;
+	skos:prefLabel "detailed-architecture" ;
+	linkml:description "The address of an architecture document that describes this node in detail." .
+<https://w3id.org/lmodel/calm/details> a linkml:SlotDefinition ;
+	linkml:description "Where a more detailed architecture of this node is, and the pattern it must follow." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeDetails> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/direction> a linkml:SlotDefinition ;
+	linkml:description "Which way along the relationship the step goes." ;
+	linkml:ifabsent "string(source-to-destination)" ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTransitionDirection> .
+<https://w3id.org/lmodel/calm/double> a linkml:TypeDefinition ;
+	skos:closeMatch "schema:Float"^^xsd:anyURI ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"double\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "float" ;
+	linkml:definition_uri "https://w3id.org/linkml/Double"^^xsd:anyURI ;
+	linkml:description "A real number that conforms to the xsd:double specification" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#double"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/ecosystem> linkml:description "A group of systems that work together." .
+<https://w3id.org/lmodel/calm/evidence> a linkml:SlotDefinition ;
+	linkml:description "The evidence this document holds." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmEvidence> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/evidence_paths> a linkml:SlotDefinition ;
+	skos:prefLabel "evidence-paths" ;
+	linkml:description "Paths to the evidence relating to a specific control" ;
+	linkml:multivalued true ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/float> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"float\"." ;
+	skos:exactMatch "schema:Float"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "float" ;
+	linkml:definition_uri "https://w3id.org/linkml/Float"^^xsd:anyURI ;
+	linkml:description "A real number that conforms to the xsd:float specification" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#float"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/flows> a linkml:SlotDefinition ;
+	linkml:description "The business flows that run across the architecture." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmFlow> .
+<https://w3id.org/lmodel/calm/hour> linkml:description "Per hour." .
+<https://w3id.org/lmodel/calm/hours> linkml:description "Hours." .
+<https://w3id.org/lmodel/calm/integer> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"integer\"." ;
+	skos:exactMatch "schema:Integer"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "int" ;
+	linkml:definition_uri "https://w3id.org/linkml/Integer"^^xsd:anyURI ;
+	linkml:description "An integer" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#integer"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/interacts> a linkml:SlotDefinition ;
+	linkml:description "An actor that interacts with nodes." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInteractsType> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/interfaces> a linkml:SlotDefinition ;
+	linkml:any_of _:c14n61 , _:c14n73 ;
+	linkml:description "The interfaces the node exposes." , "The unique-ids of the node's interfaces this end uses." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:value_presence "ABSENT" .
+<https://w3id.org/lmodel/calm/jsonpath> dcterms:conformsTo "https://www.ietf.org/archive/id/draft-goessner-dispatch-jsonpath-00.html" ;
+	a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"jsonpath\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/linkml/Jsonpath"^^xsd:anyURI ;
+	linkml:description "A string encoding a JSON Path. The value of the string MUST conform to JSON Point syntax and SHOULD dereference to zero or more valid objects within the current instance document when encoded in tree form." ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/jsonpointer> dcterms:conformsTo "https://datatracker.ietf.org/doc/html/rfc6901" ;
+	a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"jsonpointer\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/linkml/Jsonpointer"^^xsd:anyURI ;
+	linkml:description "A string encoding a JSON Pointer. The value of the string MUST conform to JSON Point syntax and SHOULD dereference to a valid object within the current instance document when encoded in tree form." ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/ldap> linkml:description "A directory service reached over LDAP." .
+<https://w3id.org/lmodel/calm/mTLS> linkml:description "TLS in which both ends present a certificate." .
+<https://w3id.org/lmodel/calm/metadata> a linkml:SlotDefinition ;
+	linkml:description "Free-form metadata about the architecture." , "Free-form metadata about this flow." , "Free-form metadata about this node." , "Free-form metadata about this relationship." , "Free-form metadata about this timeline." ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmMetadata> .
+<https://w3id.org/lmodel/calm/microsecond> linkml:description "Per millionth of a second." .
+<https://w3id.org/lmodel/calm/microseconds> linkml:description "Millionths of a second." .
+<https://w3id.org/lmodel/calm/millisecond> linkml:description "Per thousandth of a second." .
+<https://w3id.org/lmodel/calm/milliseconds> linkml:description "Thousandths of a second." .
+<https://w3id.org/lmodel/calm/minute> linkml:description "Per minute." .
+<https://w3id.org/lmodel/calm/minutes> linkml:description "Minutes." .
+<https://w3id.org/lmodel/calm/moments> a linkml:SlotDefinition ;
+	linkml:description "A list of significant architecture states or points in time, each represented as a 'moment'." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeMoment> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/month> linkml:description "Per calendar month." .
+<https://w3id.org/lmodel/calm/months> linkml:description "Calendar months." .
+<https://w3id.org/lmodel/calm/name> a linkml:SlotDefinition ;
+	linkml:description "Descriptive name for the business flow" , "The name of the control requirement that provides contextual meaning within a given domain" , "The node's name." ;
+	linkml:required true ;
+	linkml:slot_uri "schema:name"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/nanosecond> linkml:description "Per billionth of a second." .
+<https://w3id.org/lmodel/calm/nanoseconds> linkml:description "Billionths of a second." .
+<https://w3id.org/lmodel/calm/ncname> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"ncname\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "NCName" ;
+	linkml:definition_uri "https://w3id.org/linkml/Ncname"^^xsd:anyURI ;
+	linkml:description "Prefix part of CURIE" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/network> linkml:description "A network that nodes are deployed in." .
+<https://w3id.org/lmodel/calm/node> a linkml:SlotDefinition ;
+	linkml:description "The unique-id of the node at this end." ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/node_type> a linkml:SlotDefinition ;
+	skos:prefLabel "node-type" ;
+	linkml:any_of _:c14n10 , _:c14n20 ;
+	linkml:description "What kind of node this is, one of CALM's built-in types or any other name." ;
+	linkml:equals_string "moment" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/nodeidentifier> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"nodeidentifier\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "NodeIdentifier" ;
+	linkml:definition_uri "https://w3id.org/linkml/Nodeidentifier"^^xsd:anyURI ;
+	linkml:description "A URI, CURIE or BNODE that represents a node in a model." ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/ns/shex#nonLiteral"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/nodes> a linkml:SlotDefinition ;
+	linkml:description "The components of the architecture." , "The unique-ids of the deployed nodes." , "The unique-ids of the nodes it interacts with." , "The unique-ids of the nodes it is made of." , "The unique-ids of the nodes this option adds." ;
+	linkml:inlined_as_list true ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNode> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/objectidentifier> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"objectidentifier\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	skos:note "Used for inheritance and type checking" ;
+	linkml:base "ElementIdentifier" ;
+	linkml:definition_uri "https://w3id.org/linkml/Objectidentifier"^^xsd:anyURI ;
+	linkml:description "A URI or CURIE that represents an object in the model." ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/ns/shex#iri"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/options> a linkml:SlotDefinition ;
+	linkml:description "Decisions between options, each naming the nodes and relationships it would add." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecision> ;
+	linkml:value_presence "PRESENT" .
+<https://w3id.org/lmodel/calm/per> a linkml:SlotDefinition ;
+	linkml:description "The time unit defining the rate interval." ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRateInterval> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/protocol> a linkml:SlotDefinition ;
+	linkml:description "The protocol a connection uses." ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmProtocol> .
+<https://w3id.org/lmodel/calm/quarter> linkml:description "Per quarter of a year." .
+<https://w3id.org/lmodel/calm/quarters> linkml:description "Quarters of a year." .
+<https://w3id.org/lmodel/calm/rate> a linkml:SlotDefinition ;
+	skos:note "CALM gives the rate as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." ;
+	linkml:description "The numeric value representing the rate." ;
+	linkml:minimum_value "0"^^linkml:\@id ;
+	linkml:range <https://w3id.org/lmodel/calm/decimal> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/relationship_type> a linkml:SlotDefinition ;
+	skos:prefLabel "relationship-type" ;
+	linkml:description "The kind of the relationship and the nodes it links." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRelationshipType> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/relationship_unique_id> a linkml:SlotDefinition ;
+	skos:prefLabel "relationship-unique-id" ;
+	linkml:description "Unique identifier for the relationship in the architecture" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/relationships> a linkml:SlotDefinition ;
+	linkml:description "The links between the architecture's nodes." , "The unique-ids of the relationships this option adds." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmRelationship> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/required_pattern> a linkml:SlotDefinition ;
+	skos:prefLabel "required-pattern" ;
+	linkml:description "The address of a pattern that the detailed architecture must follow." .
+<https://w3id.org/lmodel/calm/requirement_url> a linkml:SlotDefinition ;
+	skos:prefLabel "requirement-url" ;
+	linkml:description "Link to a detailed requirement document" , "The requirement schema that specifies how a control should be defined" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/requirements> a linkml:SlotDefinition ;
+	linkml:description "The requirements this control applies, each with its configuration." ;
+	linkml:inlined_as_list true ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControlDetail> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/second> linkml:description "Per second." .
+<https://w3id.org/lmodel/calm/seconds> linkml:description "Seconds." .
+<https://w3id.org/lmodel/calm/sequence_number> a linkml:SlotDefinition ;
+	skos:prefLabel "sequence-number" ;
+	linkml:description "Indicates the sequence of the relationship in the flow" ;
+	linkml:range <https://w3id.org/lmodel/calm/integer> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/service> linkml:description "A service that runs in the architecture." .
+<https://w3id.org/lmodel/calm/source-to-destination> dcterms:title "source to destination" ;
+	linkml:description "From the relationship's source to its destination." .
+<https://w3id.org/lmodel/calm/source_end> a linkml:SlotDefinition ;
+	skos:altLabel "source" ;
+	linkml:description "The end that opens the connection." ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeInterface> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/sparqlpath> dcterms:conformsTo "https://www.w3.org/TR/sparql11-query/#propertypaths" ;
+	a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"sparqlpath\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/linkml/Sparqlpath"^^xsd:anyURI ;
+	linkml:description "A string encoding a SPARQL Property Path. The value of the string MUST conform to SPARQL syntax and SHOULD dereference to zero or more valid objects within the current instance document when encoded as RDF." ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/string> a linkml:TypeDefinition ;
+	skos:editorialNote "In RDF serializations, a slot with range of string is treated as a literal or type xsd:string. If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"string\"." ;
+	skos:exactMatch "schema:Text"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "str" ;
+	linkml:definition_uri "https://w3id.org/linkml/String"^^xsd:anyURI ;
+	linkml:description "A character string" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#string"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/system> linkml:description "A system made of other nodes." .
+<https://w3id.org/lmodel/calm/target_architectures> a linkml:SlotDefinition ;
+	skos:altLabel "target" ;
+	linkml:description "Array of file paths or URLs referencing the CALM architectures this decorator targets" ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/target_type> a linkml:SlotDefinition ;
+	skos:prefLabel "target-type" ;
+	linkml:description "Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements." ;
+	linkml:list_elements_unique true ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmDecoratorTargetType> .
+<https://w3id.org/lmodel/calm/time> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"time\"." , "URI is dateTime because OWL reasoners do not work with straight date or time" ;
+	skos:exactMatch "schema:Time"^^xsd:anyURI ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "XSDTime" ;
+	linkml:definition_uri "https://w3id.org/linkml/Time"^^xsd:anyURI ;
+	linkml:description "A time object represents a (local) time of day, independent of any particular day" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#time"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/transitions> a linkml:SlotDefinition ;
+	linkml:description "The steps of the flow, each across one relationship." ;
+	linkml:inlined_as_list true ;
+	linkml:minimum_cardinality 1 ;
+	linkml:multivalued true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTransition> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/unique_id> a linkml:SlotDefinition ;
+	skos:prefLabel "unique-id" ;
+	linkml:description "CALM unique-id for future linking and uniquely defining this evidence" , "The interface's identifier, unique within the architecture." , "The node's identifier, unique within the architecture." , "The relationship's identifier, unique within the architecture." , "Unique identifier for the flow" , "Unique identifier for this decorator" , "Unique identifier for this interface instance" ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/unit_of_time> a linkml:SlotDefinition ;
+	skos:altLabel "unit" ;
+	linkml:description "The unit of time (e.g., seconds, minutes, hours)." ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmTimeUnitName> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/uri> dcterms:conformsTo "https://www.ietf.org/rfc/rfc3987.txt" ;
+	a linkml:TypeDefinition ;
+	skos:closeMatch "schema:URL"^^xsd:anyURI ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"uri\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	skos:note "in RDF serializations a slot with range of uri is treated as a literal or type xsd:anyURI unless it is an identifier or a reference to an identifier, in which case it is translated directly to a node" ;
+	linkml:base "URI" ;
+	linkml:definition_uri "https://w3id.org/linkml/Uri"^^xsd:anyURI ;
+	linkml:description "a complete URI" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#anyURI"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/uriorcurie> a linkml:TypeDefinition ;
+	skos:editorialNote "If you are authoring schemas in LinkML YAML, the type is referenced with the lower case \"uriorcurie\"." ;
+	skos:inScheme "https://w3id.org/linkml/types"^^xsd:anyURI ;
+	linkml:base "URIorCURIE" ;
+	linkml:definition_uri "https://w3id.org/linkml/Uriorcurie"^^xsd:anyURI ;
+	linkml:description "a URI or a CURIE" ;
+	linkml:imported_from "linkml:types" ;
+	linkml:repr "str" ;
+	linkml:uri "http://www.w3.org/2001/XMLSchema#anyURI"^^xsd:anyURI .
+<https://w3id.org/lmodel/calm/valid_from> a linkml:SlotDefinition ;
+	skos:prefLabel "valid-from" ;
+	linkml:description "The date when this architecture moment came into effect." ;
+	linkml:range <https://w3id.org/lmodel/calm/date> .
+<https://w3id.org/lmodel/calm/value> a linkml:SlotDefinition ;
+	skos:note "CALM gives the value as a JSON number. A decimal keeps it exact in RDF and Python, where a float would round it, and renders as number too." ;
+	linkml:description "The numeric value representing the amount of time." ;
+	linkml:minimum_value "0"^^linkml:\@id ;
+	linkml:range <https://w3id.org/lmodel/calm/decimal> ;
+	linkml:required true .
+<https://w3id.org/lmodel/calm/webclient> linkml:description "A client that runs in a web browser." .
+<https://w3id.org/lmodel/calm/week> linkml:description "Per week." .
+<https://w3id.org/lmodel/calm/weeks> linkml:description "Weeks." .
+<https://w3id.org/lmodel/calm/year> linkml:description "Per year." .
+<https://w3id.org/lmodel/calm/years> linkml:description "Years." .
+_:c14n0 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n10 a linkml:AnonymousSlotExpression ;
+	linkml:range <https://w3id.org/lmodel/calm/string> .
+_:c14n12 linkml:per "millisecond" ;
+	linkml:rate 5 .
+_:c14n13 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n14 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n15 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n17 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/config> .
+_:c14n19 a linkml:AnonymousSlotExpression ;
+	linkml:range <https://w3id.org/lmodel/calm/string> .
+_:c14n20 a linkml:AnonymousSlotExpression ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeTypeDefinition> .
+_:c14n21 a linkml:AnonymousSlotExpression ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmControl> .
+_:c14n23 skos:example "v1.3" ;
+	linkml:tag "upstream_tag"^^xsd:anyURI .
+_:c14n26 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/composed_of> .
+_:c14n27 qudt:unit <https://w3id.org/lmodel/calm/days> ;
+	skos:example 7 .
+_:c14n28 sh:namespace "http://schema.org/"^^xsd:anyURI ;
+	sh:prefix "schema" .
+_:c14n29 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n3 a linkml:Example ;
+	skos:example "30 14 1 * 5" .
+_:c14n30 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/details> .
+_:c14n32 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n33 qudt:unit <https://w3id.org/lmodel/calm/seconds> ;
+	skos:example 30 .
+_:c14n35 qudt:unit <https://w3id.org/lmodel/calm/minutes> ;
+	skos:example 15 .
+_:c14n36 qudt:unit <https://w3id.org/lmodel/calm/hours> ;
+	skos:example 1 .
+_:c14n37 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n38 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n4 a linkml:Example .
+_:c14n40 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/deployed_in> .
+_:c14n45 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n46 sh:namespace "https://w3id.org/lmodel/calm/"^^xsd:anyURI ;
+	sh:prefix "calm" .
+_:c14n47 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n48 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/connects> .
+_:c14n49 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/node_type> .
+_:c14n5 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n51 a linkml:ExtraSlotsExpression ;
+	linkml:range_expression _:c14n21 .
+_:c14n52 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n54 skos:example "Apache-2.0" ;
+	linkml:tag "upstream_license"^^xsd:anyURI .
+_:c14n57 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n58 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n59 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n60 skos:example "47e2a41a0e1e5e9fe639b30ce2adae8c4abc5b6d" ;
+	linkml:tag "upstream_commit"^^xsd:anyURI .
+_:c14n61 a linkml:AnonymousSlotExpression ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> .
+_:c14n62 skos:example "2026-10-24" ;
+	linkml:tag "upstream_release_date"^^xsd:anyURI .
+_:c14n64 a linkml:Example ;
+	skos:example "15 10 * * *" .
+_:c14n66 a linkml:AnonymousSlotExpression ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInterfaceDefinition> .
+_:c14n67 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n68 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n69 linkml:per "second" ;
+	linkml:rate 30 .
+_:c14n7 linkml:per "minute" ;
+	linkml:rate 1000 .
+_:c14n70 sh:namespace "https://calm.finos.org/release/1.3/meta/"^^xsd:anyURI ;
+	sh:prefix "calm_meta" .
+_:c14n73 a linkml:AnonymousSlotExpression ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInterfaceType> .
+_:c14n74 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/interfaces> .
+_:c14n76 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/options> .
+_:c14n77 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n78 a linkml:AnonymousSlotExpression ;
+	linkml:inlined true ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmInterfaceType> .
+_:c14n8 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n80 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n82 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/config_url> .
+_:c14n83 a linkml:Example ;
+	skos:example "0 0 * * 0" .
+_:c14n85 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n86 a linkml:AnonymousSlotExpression ;
+	linkml:range <https://w3id.org/lmodel/calm/CalmNodeTypeDefinition> .
+_:c14n88 a linkml:ExtraSlotsExpression ;
+	linkml:allowed true .
+_:c14n9 a linkml:AnonymousClassExpression ;
+	linkml:slot_conditions <https://w3id.org/lmodel/calm/interacts> .
+_:c14n90 sh:namespace "https://w3id.org/linkml/"^^xsd:anyURI ;
+	sh:prefix "linkml" .
+_:c14n91 a linkml:Example ;
+	linkml:object _:c14n69 .
+_:c14n92 a linkml:Example ;
+	linkml:object _:c14n12 .
+_:c14n93 a linkml:Example ;
+	linkml:object _:c14n7 .
+_:c14n94 a linkml:Example ;
+	linkml:object _:c14n36 .
+_:c14n95 a linkml:Example ;
+	linkml:object _:c14n35 .
+_:c14n96 a linkml:Example ;
+	linkml:object _:c14n27 .
+_:c14n97 a linkml:Example ;
+	linkml:object _:c14n33 .
+
