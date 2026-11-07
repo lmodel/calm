@@ -73,3 +73,8 @@ test-results/
 conferences/qcon/scenario*/infrastructure/
 conferences/qcon/scenario*/generated/
 conferences/qcon/scenario*/generated-*/
+
+# Agent skills are installed at run time, never committed.
+.agents/
+.claude/
+skills-lock.json
