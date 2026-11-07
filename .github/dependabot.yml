@@ -84,3 +84,41 @@ updates:
       release-tools:
         patterns:
           - "*"
+
+  # FINOS's manifests. FINOS's tree stays byte for byte as FINOS writes it,
+  # so a Dependabot pull request on it can only fail the build: FINOS fixes
+  # its own dependencies, and the next FINOS merge brings the fix here. An
+  # `ignore` of every dependency stops security updates as well as version
+  # updates; `open-pull-requests-limit: 0` stops version updates only. "/"
+  # covers the npm workspaces the root package.json names.
+  # tests/test_upstream.py holds both lists to FINOS's tree.
+  - package-ecosystem: npm
+    directories:
+      - "/"
+      - "/calm-studio"
+      - "/cli/test_fixtures/getting-started/STEP-2/website"
+      - "/cli/test_fixtures/getting-started/STEP-3/website"
+      - "/conferences/qcon"
+      - "/shared/src/docify/template-bundles/docusaurus"
+      - "/shared/test_fixtures/docify/workshop/expected-output/non-secure"
+      - "/shared/test_fixtures/docify/workshop/expected-output/secure"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: maven
+    directories:
+      - "/"
+      - "/calm"
+      - "/calm-hub"
+      - "/calm-models"
+      - "/cli"
+      - "/docs"
+      - "/shared"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"

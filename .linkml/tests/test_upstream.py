@@ -7,8 +7,10 @@ and that the schema, the build and the watch name one edition.
 
 import hashlib
 import importlib.util
+import json
+from fnmatch import fnmatch
 from functools import lru_cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -17,6 +19,8 @@ TREE = ROOT.parent
 SCHEMA_DIR = ROOT / "src" / "calm" / "schema"
 UPSTREAM = ROOT / "upstream"
 MANIFEST = Path(__file__).parent / "upstream_tree.tsv"
+DEPENDABOT = TREE / ".github" / "dependabot.yml"
+FINOS_MANIFESTS = {"npm": ("package.json", "package-lock.json"), "maven": ("pom.xml",)}
 
 
 def _module(name, path):
@@ -49,6 +53,57 @@ def test_finos_tree_is_the_merged_commit():
         if not local.is_file() or _blob_sha(local) != sha:
             differing.append(path)
     assert not differing
+
+
+def _finos_paths():
+    return [
+        line.split("\t", 1)[1]
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+    ]
+
+
+def _dependabot_updates():
+    return yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))["updates"]
+
+
+def test_dependabot_ignores_every_finos_manifest():
+    """Each directory that holds a FINOS manifest is in an entry that ignores every
+    dependency, and nothing else is, so no Dependabot pull request touches FINOS's tree.
+    The root package.json's workspaces sit under "/"."""
+    root = json.loads((TREE / "package.json").read_text(encoding="utf-8"))
+    workspaces = root["workspaces"]
+    for ecosystem, names in FINOS_MANIFESTS.items():
+        expected = set()
+        for path in _finos_paths():
+            if PurePosixPath(path).name in names:
+                parent = PurePosixPath(path).parent.as_posix()
+                if parent == ".":
+                    expected.add("/")
+                    continue
+                in_workspace = any(fnmatch(parent, w) for w in workspaces)
+                if not (ecosystem == "npm" and in_workspace):
+                    expected.add("/" + parent)
+        ignored = {
+            directory
+            for entry in _dependabot_updates()
+            if entry["package-ecosystem"] == ecosystem
+            and {"dependency-name": "*"} in entry.get("ignore", [])
+            for directory in entry.get("directories", [entry.get("directory")])
+        }
+        assert ignored == expected, ecosystem
+
+
+def test_dependabot_leaves_finos_workflows_alone():
+    """The github-actions entry's exclude-paths match each FINOS workflow and none of ours."""
+    (entry,) = (
+        e for e in _dependabot_updates() if e["package-ecosystem"] == "github-actions"
+    )
+    finos = set(_finos_paths())
+    for workflow in sorted((TREE / ".github" / "workflows").glob("*.y*ml")):
+        path = str(workflow.relative_to(TREE))
+        excluded = any(fnmatch(path, glob) for glob in entry["exclude-paths"])
+        is_finos = path in finos
+        assert excluded == is_finos, path
 
 
 def test_upstream_holds_the_pinned_files_alone():
