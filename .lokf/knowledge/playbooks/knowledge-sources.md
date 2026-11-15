@@ -328,7 +328,7 @@ exclusions:
     reason: The template's placeholder README for the source folder.
 generated:
   by: process:ktl-librarian
-  at: "2026-11-06T20:27:22Z"
+  at: "2026-11-15T03:24:13Z"
 status: draft
 ---
 
@@ -343,7 +343,7 @@ status: draft
 | `.linkml/docs/`, `.linkml/README.md`, `.linkml/CONTRIBUTING.md` | explanations and playbooks | read them against the code they describe |
 | `.linkml/AI_COVENANT.md`, `.linkml/NOTICE`, `.github/SECURITY.md` | the policies (`Policy`) | read them |
 | `.github/workflows/`, `.github/scripts/`, `.github/release/`, `.releaserc.json` | this project's workflows (`Service`) | read each workflow's header |
-| `website/` | the documentation site (`Service`) | `website/site.config.mjs` |
+| `website/` | the documentation site (`Service`) | `website/site.toml` |
 | `calm/architecture/` and `README.md` of FINOS's tree | CALM's own architecture and FINOS's project (`CalmNode`, `CalmRelationship`, `CalmFlow`, `Reference`) | `tests/upstream_tree.tsv` pins them; re-read after a merge of FINOS's tree |
 
 FINOS's other workflows and tools are FINOS's project, not this one's, so the map lists them under `exclusions` and leaves them to FINOS's own documentation.
