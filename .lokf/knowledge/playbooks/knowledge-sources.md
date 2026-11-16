@@ -30,7 +30,7 @@ sources:
   - resource: .github/workflows/knowledge-sync.yaml
   - resource: .github/workflows/knowledge-website.yaml
   - resource: .github/scripts
-  - resource: .github/release
+  - resource: .release
   - resource: .github/SECURITY.md
   - resource: .lokf/justfile
   - resource: .lokf/pyproject.toml
@@ -328,7 +328,7 @@ exclusions:
     reason: The template's placeholder README for the source folder.
 generated:
   by: process:ktl-librarian
-  at: "2026-11-15T03:24:13Z"
+  at: "2026-11-15T20:55:50Z"
 status: draft
 ---
 
@@ -342,7 +342,7 @@ status: draft
 | `.linkml/parity/`, `.linkml/tests/` | the allowances, the examples and the neighbours (`Dataset`) | `just test` |
 | `.linkml/docs/`, `.linkml/README.md`, `.linkml/CONTRIBUTING.md` | explanations and playbooks | read them against the code they describe |
 | `.linkml/AI_COVENANT.md`, `.linkml/NOTICE`, `.github/SECURITY.md` | the policies (`Policy`) | read them |
-| `.github/workflows/`, `.github/scripts/`, `.github/release/`, `.releaserc.json` | this project's workflows (`Service`) | read each workflow's header |
+| `.github/workflows/`, `.github/scripts/`, `.release/`, `.releaserc.json` | this project's workflows (`Service`) | read each workflow's header |
 | `website/` | the documentation site (`Service`) | `website/site.toml` |
 | `calm/architecture/` and `README.md` of FINOS's tree | CALM's own architecture and FINOS's project (`CalmNode`, `CalmRelationship`, `CalmFlow`, `Reference`) | `tests/upstream_tree.tsv` pins them; re-read after a merge of FINOS's tree |
 
